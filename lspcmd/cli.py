@@ -110,12 +110,19 @@ def parse_position(position: str) -> tuple[int, int]:
 
 
 def expand_path_pattern(pattern: str) -> list[Path]:
-    """Expand a path pattern with glob wildcards (* and **) to matching files."""
+    """Expand a path pattern with glob wildcards (* and **) to matching files.
+    
+    Simple patterns without a directory (e.g. '*.go') are treated as recursive.
+    """
     if "*" not in pattern and "?" not in pattern:
         path = Path(pattern).resolve()
         if not path.exists():
             raise click.ClickException(f"Path not found: {pattern}")
         return [path]
+    
+    # Make simple patterns like "*.go" recursive (search from current dir down)
+    if "/" not in pattern and not pattern.startswith("**"):
+        pattern = "**/" + pattern
     
     matches = glob.glob(pattern, recursive=True)
     if not matches:
