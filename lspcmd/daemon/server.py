@@ -699,12 +699,28 @@ class DaemonServer:
             return {"error": "Workspace not found"}
 
         restarted = []
-        for server_name, workspace in servers.items():
+        failed = []
+        
+        for server_name, workspace in list(servers.items()):
+            was_running = workspace.client is not None
+            if not was_running:
+                continue
+                
             await workspace.stop_server()
-            await workspace.start_server()
-            restarted.append(server_name)
+            try:
+                await workspace.start_server()
+                restarted.append(server_name)
+            except FileNotFoundError:
+                install_cmd = workspace.server_config.install_cmd
+                if install_cmd:
+                    failed.append(f"{server_name} (not installed, run: {install_cmd})")
+                else:
+                    failed.append(f"{server_name} (not installed)")
 
-        return {"restarted": True, "servers": restarted}
+        result = {"restarted": True, "servers": restarted}
+        if failed:
+            result["failed"] = failed
+        return result
 
 
 async def run_daemon() -> None:
