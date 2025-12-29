@@ -47,6 +47,9 @@ class LSPClient:
     async def start(self) -> None:
         self._reader_task = asyncio.create_task(self._read_loop())
         if self.process.stderr:
+            if self.log_file:
+                self.log_file.parent.mkdir(parents=True, exist_ok=True)
+                self._log_handle = open(self.log_file, "a")
             self._stderr_task = asyncio.create_task(self._drain_stderr())
         await self._initialize()
 
@@ -56,9 +59,17 @@ class LSPClient:
                 data = await self.process.stderr.read(4096)
                 if not data:
                     break
-                logger.debug(f"Server stderr: {data.decode(errors='replace')[:200]}")
+                text = data.decode(errors='replace')
+                if self._log_handle:
+                    self._log_handle.write(text)
+                    self._log_handle.flush()
+                logger.debug(f"Server stderr: {text[:200]}")
         except Exception:
             pass
+        finally:
+            if self._log_handle:
+                self._log_handle.close()
+                self._log_handle = None
 
     async def stop(self) -> None:
         if self._initialized:
