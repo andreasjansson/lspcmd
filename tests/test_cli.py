@@ -8,7 +8,7 @@ from click.testing import CliRunner
 
 from lspcmd.cli import cli, parse_position
 from lspcmd.daemon.pidfile import is_daemon_running
-from lspcmd.utils.config import get_pid_path, get_socket_path
+from lspcmd.utils.config import get_pid_path, get_socket_path, add_workspace_root, load_config
 
 from .conftest import requires_pyright
 
@@ -36,6 +36,7 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "Commands:" in result.output
         assert "find-definition" in result.output
+        assert "init-workspace" in result.output
 
     def test_config_command(self, isolated_config):
         runner = CliRunner()
@@ -49,6 +50,26 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "LINE,COLUMN" in result.output
 
+    def test_init_workspace(self, python_project, isolated_config):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
+        assert result.exit_code == 0
+        assert "Initialized workspace:" in result.output
+
+    def test_init_workspace_already_initialized(self, python_project, isolated_config):
+        runner = CliRunner()
+        runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
+        result = runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
+        assert result.exit_code == 0
+        assert "already initialized" in result.output
+
+    def test_list_symbols_no_workspace(self, isolated_config):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["list-symbols"])
+        assert result.exit_code == 1
+        assert "No workspace initialized" in result.output
+        assert "init-workspace" in result.output
+
 
 @requires_pyright
 class TestCliWithDaemon:
@@ -56,7 +77,6 @@ class TestCliWithDaemon:
     def setup_teardown(self, isolated_config):
         yield
         pid_path = get_pid_path()
-        socket_path = get_socket_path()
 
         if is_daemon_running(pid_path):
             runner = CliRunner()
@@ -70,26 +90,29 @@ class TestCliWithDaemon:
 
     def test_find_definition(self, python_project, isolated_config):
         main_py = python_project / "main.py"
+        config = load_config()
+        add_workspace_root(python_project, config)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["find-definition", str(main_py), "36,11"], input="y\n")
-
+        result = runner.invoke(cli, ["find-definition", str(main_py), "36,11"])
         assert result.exit_code == 0
 
     def test_describe_thing_at_point(self, python_project, isolated_config):
         main_py = python_project / "main.py"
+        config = load_config()
+        add_workspace_root(python_project, config)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["describe-thing-at-point", str(main_py), "6,6"], input="y\n")
-
+        result = runner.invoke(cli, ["describe-thing-at-point", str(main_py), "6,6"])
         assert result.exit_code == 0
 
-    def test_list_symbols(self, python_project, isolated_config):
+    def test_list_symbols_with_file(self, python_project, isolated_config):
         main_py = python_project / "main.py"
+        config = load_config()
+        add_workspace_root(python_project, config)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["list-symbols", str(main_py)], input="y\n")
-
+        result = runner.invoke(cli, ["list-symbols", str(main_py)])
         assert result.exit_code == 0
         assert "User" in result.output or "Class" in result.output
 
