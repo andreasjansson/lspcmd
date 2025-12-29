@@ -500,26 +500,40 @@ def list_symbols(ctx, path, query, docs):
 
 @cli.command("search-symbol")
 @click.argument("pattern")
-@click.argument("path", type=click.Path(exists=True), required=False)
+@click.argument("path", required=False)
 @click.option("--docs", is_flag=True, help="Include documentation for each symbol")
 @click.pass_context
 def search_symbol(ctx, pattern, path, docs):
-    """Search for symbols matching a regex pattern."""
+    """Search for symbols matching a regex pattern.
+    
+    PATH can include wildcards: * matches any file, ** matches recursively.
+    Examples: 'src/*.py', 'src/**/*.go', 'lib/**/*_test.rs'
+    """
     config = load_config()
 
-    params = {"pattern": pattern, "include_docs": docs}
-
     if path:
-        path = Path(path).resolve()
-        workspace_root = get_workspace_root_for_path(path, config)
-        params["path"] = str(path)
-        params["workspace_root"] = str(workspace_root)
+        files = expand_path_pattern(path)
+        all_symbols = []
+        for file_path in files:
+            workspace_root = get_workspace_root_for_path(file_path, config)
+            response = run_request("search-symbol", {
+                "pattern": pattern,
+                "path": str(file_path),
+                "workspace_root": str(workspace_root),
+                "include_docs": docs,
+            })
+            result = response.get("result", [])
+            if isinstance(result, list):
+                all_symbols.extend(result)
+        click.echo(format_output(all_symbols, "json" if ctx.obj["json"] else "plain"))
     else:
         workspace_root = get_workspace_root_for_cwd(config)
-        params["workspace_root"] = str(workspace_root)
-
-    response = run_request("search-symbol", params)
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+        response = run_request("search-symbol", {
+            "pattern": pattern,
+            "workspace_root": str(workspace_root),
+            "include_docs": docs,
+        })
+        click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("list-signatures")
