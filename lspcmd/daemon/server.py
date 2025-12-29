@@ -590,6 +590,12 @@ class DaemonServer:
                     symbols = await self._collect_symbols_from_files(workspace, workspace_root, files)
                     all_symbols.extend(symbols)
                     
+            except FileNotFoundError:
+                server_config = get_server_for_language(lang_id, self.session.config)
+                if server_config and server_config.install_cmd:
+                    logger.info(f"Language server for {lang_id} not installed. Run: {server_config.install_cmd}")
+                else:
+                    logger.info(f"Language server for {lang_id} not installed")
             except Exception as e:
                 logger.warning(f"Failed to get symbols for language {lang_id}: {e}")
 
