@@ -691,23 +691,54 @@ class DaemonServer:
 
     async def _handle_restart_workspace(self, params: dict) -> dict:
         workspace_root = Path(params["workspace_root"]).resolve()
-        servers = self.session.workspaces.get(workspace_root)
+        servers = self.session.workspaces.get(workspace_root, {})
 
-        if not servers:
-            return {"error": "Workspace not found"}
-
-        restarted = []
+        if servers:
+            # Restart existing servers
+            restarted = []
+            for server_name, workspace in list(servers.items()):
+                if workspace.client is not None:
+                    await workspace.stop_server()
+                await workspace.start_server()
+                restarted.append(server_name)
+            return {"restarted": True, "servers": restarted}
         
-        for server_name, workspace in list(servers.items()):
-            was_running = workspace.client is not None
-            if not was_running:
-                continue
-                
-            await workspace.stop_server()
-            await workspace.start_server()
-            restarted.append(server_name)
+        # No servers running - discover languages and start servers
+        languages = self._discover_languages(workspace_root)
+        if not languages:
+            return {"error": f"No supported source files found in {workspace_root}"}
 
-        return {"restarted": True, "servers": restarted}
+        started = []
+        for lang_id in languages:
+            workspace = await self.session.get_or_create_workspace_for_language(lang_id, workspace_root)
+            if workspace and workspace.client:
+                started.append(workspace.server_config.name)
+
+        return {"restarted": True, "servers": started}
+
+    def _discover_languages(self, workspace_root: Path) -> list[str]:
+        from ..utils.text import get_language_id
+        from ..servers.registry import get_server_for_language
+
+        skip_dirs = {"node_modules", "__pycache__", ".git", "venv", ".venv", "build", "dist", ".tox", ".eggs"}
+        languages = set()
+
+        for file_path in workspace_root.rglob("*"):
+            if not file_path.is_file():
+                continue
+            if any(part.startswith(".") or part in skip_dirs or part.endswith(".egg-info")
+                   for part in file_path.parts):
+                continue
+            
+            lang_id = get_language_id(file_path)
+            if lang_id == "plaintext":
+                continue
+            
+            server_config = get_server_for_language(lang_id, self.session.config)
+            if server_config:
+                languages.add(lang_id)
+
+        return list(languages)
 
 
 async def run_daemon() -> None:
