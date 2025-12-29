@@ -131,3 +131,24 @@ class TestCliWithDaemon:
         result = runner.invoke(cli, ["--json", "describe-session"])
         assert result.exit_code == 0
         assert "{" in result.output
+
+    def test_restart_workspace(self, python_project, isolated_config):
+        main_py = python_project / "main.py"
+        config = load_config()
+        add_workspace_root(python_project, config)
+
+        runner = CliRunner()
+        # First, do something to initialize the workspace
+        runner.invoke(cli, ["list-symbols", str(main_py)])
+
+        # Now restart it
+        result = runner.invoke(cli, ["restart-workspace", str(python_project)])
+        assert result.exit_code == 0
+        assert "restarted" in result.output.lower() or "True" in result.output
+
+    def test_restart_workspace_not_found(self, temp_dir, isolated_config):
+        runner = CliRunner()
+        # Try to restart a workspace that doesn't exist
+        result = runner.invoke(cli, ["restart-workspace", str(temp_dir)])
+        # Should fail because workspace isn't initialized
+        assert result.exit_code != 0 or "error" in result.output.lower() or "not" in result.output.lower()
