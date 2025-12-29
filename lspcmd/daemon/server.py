@@ -553,17 +553,16 @@ class DaemonServer:
                     return f
         return None
 
-    async def _collect_symbols_from_files(self, workspace: "Workspace", workspace_root: Path) -> list[dict]:
-        from ..utils.text import get_language_id
-
+    async def _collect_symbols_from_files(self, workspace: Workspace, workspace_root: Path) -> list[dict]:
         symbols = []
         file_patterns = workspace.server_config.file_patterns
+        skip_dirs = {"node_modules", "__pycache__", ".git", "venv", ".venv", "build", "dist", ".tox", ".eggs", "*.egg-info"}
 
         for pattern in file_patterns:
-            for file_path in workspace_root.rglob(pattern.lstrip("*")):
+            for file_path in workspace_root.rglob(pattern):
                 if not file_path.is_file():
                     continue
-                if any(part.startswith(".") or part in ("node_modules", "__pycache__", ".git", "venv", ".venv", "build", "dist") 
+                if any(part.startswith(".") or part in skip_dirs or part.endswith(".egg-info")
                        for part in file_path.parts):
                     continue
 
