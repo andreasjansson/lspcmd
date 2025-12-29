@@ -504,14 +504,18 @@ class DaemonServer:
                     "kind": SymbolKind(item["kind"]).name,
                     "path": file_path,
                     "line": item["location"]["range"]["start"]["line"] + 1,
+                    "column": item["location"]["range"]["start"]["character"],
                     "container": item.get("containerName"),
                 })
             else:
+                # Use selectionRange for the symbol name position (for hover)
+                sel_range = item.get("selectionRange", item["range"])
                 output.append({
                     "name": item["name"],
                     "kind": SymbolKind(item["kind"]).name,
                     "path": file_path,
                     "line": item["range"]["start"]["line"] + 1,
+                    "column": sel_range["start"]["character"],
                     "container": container,
                     "detail": item.get("detail"),
                 })
