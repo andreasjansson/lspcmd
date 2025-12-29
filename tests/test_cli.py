@@ -63,9 +63,9 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "already initialized" in result.output
 
-    def test_list_symbols_no_workspace(self, isolated_config):
+    def test_grep_no_workspace(self, isolated_config):
         runner = CliRunner()
-        result = runner.invoke(cli, ["list-symbols"])
+        result = runner.invoke(cli, ["grep", ".*"])
         assert result.exit_code == 1
         assert "No workspace initialized" in result.output
         assert "init-workspace" in result.output
