@@ -666,12 +666,12 @@ class DaemonServer:
         workspace_root = Path(params.get("workspace_root", ".")).resolve()
         for sig in signatures:
             sig["documentation"] = await self._get_symbol_documentation(
-                workspace_root, sig["path"], sig["line"]
+                workspace_root, sig["path"], sig["line"], sig.get("column", 0)
             )
         
         return signatures
 
-    async def _get_symbol_documentation(self, workspace_root: Path, rel_path: str, line: int) -> str | None:
+    async def _get_symbol_documentation(self, workspace_root: Path, rel_path: str, line: int, column: int) -> str | None:
         file_path = workspace_root / rel_path
         
         workspace = self.session.get_workspace_for_file(file_path)
@@ -684,7 +684,7 @@ class DaemonServer:
                 "textDocument/hover",
                 {
                     "textDocument": {"uri": doc.uri},
-                    "position": {"line": line - 1, "character": 0},
+                    "position": {"line": line - 1, "character": column},
                 },
             )
             
