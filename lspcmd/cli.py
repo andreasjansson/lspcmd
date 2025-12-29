@@ -427,7 +427,7 @@ def execute_code_action(ctx, path, position, action_title):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
-@cli.command("format-buffer")
+@cli.command("format")
 @click.argument("path", type=click.Path(exists=True))
 @click.pass_context
 def format_buffer(ctx, path):
