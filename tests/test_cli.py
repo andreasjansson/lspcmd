@@ -34,7 +34,8 @@ class TestCliCommands:
         runner = CliRunner()
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
-        assert "LSP command-line interface" in result.output
+        assert "Commands:" in result.output
+        assert "find-definition" in result.output
 
     def test_config_command(self, isolated_config):
         runner = CliRunner()
