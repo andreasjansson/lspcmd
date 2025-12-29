@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from ..lsp.client import LSPClient
-from ..lsp.protocol import LanguageServerNotFound
+from ..lsp.protocol import LanguageServerNotFound, LanguageServerStartupError
 from ..utils.uri import path_to_uri
 from ..utils.text import get_language_id, read_file_content
 from ..servers.registry import ServerConfig, get_server_for_file, get_server_for_language
