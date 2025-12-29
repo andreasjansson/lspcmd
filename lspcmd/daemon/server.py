@@ -693,15 +693,18 @@ class DaemonServer:
 
     async def _handle_restart_workspace(self, params: dict) -> dict:
         workspace_root = Path(params["workspace_root"]).resolve()
-        workspace = self.session.workspaces.get(workspace_root)
+        servers = self.session.workspaces.get(workspace_root)
 
-        if not workspace:
+        if not servers:
             return {"error": "Workspace not found"}
 
-        await workspace.stop_server()
-        await workspace.start_server()
+        restarted = []
+        for server_name, workspace in servers.items():
+            await workspace.stop_server()
+            await workspace.start_server()
+            restarted.append(server_name)
 
-        return {"restarted": True}
+        return {"restarted": True, "servers": restarted}
 
 
 async def run_daemon() -> None:
