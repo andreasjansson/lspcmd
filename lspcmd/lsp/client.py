@@ -59,10 +59,11 @@ class LSPClient:
                 self.process.kill()
 
     async def _initialize(self) -> None:
+        import os
         result = await self.send_request(
             "initialize",
             {
-                "processId": None,
+                "processId": os.getpid(),
                 "rootUri": self.workspace_root,
                 "rootPath": self.workspace_root.replace("file://", ""),
                 "capabilities": get_client_capabilities(),
