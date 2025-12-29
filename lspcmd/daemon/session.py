@@ -37,7 +37,7 @@ class Workspace:
             *self.server_config.command,
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
             cwd=str(self.root),
         )
 
