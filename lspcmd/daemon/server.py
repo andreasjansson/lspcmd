@@ -650,10 +650,56 @@ class DaemonServer:
 
     async def _handle_list_signatures(self, params: dict) -> list[dict]:
         symbols = await self._handle_list_symbols(params)
-        return [
+        signatures = [
             s for s in symbols
             if s["kind"] in ("Function", "Method", "Constructor")
         ]
+        
+        if not params.get("include_docs"):
+            return signatures
+        
+        # Fetch documentation via hover for each signature
+        workspace_root = Path(params.get("workspace_root", ".")).resolve()
+        for sig in signatures:
+            sig["documentation"] = await self._get_symbol_documentation(
+                workspace_root, sig["path"], sig["line"]
+            )
+        
+        return signatures
+
+    async def _get_symbol_documentation(self, workspace_root: Path, rel_path: str, line: int) -> str | None:
+        file_path = workspace_root / rel_path
+        
+        workspace = self.session.get_workspace_for_file(file_path)
+        if not workspace or not workspace.client:
+            return None
+        
+        try:
+            doc = await workspace.ensure_document_open(file_path)
+            result = await workspace.client.send_request(
+                "textDocument/hover",
+                {
+                    "textDocument": {"uri": doc.uri},
+                    "position": {"line": line - 1, "character": 0},
+                },
+            )
+            
+            if not result:
+                return None
+            
+            contents = result.get("contents")
+            if isinstance(contents, dict):
+                return contents.get("value")
+            elif isinstance(contents, list):
+                return "\n".join(
+                    c.get("value", str(c)) if isinstance(c, dict) else str(c)
+                    for c in contents
+                )
+            else:
+                return str(contents) if contents else None
+        except Exception as e:
+            logger.debug(f"Failed to get hover for {rel_path}:{line}: {e}")
+            return None
 
     async def _handle_print_definition(self, params: dict) -> dict:
         locations = await self._handle_find_definition(params)
