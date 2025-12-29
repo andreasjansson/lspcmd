@@ -492,15 +492,12 @@ def parse_kinds(kinds_str: str) -> set[str] | None:
     return kinds if kinds else None
 
 
-def filter_symbols(symbols: list[dict], query: str | None, kinds: set[str] | None) -> list[dict]:
-    """Filter symbols by regex query and/or kinds."""
+def filter_symbols(symbols: list[dict], pattern: str, kinds: set[str] | None) -> list[dict]:
+    """Filter symbols by regex pattern and/or kinds."""
     import re
     
-    result = symbols
-    
-    if query:
-        regex = re.compile(query, re.IGNORECASE)
-        result = [s for s in result if regex.search(s.get("name", ""))]
+    regex = re.compile(pattern, re.IGNORECASE)
+    result = [s for s in symbols if regex.search(s.get("name", ""))]
     
     if kinds:
         result = [s for s in result if s.get("kind", "").lower() in kinds]
@@ -508,23 +505,27 @@ def filter_symbols(symbols: list[dict], query: str | None, kinds: set[str] | Non
     return result
 
 
-@cli.command("list-symbols")
+@cli.command("grep")
+@click.argument("pattern")
 @click.argument("path", required=False)
-@click.option("-q", "--query", default="", help="Regex pattern to filter symbol names")
 @click.option("-k", "--kind", default="", help="Filter by kind (comma-separated): function,method,class,struct,...")
 @click.option("--docs", is_flag=True, help="Include documentation for each symbol")
 @click.pass_context
-def list_symbols(ctx, path, query, kind, docs):
-    """List symbols in a file or workspace.
+def grep(ctx, pattern, path, kind, docs):
+    """Search for symbols matching a regex pattern.
+    
+    PATTERN is a case-insensitive regex matched against symbol names.
     
     PATH supports wildcards. Simple patterns like '*.go' search recursively.
     Use 'dir/*.go' for non-recursive, or 'dir/**/*.go' for explicit recursive.
     
     Examples:
     
-      lspcmd list-symbols *.py --kind function,method
+      lspcmd grep "Test.*" *.go --kind function
     
-      lspcmd list-symbols --query "^Test" --kind function
+      lspcmd grep "^User" --kind class,struct
+    
+      lspcmd grep "Handler$" internal/**/*.go --docs
     """
     config = load_config()
     kinds = parse_kinds(kind)
@@ -542,7 +543,7 @@ def list_symbols(ctx, path, query, kind, docs):
             if isinstance(result, list):
                 all_symbols.extend(result)
         
-        all_symbols = filter_symbols(all_symbols, query, kinds)
+        all_symbols = filter_symbols(all_symbols, pattern, kinds)
         
         if docs and all_symbols:
             workspace_root = get_workspace_root_for_path(files[0], config)
@@ -556,7 +557,7 @@ def list_symbols(ctx, path, query, kind, docs):
         })
         result = response.get("result", [])
         if isinstance(result, list):
-            result = filter_symbols(result, query, kinds)
+            result = filter_symbols(result, pattern, kinds)
             if docs and result:
                 result = fetch_docs_for_symbols(result, workspace_root)
         click.echo(format_output(result, "json" if ctx.obj["json"] else "plain"))
