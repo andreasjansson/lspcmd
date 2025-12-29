@@ -83,7 +83,7 @@ class Workspace:
                 ", ".join(self.server_config.languages),
                 str(self.root),
                 e,
-                server_stderr=server_log_tail,
+                server_log=server_log_tail,
                 log_path=str(server_log_file),
             )
 
