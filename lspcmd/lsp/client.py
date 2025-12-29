@@ -34,7 +34,19 @@ class LSPClient:
 
     async def start(self) -> None:
         self._reader_task = asyncio.create_task(self._read_loop())
+        if self.process.stderr:
+            self._stderr_task = asyncio.create_task(self._drain_stderr())
         await self._initialize()
+
+    async def _drain_stderr(self) -> None:
+        try:
+            while True:
+                data = await self.process.stderr.read(4096)
+                if not data:
+                    break
+                logger.debug(f"Server stderr: {data.decode(errors='replace')[:200]}")
+        except Exception:
+            pass
 
     async def stop(self) -> None:
         if self._initialized:
