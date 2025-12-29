@@ -1,0 +1,490 @@
+import asyncio
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import click
+
+from .daemon.pidfile import is_daemon_running, read_pid
+from .output.formatters import format_output
+from .utils.config import (
+    get_socket_path,
+    get_pid_path,
+    get_config_path,
+    load_config,
+    save_config,
+    detect_workspace_root,
+    get_known_workspace_root,
+    add_workspace_root,
+)
+
+
+def ensure_daemon_running() -> None:
+    pid_path = get_pid_path()
+
+    if is_daemon_running(pid_path):
+        return
+
+    subprocess.Popen(
+        [sys.executable, "-m", "lspcmd.daemon_cli"],
+        start_new_session=True,
+    )
+
+    socket_path = get_socket_path()
+    for _ in range(50):
+        if socket_path.exists():
+            return
+        time.sleep(0.1)
+
+    raise click.ClickException("Failed to start daemon")
+
+
+async def send_request(method: str, params: dict) -> dict:
+    socket_path = get_socket_path()
+
+    reader, writer = await asyncio.open_unix_connection(str(socket_path))
+
+    request = {"method": method, "params": params}
+    writer.write(json.dumps(request).encode())
+    await writer.drain()
+    writer.write_eof()
+
+    data = await reader.read()
+    writer.close()
+    await writer.wait_closed()
+
+    return json.loads(data.decode())
+
+
+def run_request(method: str, params: dict) -> dict:
+    ensure_daemon_running()
+    return asyncio.run(send_request(method, params))
+
+
+def resolve_workspace_root(path: Path, config: dict) -> Path:
+    path = path.resolve()
+
+    known_root = get_known_workspace_root(path, config)
+    if known_root:
+        return known_root
+
+    detected_root = detect_workspace_root(path)
+
+    if detected_root:
+        if sys.stdin.isatty():
+            click.echo(f"Workspace root not configured for this file.", err=True)
+            click.echo(f"Detected: {detected_root}", err=True)
+            if click.confirm("Use this root?", default=True, err=True):
+                add_workspace_root(detected_root, config)
+                return detected_root
+
+        add_workspace_root(detected_root, config)
+        return detected_root
+
+    return path.parent if path.is_file() else path
+
+
+def parse_position(position: str) -> tuple[int, int]:
+    parts = position.split(",")
+    if len(parts) != 2:
+        raise click.BadParameter("Position must be in LINE,COLUMN format")
+    return int(parts[0]), int(parts[1])
+
+
+@click.group()
+@click.option("--json", "json_output", is_flag=True, help="Output as JSON")
+@click.pass_context
+def cli(ctx, json_output):
+    ctx.ensure_object(dict)
+    ctx.obj["json"] = json_output
+
+
+@cli.command()
+@click.pass_context
+def config(ctx):
+    """Print config file location and contents."""
+    config_path = get_config_path()
+    click.echo(f"Config file: {config_path}")
+    click.echo()
+
+    if config_path.exists():
+        click.echo(config_path.read_text())
+    else:
+        click.echo("(file does not exist, using defaults)")
+
+
+@cli.command()
+@click.pass_context
+def shutdown(ctx):
+    """Shutdown the lspcmd daemon."""
+    if not is_daemon_running(get_pid_path()):
+        click.echo("Daemon is not running")
+        return
+
+    response = run_request("shutdown", {})
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("describe-session")
+@click.pass_context
+def describe_session(ctx):
+    """Show current daemon state."""
+    response = run_request("describe-session", {})
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("describe-thing-at-point")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.pass_context
+def describe_thing_at_point(ctx, path, position):
+    """Show hover information at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("describe-thing-at-point", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("find-definition")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def find_definition(ctx, path, position, context):
+    """Find definition at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("find-definition", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("find-declaration")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def find_declaration(ctx, path, position, context):
+    """Find declaration at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("find-declaration", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("find-implementation")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def find_implementation(ctx, path, position, context):
+    """Find implementation at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("find-implementation", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("find-type-definition")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def find_type_definition(ctx, path, position, context):
+    """Find type definition at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("find-type-definition", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("find-references")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def find_references(ctx, path, position, context):
+    """Find references at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("find-references", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("print-definition")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.pass_context
+def print_definition(ctx, path, position):
+    """Print the full definition at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("print-definition", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("list-code-actions")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.pass_context
+def list_code_actions(ctx, path, position):
+    """List code actions at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("list-code-actions", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("execute-code-action")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.argument("action_title")
+@click.pass_context
+def execute_code_action(ctx, path, position, action_title):
+    """Execute a code action at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("execute-code-action", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "action_title": action_title,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("format-buffer")
+@click.argument("path", type=click.Path(exists=True))
+@click.pass_context
+def format_buffer(ctx, path):
+    """Format a file."""
+    path = Path(path).resolve()
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("format-buffer", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("organize-imports")
+@click.argument("path", type=click.Path(exists=True))
+@click.pass_context
+def organize_imports(ctx, path):
+    """Organize imports in a file."""
+    path = Path(path).resolve()
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("organize-imports", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("rename")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.argument("new_name")
+@click.pass_context
+def rename(ctx, path, position, new_name):
+    """Rename symbol at position (LINE,COLUMN)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position)
+    config = load_config()
+    workspace_root = resolve_workspace_root(path, config)
+
+    response = run_request("rename", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "new_name": new_name,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("list-symbols")
+@click.argument("path", type=click.Path(exists=True), required=False)
+@click.option("--workspace", type=click.Path(exists=True), help="Workspace root for workspace symbols")
+@click.option("-q", "--query", default="", help="Query for workspace symbols")
+@click.pass_context
+def list_symbols(ctx, path, workspace, query):
+    """List symbols in a file or workspace."""
+    config = load_config()
+
+    if path:
+        path = Path(path).resolve()
+        workspace_root = resolve_workspace_root(path, config)
+        response = run_request("list-symbols", {
+            "path": str(path),
+            "workspace_root": str(workspace_root),
+        })
+    elif workspace:
+        workspace_root = Path(workspace).resolve()
+        response = run_request("list-symbols", {
+            "workspace_root": str(workspace_root),
+            "query": query,
+        })
+    else:
+        raise click.UsageError("Either PATH or --workspace must be provided")
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("search-symbol")
+@click.argument("pattern")
+@click.argument("path", type=click.Path(exists=True), required=False)
+@click.option("--workspace", type=click.Path(exists=True), help="Workspace root for workspace symbols")
+@click.pass_context
+def search_symbol(ctx, pattern, path, workspace):
+    """Search for symbols matching a regex pattern."""
+    config = load_config()
+
+    params = {"pattern": pattern}
+
+    if path:
+        path = Path(path).resolve()
+        workspace_root = resolve_workspace_root(path, config)
+        params["path"] = str(path)
+        params["workspace_root"] = str(workspace_root)
+    elif workspace:
+        params["workspace_root"] = str(Path(workspace).resolve())
+    else:
+        raise click.UsageError("Either PATH or --workspace must be provided")
+
+    response = run_request("search-symbol", params)
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("list-signatures")
+@click.argument("path", type=click.Path(exists=True), required=False)
+@click.option("--workspace", type=click.Path(exists=True), help="Workspace root for workspace symbols")
+@click.pass_context
+def list_signatures(ctx, path, workspace):
+    """List function signatures in a file or workspace."""
+    config = load_config()
+
+    if path:
+        path = Path(path).resolve()
+        workspace_root = resolve_workspace_root(path, config)
+        response = run_request("list-signatures", {
+            "path": str(path),
+            "workspace_root": str(workspace_root),
+        })
+    elif workspace:
+        workspace_root = Path(workspace).resolve()
+        response = run_request("list-signatures", {
+            "workspace_root": str(workspace_root),
+        })
+    else:
+        raise click.UsageError("Either PATH or --workspace must be provided")
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("restart-workspace")
+@click.argument("workspace", type=click.Path(exists=True))
+@click.pass_context
+def restart_workspace(ctx, workspace):
+    """Restart the language server for a workspace."""
+    workspace_root = Path(workspace).resolve()
+
+    response = run_request("restart-workspace", {
+        "workspace_root": str(workspace_root),
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+if __name__ == "__main__":
+    cli()
