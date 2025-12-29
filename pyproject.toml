@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lspcmd"
+version = "0.1.0"
+description = "Command-line wrapper around LSP language servers"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0",
+    "pydantic>=2.0",
+    "tomli>=2.0",
+    "tomli-w>=1.0",
+]
+
+[project.scripts]
+lspcmd = "lspcmd.cli:cli"
+lspcmd-daemon = "lspcmd.daemon_cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lspcmd"]
