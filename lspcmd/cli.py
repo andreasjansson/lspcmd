@@ -462,22 +462,32 @@ def rename(ctx, path, position, new_name):
 
 
 @cli.command("list-symbols")
-@click.argument("path", type=click.Path(exists=True), required=False)
+@click.argument("path", required=False)
 @click.option("-q", "--query", default="", help="Query filter for symbols")
 @click.option("--docs", is_flag=True, help="Include documentation for each symbol")
 @click.pass_context
 def list_symbols(ctx, path, query, docs):
-    """List symbols in a file or current workspace."""
+    """List symbols in a file or current workspace.
+    
+    PATH can include wildcards: * matches any file, ** matches recursively.
+    Examples: 'src/*.py', 'src/**/*.go', 'lib/**/*_test.rs'
+    """
     config = load_config()
 
     if path:
-        path = Path(path).resolve()
-        workspace_root = get_workspace_root_for_path(path, config)
-        response = run_request("list-symbols", {
-            "path": str(path),
-            "workspace_root": str(workspace_root),
-            "include_docs": docs,
-        })
+        files = expand_path_pattern(path)
+        all_symbols = []
+        for file_path in files:
+            workspace_root = get_workspace_root_for_path(file_path, config)
+            response = run_request("list-symbols", {
+                "path": str(file_path),
+                "workspace_root": str(workspace_root),
+                "include_docs": docs,
+            })
+            result = response.get("result", [])
+            if isinstance(result, list):
+                all_symbols.extend(result)
+        click.echo(format_output(all_symbols, "json" if ctx.obj["json"] else "plain"))
     else:
         workspace_root = get_workspace_root_for_cwd(config)
         response = run_request("list-symbols", {
@@ -485,8 +495,7 @@ def list_symbols(ctx, path, query, docs):
             "query": query,
             "include_docs": docs,
         })
-
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+        click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("search-symbol")
