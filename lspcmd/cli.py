@@ -537,29 +537,38 @@ def search_symbol(ctx, pattern, path, docs):
 
 
 @cli.command("list-signatures")
-@click.argument("path", type=click.Path(exists=True), required=False)
+@click.argument("path", required=False)
 @click.option("--docs", is_flag=True, help="Include documentation for each signature")
 @click.pass_context
 def list_signatures(ctx, path, docs):
-    """List function signatures in a file or current workspace."""
+    """List function signatures in a file or current workspace.
+    
+    PATH can include wildcards: * matches any file, ** matches recursively.
+    Examples: 'src/*.py', 'src/**/*.go', 'lib/**/*_test.rs'
+    """
     config = load_config()
 
     if path:
-        path = Path(path).resolve()
-        workspace_root = get_workspace_root_for_path(path, config)
-        response = run_request("list-signatures", {
-            "path": str(path),
-            "workspace_root": str(workspace_root),
-            "include_docs": docs,
-        })
+        files = expand_path_pattern(path)
+        all_signatures = []
+        for file_path in files:
+            workspace_root = get_workspace_root_for_path(file_path, config)
+            response = run_request("list-signatures", {
+                "path": str(file_path),
+                "workspace_root": str(workspace_root),
+                "include_docs": docs,
+            })
+            result = response.get("result", [])
+            if isinstance(result, list):
+                all_signatures.extend(result)
+        click.echo(format_output(all_signatures, "json" if ctx.obj["json"] else "plain"))
     else:
         workspace_root = get_workspace_root_for_cwd(config)
         response = run_request("list-signatures", {
             "workspace_root": str(workspace_root),
             "include_docs": docs,
         })
-
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+        click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("restart-workspace")
