@@ -29,6 +29,7 @@ def ensure_daemon_running() -> None:
     subprocess.Popen(
         [sys.executable, "-m", "lspcmd.daemon_cli"],
         start_new_session=True,
+        env=os.environ.copy(),
     )
 
     socket_path = get_socket_path()
