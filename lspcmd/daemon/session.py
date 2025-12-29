@@ -34,6 +34,8 @@ class Workspace:
 
         logger.info(f"Starting {self.server_config.name} for {self.root}")
 
+        env = self._get_server_env()
+        
         try:
             process = await asyncio.create_subprocess_exec(
                 *self.server_config.command,
@@ -41,6 +43,7 @@ class Workspace:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(self.root),
+                env=env,
             )
         except FileNotFoundError:
             raise LanguageServerNotFound(
