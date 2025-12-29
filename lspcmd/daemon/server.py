@@ -581,7 +581,12 @@ class DaemonServer:
             lang_start = time.time()
             logger.info(f"Processing {lang_id} ({len(files)} files)...")
             
-            workspace = await self.session.get_or_create_workspace_for_language(lang_id, workspace_root)
+            try:
+                workspace = await self.session.get_or_create_workspace_for_language(lang_id, workspace_root)
+            except Exception as e:
+                logger.warning(f"  Failed to start server for {lang_id}: {e}")
+                continue
+            
             logger.info(f"  Server startup took {time.time() - lang_start:.2f}s")
             
             if not workspace or not workspace.client:
