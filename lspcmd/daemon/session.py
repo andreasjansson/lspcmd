@@ -49,10 +49,16 @@ class Workspace:
                 self.server_config.install_cmd,
             )
 
-        self.client = LSPClient(process, path_to_uri(self.root))
+        init_options = self._get_init_options()
+        self.client = LSPClient(process, path_to_uri(self.root), init_options)
         await self.client.start()
 
         logger.info(f"Server {self.server_config.name} initialized")
+
+    def _get_init_options(self) -> dict[str, Any]:
+        if self.server_config.name == "gopls":
+            return {"linksInHover": False}
+        return {}
 
     async def stop_server(self) -> None:
         if self.client is None:
