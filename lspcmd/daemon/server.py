@@ -671,21 +671,21 @@ class DaemonServer:
         return symbols
 
     async def _handle_list_signatures(self, params: dict) -> list[dict]:
-        symbols = await self._handle_list_symbols(params)
+        # Get symbols without docs first, filter to signatures, then add docs if needed
+        include_docs = params.get("include_docs", False)
+        params_copy = {**params, "include_docs": False}
+        symbols = await self._handle_list_symbols(params_copy)
         signatures = [
             s for s in symbols
             if s["kind"] in ("Function", "Method", "Constructor")
         ]
         
-        if not params.get("include_docs"):
-            return signatures
-        
-        # Fetch documentation via hover for each signature
-        workspace_root = Path(params.get("workspace_root", ".")).resolve()
-        for sig in signatures:
-            sig["documentation"] = await self._get_symbol_documentation(
-                workspace_root, sig["path"], sig["line"], sig.get("column", 0)
-            )
+        if include_docs:
+            workspace_root = Path(params.get("workspace_root", ".")).resolve()
+            for sig in signatures:
+                sig["documentation"] = await self._get_symbol_documentation(
+                    workspace_root, sig["path"], sig["line"], sig.get("column", 0)
+                )
         
         return signatures
 
