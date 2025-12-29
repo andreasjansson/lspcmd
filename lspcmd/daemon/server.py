@@ -118,6 +118,8 @@ class DaemonServer:
         try:
             result = await handler(params)
             return {"result": result}
+        except LanguageServerNotFound as e:
+            return {"error": str(e)}
         except LSPResponseError as e:
             return {"error": f"LSP error: {e.message}"}
         except Exception as e:
