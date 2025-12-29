@@ -13,7 +13,7 @@ from lspcmd.utils.config import (
 
 class TestDetectWorkspaceRoot:
     def test_detect_git(self, temp_dir):
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         project.mkdir()
         (project / ".git").mkdir()
         (project / "src").mkdir()
@@ -23,7 +23,7 @@ class TestDetectWorkspaceRoot:
         assert root == project
 
     def test_detect_pyproject(self, temp_dir):
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         project.mkdir()
         (project / "pyproject.toml").touch()
         (project / "main.py").touch()
@@ -32,7 +32,7 @@ class TestDetectWorkspaceRoot:
         assert root == project
 
     def test_detect_cargo(self, temp_dir):
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         (project / "src").mkdir(parents=True)
         (project / "Cargo.toml").touch()
         (project / "src" / "main.rs").touch()
@@ -41,7 +41,7 @@ class TestDetectWorkspaceRoot:
         assert root == project
 
     def test_detect_package_json(self, temp_dir):
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         (project / "src").mkdir(parents=True)
         (project / "package.json").touch()
         (project / "src" / "main.ts").touch()
@@ -50,7 +50,7 @@ class TestDetectWorkspaceRoot:
         assert root == project
 
     def test_no_markers(self, temp_dir):
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         project.mkdir()
         (project / "main.py").touch()
 
@@ -60,11 +60,12 @@ class TestDetectWorkspaceRoot:
 
 class TestKnownWorkspaceRoot:
     def test_known_root(self, temp_dir):
-        config = {"workspaces": {"roots": [str(temp_dir / "project")]}}
-        file_path = temp_dir / "project" / "src" / "main.py"
+        project = (temp_dir / "project").resolve()
+        config = {"workspaces": {"roots": [str(project)]}}
+        file_path = project / "src" / "main.py"
 
         root = get_known_workspace_root(file_path, config)
-        assert root == temp_dir / "project"
+        assert root == project
 
     def test_unknown_root(self, temp_dir):
         config = {"workspaces": {"roots": []}}
@@ -77,7 +78,7 @@ class TestKnownWorkspaceRoot:
 class TestAddWorkspaceRoot:
     def test_add_new_root(self, temp_dir, isolated_config):
         config = load_config()
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         project.mkdir()
 
         add_workspace_root(project, config)
@@ -87,7 +88,7 @@ class TestAddWorkspaceRoot:
 
     def test_add_duplicate_root(self, temp_dir, isolated_config):
         config = load_config()
-        project = temp_dir / "project"
+        project = (temp_dir / "project").resolve()
         project.mkdir()
 
         add_workspace_root(project, config)
