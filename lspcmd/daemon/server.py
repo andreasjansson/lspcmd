@@ -6,7 +6,7 @@ import signal
 from pathlib import Path
 from typing import Any
 
-from .session import Session
+from .session import Session, Workspace
 from .pidfile import write_pid, remove_pid
 from ..lsp.protocol import LSPResponseError
 from ..utils.config import get_socket_path, get_pid_path, get_log_dir, load_config
