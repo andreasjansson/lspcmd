@@ -73,18 +73,19 @@ class LSPClient:
 
     async def _initialize(self) -> None:
         import os
-        result = await self.send_request(
-            "initialize",
-            {
-                "processId": os.getpid(),
-                "rootUri": self.workspace_root,
-                "rootPath": self.workspace_root.replace("file://", ""),
-                "capabilities": get_client_capabilities(),
-                "workspaceFolders": [
-                    {"uri": self.workspace_root, "name": self.workspace_root.split("/")[-1]}
-                ],
-            },
-        )
+        init_params = {
+            "processId": os.getpid(),
+            "rootUri": self.workspace_root,
+            "rootPath": self.workspace_root.replace("file://", ""),
+            "capabilities": get_client_capabilities(),
+            "workspaceFolders": [
+                {"uri": self.workspace_root, "name": self.workspace_root.split("/")[-1]}
+            ],
+        }
+        if self.init_options:
+            init_params["initializationOptions"] = self.init_options
+        
+        result = await self.send_request("initialize", init_params)
         self._server_capabilities = result.get("capabilities", {})
         await self.send_notification("initialized", {})
         self._initialized = True
