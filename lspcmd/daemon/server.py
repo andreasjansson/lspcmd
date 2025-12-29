@@ -105,8 +105,7 @@ class DaemonServer:
             "organize-imports": self._handle_organize_imports,
             "rename": self._handle_rename,
             "list-symbols": self._handle_list_symbols,
-            "search-symbol": self._handle_search_symbol,
-            "list-signatures": self._handle_list_signatures,
+            "fetch-symbol-docs": self._handle_fetch_symbol_docs,
             "print-definition": self._handle_print_definition,
             "restart-workspace": self._handle_restart_workspace,
         }
