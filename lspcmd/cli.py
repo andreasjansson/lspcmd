@@ -436,7 +436,7 @@ def format_buffer(ctx, path):
     config = load_config()
     workspace_root = get_workspace_root_for_path(path, config)
 
-    response = run_request("format-buffer", {
+    response = run_request("format", {
         "path": str(path),
         "workspace_root": str(workspace_root),
     })
