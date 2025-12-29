@@ -12,9 +12,10 @@ REQUEST_TIMEOUT = float(os.environ.get("LSPCMD_REQUEST_TIMEOUT", "30"))
 
 
 class LSPClient:
-    def __init__(self, process: asyncio.subprocess.Process, workspace_root: str):
+    def __init__(self, process: asyncio.subprocess.Process, workspace_root: str, init_options: dict[str, Any] | None = None):
         self.process = process
         self.workspace_root = workspace_root
+        self.init_options = init_options or {}
         self._request_id = 0
         self._pending_requests: dict[int, asyncio.Future[Any]] = {}
         self._reader_task: asyncio.Task | None = None
