@@ -469,18 +469,9 @@ class DaemonServer:
 
     async def _handle_list_symbols(self, params: dict) -> list[dict]:
         if params.get("path"):
-            symbols = await self._handle_document_symbols(params)
+            return await self._handle_document_symbols(params)
         else:
-            symbols = await self._handle_workspace_symbols(params)
-        
-        if params.get("include_docs"):
-            workspace_root = Path(params.get("workspace_root", ".")).resolve()
-            for sym in symbols:
-                sym["documentation"] = await self._get_symbol_documentation(
-                    workspace_root, sym["path"], sym["line"], sym.get("column", 0)
-                )
-        
-        return symbols
+            return await self._handle_workspace_symbols(params)
 
     async def _handle_document_symbols(self, params: dict) -> list[dict]:
         workspace, doc, path = await self._get_workspace_and_document(params)
