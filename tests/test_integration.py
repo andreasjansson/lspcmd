@@ -1,21 +1,15 @@
 import asyncio
-import logging
 import os
-import time
 from pathlib import Path
 
 import pytest
 
-from lspcmd.daemon.session import Session, Workspace
-from lspcmd.lsp.client import LSPClient
-from lspcmd.servers.registry import get_server_for_file
+from lspcmd.daemon.session import Session
 from lspcmd.utils.uri import path_to_uri
 
 from .conftest import requires_pyright, requires_rust_analyzer, requires_gopls
 
-os.environ["LSPCMD_REQUEST_TIMEOUT"] = "10"
-
-logging.basicConfig(level=logging.DEBUG)
+os.environ["LSPCMD_REQUEST_TIMEOUT"] = "30"
 
 
 @pytest.fixture
