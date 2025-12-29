@@ -492,11 +492,12 @@ def parse_kinds(kinds_str: str) -> set[str] | None:
     return kinds if kinds else None
 
 
-def filter_symbols(symbols: list[dict], pattern: str, kinds: set[str] | None) -> list[dict]:
+def filter_symbols(symbols: list[dict], pattern: str, kinds: set[str] | None, case_sensitive: bool = False) -> list[dict]:
     """Filter symbols by regex pattern and/or kinds."""
     import re
     
-    regex = re.compile(pattern, re.IGNORECASE)
+    flags = 0 if case_sensitive else re.IGNORECASE
+    regex = re.compile(pattern, flags)
     result = [s for s in symbols if regex.search(s.get("name", ""))]
     
     if kinds:
@@ -509,23 +510,26 @@ def filter_symbols(symbols: list[dict], pattern: str, kinds: set[str] | None) ->
 @click.argument("pattern")
 @click.argument("path", required=False)
 @click.option("-k", "--kind", default="", help="Filter by kind (comma-separated): function,method,class,struct,...")
-@click.option("--docs", is_flag=True, help="Include documentation for each symbol")
+@click.option("-d", "--docs", is_flag=True, help="Include documentation for each symbol")
+@click.option("-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching")
 @click.pass_context
-def grep(ctx, pattern, path, kind, docs):
+def grep(ctx, pattern, path, kind, docs, case_sensitive):
     """Search for symbols matching a regex pattern.
     
-    PATTERN is a case-insensitive regex matched against symbol names.
+    PATTERN is a regex matched against symbol names (case-insensitive by default).
     
     PATH supports wildcards. Simple patterns like '*.go' search recursively.
     Use 'dir/*.go' for non-recursive, or 'dir/**/*.go' for explicit recursive.
     
     Examples:
     
-      lspcmd grep "Test.*" *.go --kind function
+      lspcmd grep "Test.*" *.go -k function
     
-      lspcmd grep "^User" --kind class,struct
+      lspcmd grep "^User" -k class,struct
     
-      lspcmd grep "Handler$" internal/**/*.go --docs
+      lspcmd grep "Handler$" internal/**/*.go -d
+    
+      lspcmd grep "URL" -C  # case-sensitive
     """
     config = load_config()
     kinds = parse_kinds(kind)
