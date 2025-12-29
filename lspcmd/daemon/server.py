@@ -483,9 +483,16 @@ class DaemonServer:
         if not result:
             return []
 
+        rel_path = self._relative_path(path, workspace.root)
         symbols = []
-        self._flatten_symbols(result, str(path), symbols)
+        self._flatten_symbols(result, rel_path, symbols)
         return symbols
+
+    def _relative_path(self, path: Path, workspace_root: Path) -> str:
+        try:
+            return str(path.relative_to(workspace_root))
+        except ValueError:
+            return str(path)
 
     def _flatten_symbols(self, items: list, file_path: str, output: list, container: str | None = None) -> None:
         for item in items:
@@ -537,7 +544,7 @@ class DaemonServer:
                 {
                     "name": item["name"],
                     "kind": SymbolKind(item["kind"]).name,
-                    "path": str(uri_to_path(item["location"]["uri"])),
+                    "path": self._relative_path(uri_to_path(item["location"]["uri"]), workspace_root),
                     "line": item["location"]["range"]["start"]["line"] + 1,
                     "container": item.get("containerName"),
                 }
@@ -573,7 +580,8 @@ class DaemonServer:
                         {"textDocument": {"uri": doc.uri}},
                     )
                     if result:
-                        self._flatten_symbols(result, str(file_path), symbols)
+                        rel_path = self._relative_path(file_path, workspace_root)
+                        self._flatten_symbols(result, rel_path, symbols)
                 except Exception as e:
                     logger.warning(f"Failed to get symbols for {file_path}: {e}")
 
