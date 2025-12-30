@@ -87,3 +87,7 @@ def requires_typescript_lsp():
 
 def requires_gopls():
     require_command("gopls", "gopls")
+
+
+def requires_jdtls():
+    require_command("jdtls", "jdtls")
