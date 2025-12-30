@@ -337,6 +337,13 @@ class DaemonServer:
         return await self._handle_location_request(params, "textDocument/declaration")
 
     async def _handle_implementations(self, params: dict) -> list[dict]:
+        workspace, _, _ = await self._get_workspace_and_document(params)
+        caps = workspace.client.capabilities
+        if not caps.get("implementationProvider"):
+            server_name = workspace.server_config.name
+            return [{
+                "error": f"Server '{server_name}' does not support implementations (may require a license)"
+            }]
         return await self._handle_location_request(params, "textDocument/implementation")
 
     async def _handle_subtypes(self, params: dict) -> list[dict]:
