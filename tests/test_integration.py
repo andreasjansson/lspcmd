@@ -1605,3 +1605,207 @@ main.go:12 [Struct] GoService (struct{...})"""
         assert "app.py:10 [Class] ServiceProtocol" in output
         assert "app.py:25 [Class] PythonService" in output
         assert "main.go:12 [Struct] GoService" in output
+
+
+# =============================================================================
+# C++ Integration Tests (clangd)
+# =============================================================================
+
+
+class TestCppIntegration:
+    """Integration tests for C++ using clangd."""
+
+    @pytest.fixture(autouse=True)
+    def check_clangd(self):
+        requires_clangd()
+
+    @pytest.fixture(scope="class")
+    def project(self, class_temp_dir):
+        src = FIXTURES_DIR / "cpp_project"
+        dst = class_temp_dir / "cpp_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def workspace(self, project, class_daemon, class_isolated_config):
+        config = load_config()
+        add_workspace_root(project, config)
+        run_request("grep", {
+            "paths": [str(project / "user.hpp")],
+            "workspace_root": str(project),
+            "pattern": ".*",
+        })
+        time.sleep(1.0)
+        return project
+
+    # =========================================================================
+    # grep tests
+    # =========================================================================
+
+    def test_grep_pattern_filter(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.hpp")],
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "Storage" in output
+        assert "MemoryStorage" in output
+        assert "FileStorage" in output
+
+    def test_grep_kind_filter_class(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.hpp")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "[Class] User" in output
+        assert "[Class] Storage" in output
+        assert "[Class] MemoryStorage" in output
+        assert "[Class] FileStorage" in output
+        assert "[Class] UserRepository" in output
+
+    def test_grep_kind_filter_function(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.hpp")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "createSampleUser" in output
+        assert "validateUser" in output
+
+    def test_grep_kind_filter_method(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.hpp")],
+            "workspace_root": str(workspace),
+            "pattern": "^is",
+            "kinds": ["method"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "isAdult" in output
+
+    # =========================================================================
+    # definition tests
+    # =========================================================================
+
+    def test_definition_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.cpp"),
+            "workspace_root": str(workspace),
+            "line": 11,
+            "column": 16,
+            "context": 0,
+            "body": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert "createSampleUser" in output
+
+    def test_definition_with_body(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.cpp"),
+            "workspace_root": str(workspace),
+            "line": 11,
+            "column": 16,
+            "context": 0,
+            "body": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert "createSampleUser" in output
+        assert 'John Doe' in output
+
+    def test_definition_with_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.cpp"),
+            "workspace_root": str(workspace),
+            "line": 11,
+            "column": 16,
+            "context": 1,
+            "body": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert "createSampleUser" in output
+
+    # =========================================================================
+    # references tests
+    # =========================================================================
+
+    def test_references_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("references", {
+            "path": str(workspace / "user.hpp"),
+            "workspace_root": str(workspace),
+            "line": 13,
+            "column": 6,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+        assert "class User" in output
+        assert "main.cpp" in output
+
+    # =========================================================================
+    # implementations tests
+    # =========================================================================
+
+    def test_implementations_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("implementations", {
+            "path": str(workspace / "user.hpp"),
+            "workspace_root": str(workspace),
+            "line": 36,
+            "column": 6,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+        assert "MemoryStorage" in output or "FileStorage" in output
+
+    # =========================================================================
+    # describe (hover) tests
+    # =========================================================================
+
+    def test_describe_hover(self, workspace):
+        os.chdir(workspace)
+        response = run_request("describe", {
+            "path": str(workspace / "user.hpp"),
+            "workspace_root": str(workspace),
+            "line": 13,
+            "column": 6,
+        })
+        output = format_output(response["result"], "plain")
+        assert "User" in output
+
+    # =========================================================================
+    # rename tests
+    # =========================================================================
+
+    def test_rename(self, workspace):
+        os.chdir(workspace)
+        response = run_request("rename", {
+            "path": str(workspace / "user.hpp"),
+            "workspace_root": str(workspace),
+            "line": 13,
+            "column": 6,
+            "new_name": "Person",
+        })
+        output = format_output(response["result"], "plain")
+        assert "Renamed" in output
+
+        # Revert the rename
+        run_request("rename", {
+            "path": str(workspace / "user.hpp"),
+            "workspace_root": str(workspace),
+            "line": 13,
+            "column": 6,
+            "new_name": "User",
+        })
