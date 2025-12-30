@@ -2047,6 +2047,11 @@ class TestCppIntegration:
 
     def test_rename(self, workspace):
         os.chdir(workspace)
+        
+        # Verify User class exists before rename
+        original_content = (workspace / "user.hpp").read_text()
+        assert "class User {" in original_content
+        
         response = run_request("rename", {
             "path": str(workspace / "user.hpp"),
             "workspace_root": str(workspace),
@@ -2055,7 +2060,15 @@ class TestCppIntegration:
             "new_name": "Person",
         })
         output = format_output(response["result"], "plain")
-        assert "Renamed" in output
+        # clangd renames in multiple files (user.hpp and main.cpp), order may vary
+        lines = output.strip().split("\n")
+        assert lines[0].startswith("Renamed in")
+        assert "file(s):" in lines[0]
+
+        # Verify rename actually happened
+        renamed_content = (workspace / "user.hpp").read_text()
+        assert "class Person {" in renamed_content
+        assert "class User {" not in renamed_content
 
         # Revert the rename
         run_request("rename", {
@@ -2065,6 +2078,11 @@ class TestCppIntegration:
             "column": 6,
             "new_name": "User",
         })
+        
+        # Verify revert worked
+        reverted_content = (workspace / "user.hpp").read_text()
+        assert "class User {" in reverted_content
+        assert "class Person {" not in reverted_content
 
     # =========================================================================
     # diagnostics tests
