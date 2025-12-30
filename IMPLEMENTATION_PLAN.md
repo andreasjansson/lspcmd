@@ -139,20 +139,21 @@ lspcmd --json diagnostics                 # JSON output
 
 The `grep` command is the primary way to search symbols. All filtering is done server-side in the daemon for performance:
 - `PATTERN`: Regex matched against symbol names (case-insensitive by default)
-- `PATH`: Optional file path or glob pattern (e.g., `*.py`, `src/**/*.go`, or bare filename like `server.py`)
+- `PATH`: Optional file path, directory, or glob pattern (e.g., `*.py`, `src/`, `src/**/*.go`, or bare filename like `server.py`)
 - `-k/--kind`: Filter by kind (class, function, method, variable, etc.)
-- `-x/--exclude`: Exclude files matching glob pattern
+- `-x/--exclude`: Exclude files matching glob pattern or directory
 - `-d/--docs`: Include documentation for each symbol (uses LRU cache for performance)
 - `-C/--case-sensitive`: Case-sensitive pattern matching
 
 Path patterns without a `/` are searched recursively (e.g., `server.py` finds `src/daemon/server.py`).
+Directories are automatically expanded to include all files recursively (e.g., `src` becomes `src/**`).
 
 Examples:
 ```bash
 lspcmd grep "Test.*" "*.py" -k function      # Find test functions
 lspcmd grep "^User" -k class                  # Find classes starting with User
-lspcmd grep "Handler$" "**/*.go" -d           # Find handlers with docs
-lspcmd grep ".*" "*.go" -x "*_test.go"        # All symbols excluding tests
+lspcmd grep "Handler$" internal -d            # Find handlers with docs in internal/
+lspcmd grep ".*" "*.go" -x tests              # All symbols excluding tests/ directory
 lspcmd grep "." server.py                     # All symbols in any server.py file
 ```
 
