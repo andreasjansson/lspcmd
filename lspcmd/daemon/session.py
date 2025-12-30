@@ -87,7 +87,9 @@ class Workspace:
                 log_path=str(server_log_file),
             )
 
-        logger.info(f"Server {self.server_config.name} initialized")
+        # Wait for initial indexing to complete
+        await self.client.wait_for_indexing(timeout=60.0)
+        logger.info(f"Server {self.server_config.name} initialized and ready")
 
     def _get_init_options(self) -> dict[str, Any]:
         if self.server_config.name == "gopls":
