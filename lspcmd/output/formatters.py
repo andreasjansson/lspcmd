@@ -106,6 +106,8 @@ def format_locations(locations: list[dict]) -> str:
 def _get_line_content(path: str, line: int) -> str | None:
     try:
         file_path = Path(path)
+        if not file_path.is_absolute():
+            file_path = Path.cwd() / file_path
         if not file_path.exists():
             return None
         content = file_path.read_text()
