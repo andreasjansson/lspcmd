@@ -178,10 +178,16 @@ def expand_path_pattern(pattern: str) -> list[Path]:
     """Expand a path pattern with glob wildcards (* and **) to matching files.
     
     Simple patterns without a directory (e.g. '*.go' or 'server.py') are treated as recursive.
+    Directories are automatically treated as directory/** (recursive search).
     """
     if "*" not in pattern and "?" not in pattern:
         path = Path(pattern).resolve()
         if path.exists():
+            if path.is_dir():
+                matches = glob.glob(str(path / "**" / "*"), recursive=True)
+                if matches:
+                    return [Path(m).resolve() for m in sorted(matches) if Path(m).is_file()]
+                raise click.ClickException(f"No files found in directory: {pattern}")
             return [path]
         # Bare filename without path separator - search recursively
         if "/" not in pattern:
