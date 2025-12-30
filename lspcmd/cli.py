@@ -542,7 +542,7 @@ def supertypes(ctx, path, position, context):
               help="Filter by minimum severity level")
 @click.pass_context
 def diagnostics(ctx, path, severity):
-    """Show diagnostics (errors, warnings) for a file or workspace.
+    """Show diagnostics for a file or workspace.
     
     If PATH is provided, shows diagnostics for that file.
     If PATH is omitted, shows diagnostics for all files in the workspace.
