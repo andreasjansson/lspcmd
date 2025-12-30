@@ -406,7 +406,7 @@ class DaemonServer:
 
         return locations
 
-    async def _handle_find_references(self, params: dict) -> list[dict]:
+    async def _handle_references(self, params: dict) -> list[dict]:
         workspace, doc, path = await self._get_workspace_and_document(params)
         line, column = self._parse_position(params)
 
