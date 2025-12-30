@@ -243,6 +243,9 @@ class LSPClient:
                 logger.info(f"Server {self.server_name} is now ServiceReady")
                 self._service_ready.set()
 
+        if method == "$/progress" and params:
+            self._handle_progress(params)
+
         if method == "textDocument/publishDiagnostics" and params:
             uri = params.get("uri")
             diagnostics = params.get("diagnostics", [])
@@ -253,6 +256,23 @@ class LSPClient:
         handler = self._notification_handlers.get(method)
         if handler:
             await handler(params)
+
+    def _handle_progress(self, params: dict[str, Any]) -> None:
+        token = params.get("token")
+        value = params.get("value", {})
+        kind = value.get("kind")
+
+        if kind == "begin":
+            self._active_progress_tokens.add(token)
+            self._indexing_done.clear()
+            logger.debug(f"Progress begin: {token} - {value.get('title', '')}")
+        elif kind == "end":
+            self._active_progress_tokens.discard(token)
+            if not self._active_progress_tokens:
+                self._indexing_done.set()
+                logger.debug(f"All progress complete, server ready")
+            else:
+                logger.debug(f"Progress end: {token}, {len(self._active_progress_tokens)} remaining")
 
     def on_notification(self, method: str, handler: Callable) -> None:
         self._notification_handlers[method] = handler
