@@ -713,7 +713,7 @@ def fetch_docs_for_symbols(symbols: list[dict], workspace_root: Path) -> list[di
 @click.option("-l", "--language", default="python", help="Language server to use (python, go, typescript, etc.)")
 @click.pass_context
 def raw_lsp_request(ctx, method, params, language):
-    """Send a raw LSP request and print the response as JSON.
+    """Send a raw LSP request (for debugging).
     
     METHOD is the LSP method (e.g. textDocument/documentSymbol).
     PARAMS is optional JSON parameters for the request.
