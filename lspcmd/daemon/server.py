@@ -581,12 +581,11 @@ class DaemonServer:
             logger.info(f"Processing {lang_id} ({len(files)} files)...")
             
             workspace = await self.session.get_or_create_workspace_for_language(lang_id, workspace_root)
-            logger.info(f"  Server startup took {time.time() - lang_start:.2f}s")
+            logger.info(f"  Server startup took {time.time() - lang_start:.2f}s, open_documents={len(workspace.open_documents)}")
             
             if not workspace or not workspace.client:
                 continue
 
-            # Try workspace/symbol first, fall back to document symbols if not supported
             result = None
             try:
                 ws_start = time.time()
@@ -594,12 +593,12 @@ class DaemonServer:
                     "workspace/symbol",
                     {"query": query},
                 )
-                logger.info(f"  workspace/symbol took {time.time() - ws_start:.2f}s, got {len(result) if result else 0} results")
+                logger.info(f"  workspace/symbol took {time.time() - ws_start:.2f}s, result={type(result).__name__}, len={len(result) if result is not None else 'None'}")
             except LSPResponseError as e:
-                # Server doesn't support workspace/symbol, fall back to document symbols
-                logger.info(f"  workspace/symbol not supported for {lang_id}: {e.message}")
+                logger.info(f"  workspace/symbol error for {lang_id}: {e.message}")
 
-            if result:
+            if result is not None:
+                logger.info(f"  Using workspace/symbol results ({len(result)} symbols)")
                 for item in result:
                     all_symbols.append({
                         "name": item["name"],
@@ -609,13 +608,13 @@ class DaemonServer:
                         "container": item.get("containerName"),
                     })
             else:
-                # Fall back to document symbols for each file
                 ds_start = time.time()
+                logger.info(f"  Falling back to document symbols for {len(files)} files")
                 symbols = await self._collect_symbols_from_files(workspace, workspace_root, files)
                 logger.info(f"  document symbols fallback took {time.time() - ds_start:.2f}s, got {len(symbols)} symbols")
                 all_symbols.extend(symbols)
             
-            logger.info(f"  Total for {lang_id}: {time.time() - lang_start:.2f}s")
+            logger.info(f"  Total for {lang_id}: {time.time() - lang_start:.2f}s, cumulative symbols={len(all_symbols)}")
 
         logger.info(f"Total workspace symbol collection: {time.time() - start_time:.2f}s, {len(all_symbols)} symbols")
         return all_symbols
