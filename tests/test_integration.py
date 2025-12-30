@@ -266,12 +266,12 @@ class TestGoIntegration:
         workspace = await session.get_or_create_workspace(main_go, go_project)
         await workspace.ensure_document_open(main_go)
 
-        # Find implementations of the Storage interface (line 14, "Storage")
+        # Find implementations of the Storage interface (line 16, 0-indexed = 15)
         result = await workspace.client.send_request(
             "textDocument/implementation",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": 13, "character": 5},
+                "position": {"line": 15, "character": 5},
             },
         )
 
