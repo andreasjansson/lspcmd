@@ -203,10 +203,44 @@ def cli(ctx, json_output):
     ctx.obj["json"] = json_output
 
 
-@cli.command("init-workspace")
+@cli.group()
+@click.pass_context
+def daemon(ctx):
+    """Manage the lspcmd daemon."""
+    pass
+
+
+@daemon.command("info")
+@click.pass_context
+def daemon_info(ctx):
+    """Show current daemon state."""
+    response = run_request("describe-session", {})
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@daemon.command("shutdown")
+@click.pass_context
+def daemon_shutdown(ctx):
+    """Shutdown the lspcmd daemon."""
+    if not is_daemon_running(get_pid_path()):
+        click.echo("Daemon is not running")
+        return
+
+    response = run_request("shutdown", {})
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.group()
+@click.pass_context
+def workspace(ctx):
+    """Manage workspaces."""
+    pass
+
+
+@workspace.command("init")
 @click.option("--root", type=click.Path(exists=True), help="Workspace root directory")
 @click.pass_context
-def init_workspace(ctx, root):
+def workspace_init(ctx, root):
     """Initialize a workspace for LSP operations."""
     config = load_config()
 
@@ -240,6 +274,25 @@ def init_workspace(ctx, root):
     click.echo(f"Initialized workspace: {workspace_root}")
 
 
+@workspace.command("restart")
+@click.argument("path", type=click.Path(exists=True), required=False)
+@click.pass_context
+def workspace_restart(ctx, path):
+    """Restart the language server for a workspace."""
+    config = load_config()
+
+    if path:
+        workspace_root = Path(path).resolve()
+    else:
+        workspace_root = get_workspace_root_for_cwd(config)
+
+    response = run_request("restart-workspace", {
+        "workspace_root": str(workspace_root),
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
 @cli.command()
 @click.pass_context
 def config(ctx):
@@ -252,26 +305,6 @@ def config(ctx):
         click.echo(config_path.read_text())
     else:
         click.echo("(file does not exist, using defaults)")
-
-
-@cli.command()
-@click.pass_context
-def shutdown(ctx):
-    """Shutdown the lspcmd daemon."""
-    if not is_daemon_running(get_pid_path()):
-        click.echo("Daemon is not running")
-        return
-
-    response = run_request("shutdown", {})
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
-
-
-@cli.command("describe-session")
-@click.pass_context
-def describe_session(ctx):
-    """Show current daemon state."""
-    response = run_request("describe-session", {})
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("describe")
