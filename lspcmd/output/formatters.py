@@ -224,18 +224,26 @@ def format_definition_content(data: dict) -> str:
     return "\n".join(lines)
 
 
+def format_size(size: int) -> str:
+    if size < 1024:
+        return f"{size}B"
+    elif size < 1024 * 1024:
+        return f"{size / 1024:.1f}KB"
+    else:
+        return f"{size / (1024 * 1024):.1f}MB"
+
+
 def format_tree(data: dict) -> str:
     from pathlib import Path as P
     
     root = P(data["root"]).name
     files = data["files"]
     total_files = data["total_files"]
-    total_lines = data["total_lines"]
+    total_bytes = data["total_bytes"]
     
     if not files:
-        return f"{root}\n\n0 files, 0 lines"
+        return f"{root}\n\n0 files, 0B"
     
-    # Build tree structure: dict of path -> either file info or nested dict
     tree: dict = {}
     for rel_path, info in files.items():
         parts = P(rel_path).parts
@@ -249,25 +257,23 @@ def format_tree(data: dict) -> str:
     lines = [root]
     
     def render_tree(node: dict, prefix: str = "") -> None:
-        entries = sorted(node.keys(), key=lambda k: (isinstance(node[k], dict) and "lines" not in node[k], k))
+        entries = sorted(node.keys(), key=lambda k: (isinstance(node[k], dict) and "size" not in node[k], k))
         for i, name in enumerate(entries):
             is_last = i == len(entries) - 1
             connector = "└── " if is_last else "├── "
             child = node[name]
             
-            if isinstance(child, dict) and "lines" in child:
-                # It's a file
-                line_count = child["lines"]
-                lines.append(f"{prefix}{connector}{name} ({line_count})")
+            if isinstance(child, dict) and "size" in child:
+                size_str = format_size(child["size"])
+                lines.append(f"{prefix}{connector}{name} ({size_str})")
             else:
-                # It's a directory
                 lines.append(f"{prefix}{connector}{name}")
                 new_prefix = prefix + ("    " if is_last else "│   ")
                 render_tree(child, new_prefix)
     
     render_tree(tree)
     lines.append("")
-    lines.append(f"{total_files} files, {total_lines} lines")
+    lines.append(f"{total_files} files, {format_size(total_bytes)}")
     
     return "\n".join(lines)
 
