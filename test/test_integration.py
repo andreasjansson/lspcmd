@@ -3158,3 +3158,36 @@ class TestPhpIntegration:
         output = format_output(response["result"], "plain")
         has_type_error = "int" in output.lower() or "type" in output.lower() or "return" in output.lower()
         assert has_type_error, f"Expected type error in output: {output}"
+
+    # =========================================================================
+    # move-file tests
+    # =========================================================================
+
+    def test_move_file_not_supported(self, workspace):
+        os.chdir(workspace)
+        
+        # intelephense doesn't support workspace/willRenameFiles
+        # It will move the file but won't update any use/require statements
+        base_path = workspace / "src"
+        
+        response = run_request("move-file", {
+            "old_path": str(base_path / "User.php"),
+            "new_path": str(base_path / "Person.php"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        
+        # File should be moved
+        assert not (base_path / "User.php").exists()
+        assert (base_path / "Person.php").exists()
+        assert "Moved file" in output
+        
+        # Move file back
+        run_request("move-file", {
+            "old_path": str(base_path / "Person.php"),
+            "new_path": str(base_path / "User.php"),
+            "workspace_root": str(workspace),
+        })
+        
+        assert (base_path / "User.php").exists()
+        assert not (base_path / "Person.php").exists()
