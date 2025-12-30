@@ -19,7 +19,7 @@ from lspcmd.output.formatters import format_output
 from lspcmd.utils.config import add_workspace_root, load_config
 
 from .conftest import (
-    requires_pyright,
+    requires_basedpyright,
     requires_rust_analyzer,
     requires_gopls,
     requires_typescript_lsp,
