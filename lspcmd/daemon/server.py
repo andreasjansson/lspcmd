@@ -852,9 +852,14 @@ class DaemonServer:
         # Filter by exclude patterns
         if exclude_patterns:
             def is_excluded(rel_path: str) -> bool:
+                path_parts = Path(rel_path).parts
                 for pat in exclude_patterns:
                     if fnmatch.fnmatch(rel_path, pat):
                         return True
+                    # Check if pattern matches any directory component
+                    if "/" not in pat and "*" not in pat and "?" not in pat:
+                        if pat in path_parts:
+                            return True
                     # Also check just the filename
                     if fnmatch.fnmatch(Path(rel_path).name, pat):
                         return True
