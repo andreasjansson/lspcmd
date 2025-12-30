@@ -931,10 +931,13 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
         })
         output = format_output(response["result"], "plain")
 
-        assert output == """\
-src/main/java/com/example/FileStorage.java:12 public class FileStorage extends AbstractStorage {
-src/main/java/com/example/AbstractStorage.java:7 public abstract class AbstractStorage implements Storage {
-src/main/java/com/example/MemoryStorage.java:12 public class MemoryStorage extends AbstractStorage {"""
+        # Order can vary, so check each line is present
+        lines = set(output.strip().split("\n"))
+        assert lines == {
+            "src/main/java/com/example/FileStorage.java:12 public class FileStorage extends AbstractStorage {",
+            "src/main/java/com/example/AbstractStorage.java:7 public abstract class AbstractStorage implements Storage {",
+            "src/main/java/com/example/MemoryStorage.java:12 public class MemoryStorage extends AbstractStorage {",
+        }
 
     def test_describe_hover(self, workspace):
         response = run_request("describe", {
