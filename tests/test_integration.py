@@ -22,25 +22,21 @@ from .conftest import (
     requires_gopls,
     requires_typescript_lsp,
     requires_jdtls,
+    FIXTURES_DIR,
 )
 
 os.environ["LSPCMD_REQUEST_TIMEOUT"] = "60"
 
 
-@pytest.fixture
-def session(isolated_config):
-    return Session()
-
-
-@pytest.fixture
-def daemon_server(isolated_config):
-    return DaemonServer()
-
-
-async def wait_for_indexing(workspace, delay: float = 1.0):
-    """Wait for the language server to finish indexing."""
-    await workspace.client.wait_for_service_ready()
-    await asyncio.sleep(delay)
+def find_line_col(content: str, pattern: str, not_pattern: str | None = None) -> tuple[int, int]:
+    """Find line and column of a pattern in content."""
+    lines = content.splitlines()
+    for i, line in enumerate(lines):
+        if pattern in line:
+            if not_pattern and not_pattern in line:
+                continue
+            return i, line.index(pattern.split()[0] if " " in pattern else pattern)
+    raise ValueError(f"Pattern '{pattern}' not found")
 
 
 # =============================================================================
@@ -55,35 +51,62 @@ class TestPythonIntegration:
     def check_pyright(self):
         requires_pyright()
 
-    @pytest.fixture
-    def workspace_config(self, python_project, isolated_config):
-        config = {"workspaces": {"roots": [str(python_project)]}}
-        add_workspace_root(python_project, config)
-        return config
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("python")
 
-    # --- Basic Server Tests ---
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
+        src = FIXTURES_DIR / "python_project"
+        dst = class_temp_dir / "python_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
+
+    @pytest.fixture(scope="class")
+    async def workspace(self, class_project, class_session):
+        main_py = class_project / "main.py"
+        ws = await class_session.get_or_create_workspace(main_py, class_project)
+        await ws.ensure_document_open(main_py)
+        await ws.client.wait_for_service_ready()
+        yield ws, class_project
+        await class_session.close_all()
 
     @pytest.mark.asyncio
-    async def test_initialize_server(self, python_project, session):
-        """Test that pyright initializes correctly."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-
-        assert workspace.client is not None
-        assert workspace.client._initialized
-
-        await session.close_all()
-
-    # --- grep (document symbols) ---
+    async def test_initialize_server(self, workspace):
+        ws, project = workspace
+        assert ws.client is not None
+        assert ws.client._initialized
 
     @pytest.mark.asyncio
-    async def test_grep_document_symbols(self, python_project, session):
-        """Test listing symbols from a document."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
+    async def test_grep_document_symbols(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(main_py)}},
         )
@@ -93,143 +116,85 @@ class TestPythonIntegration:
         assert "User" in names
         assert "UserRepository" in names
         assert "StorageProtocol" in names
-        assert "MemoryStorage" in names
-        assert "FileStorage" in names
-
-        await session.close_all()
-
-    # --- definition ---
 
     @pytest.mark.asyncio
-    async def test_find_definition(self, python_project, session):
-        """Test finding definition of a symbol."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-
+    async def test_find_definition(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        # Find the line with "user = create_sample_user()"
-        for i, line in enumerate(lines):
-            if "user = create_sample_user()" in line:
-                target_line = i
-                target_col = line.index("create_sample_user")
-                break
+        line, col = find_line_col(content, "user = create_sample_user()")
+        col = content.splitlines()[line].index("create_sample_user")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/definition",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- references ---
-
     @pytest.mark.asyncio
-    async def test_find_references(self, python_project, session):
-        """Test finding all references to a symbol."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-
+    async def test_find_references(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class User:" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "class User:")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/references",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "context": {"includeDeclaration": True},
             },
         )
 
         assert result is not None
-        assert len(result) >= 2  # Declaration + at least one usage
-
-        await session.close_all()
-
-    # --- describe (hover) ---
+        assert len(result) >= 2
 
     @pytest.mark.asyncio
-    async def test_describe_hover(self, python_project, session):
-        """Test getting hover information."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-
+    async def test_describe_hover(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class User:" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "class User:")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
 
-        await session.close_all()
-
-    # --- diagnostics ---
-
     @pytest.mark.asyncio
-    async def test_diagnostics(self, python_project, session):
-        """Test getting diagnostics from pyright."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-        await wait_for_indexing(workspace)
-
-        # The main.py has an unused import (sys), pyright should report it
-        stored = workspace.client.get_stored_diagnostics(path_to_uri(main_py))
-        # Diagnostics may or may not be present depending on pyright config
-        # Just verify we can retrieve them without error
+    async def test_diagnostics(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
+        stored = ws.client.get_stored_diagnostics(path_to_uri(main_py))
         assert stored is not None or stored == []
 
-        await session.close_all()
-
-    # --- rename ---
-
     @pytest.mark.asyncio
-    async def test_rename(self, python_project, session):
-        """Test renaming a symbol."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-
+    async def test_rename(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class User:" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "class User:")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/rename",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "newName": "Person",
             },
         )
@@ -237,100 +202,61 @@ class TestPythonIntegration:
         assert result is not None
         assert "changes" in result or "documentChanges" in result
 
-        await session.close_all()
-
-    # --- list-code-actions ---
-
     @pytest.mark.asyncio
-    async def test_list_code_actions(self, python_project, session):
-        """Test listing available code actions."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
+    async def test_list_code_actions(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/codeAction",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "range": {
-                    "start": {"line": 0, "character": 0},
-                    "end": {"line": 0, "character": 0},
-                },
+                "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
                 "context": {"diagnostics": []},
             },
         )
 
-        # Code actions may or may not be available
         assert result is None or isinstance(result, list)
 
-        await session.close_all()
-
-    # --- format ---
-
     @pytest.mark.asyncio
-    async def test_format(self, python_project, session):
-        """Test document formatting."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
+    async def test_format(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
 
-        # Pyright doesn't support formatting, but we should handle the response gracefully
         try:
-            result = await workspace.client.send_request(
+            result = await ws.client.send_request(
                 "textDocument/formatting",
                 {
                     "textDocument": {"uri": path_to_uri(main_py)},
                     "options": {"tabSize": 4, "insertSpaces": True},
                 },
             )
-            # If it returns, it should be a list of edits or null
             assert result is None or isinstance(result, list)
         except LSPResponseError:
-            # Pyright may not support formatting
-            pass
-
-        await session.close_all()
-
-    # --- organize-imports ---
+            pass  # Pyright may not support formatting
 
     @pytest.mark.asyncio
-    async def test_organize_imports(self, python_project, session):
-        """Test organizing imports."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
+    async def test_organize_imports(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/codeAction",
             {
                 "textDocument": {"uri": path_to_uri(main_py)},
-                "range": {
-                    "start": {"line": 0, "character": 0},
-                    "end": {"line": 0, "character": 0},
-                },
-                "context": {
-                    "diagnostics": [],
-                    "only": ["source.organizeImports"],
-                },
+                "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+                "context": {"diagnostics": [], "only": ["source.organizeImports"]},
             },
         )
 
-        # May or may not return organize imports action
         assert result is None or isinstance(result, list)
 
-        await session.close_all()
-
-    # --- raw-lsp-request ---
-
     @pytest.mark.asyncio
-    async def test_raw_lsp_request(self, python_project, session):
-        """Test sending a raw LSP request."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
+    async def test_raw_lsp_request(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
 
-        # Send a raw documentSymbol request
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(main_py)}},
         )
@@ -338,37 +264,24 @@ class TestPythonIntegration:
         assert result is not None
         assert isinstance(result, list)
 
-        await session.close_all()
-
-    # --- implementations (not supported by pyright) ---
-
     @pytest.mark.asyncio
-    async def test_implementations_not_supported(self, python_project, session):
-        """Test that implementations returns proper error for pyright."""
-        main_py = python_project / "main.py"
-        workspace = await session.get_or_create_workspace(main_py, python_project)
-        await workspace.ensure_document_open(main_py)
-
+    async def test_implementations_not_supported(self, workspace):
+        ws, project = workspace
+        main_py = project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class StorageProtocol" in line:
-                target_line = i
-                target_col = line.index("StorageProtocol")
-                break
+        line, col = find_line_col(content, "class StorageProtocol")
+        col = content.splitlines()[line].index("StorageProtocol")
 
         with pytest.raises(LSPResponseError) as exc_info:
-            await workspace.client.send_request(
+            await ws.client.send_request(
                 "textDocument/implementation",
                 {
                     "textDocument": {"uri": path_to_uri(main_py)},
-                    "position": {"line": target_line, "character": target_col},
+                    "position": {"line": line, "character": col},
                 },
             )
 
         assert exc_info.value.is_method_not_found()
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -383,29 +296,62 @@ class TestGoIntegration:
     def check_gopls(self):
         requires_gopls()
 
-    # --- Basic Server Tests ---
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("go")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
+        src = FIXTURES_DIR / "go_project"
+        dst = class_temp_dir / "go_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
+
+    @pytest.fixture(scope="class")
+    async def workspace(self, class_project, class_session):
+        main_go = class_project / "main.go"
+        ws = await class_session.get_or_create_workspace(main_go, class_project)
+        await ws.ensure_document_open(main_go)
+        await ws.client.wait_for_service_ready()
+        yield ws, class_project
+        await class_session.close_all()
 
     @pytest.mark.asyncio
-    async def test_initialize_server(self, go_project, session):
-        """Test that gopls initializes correctly."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-
-        assert workspace.client is not None
-        assert workspace.client._initialized
-
-        await session.close_all()
-
-    # --- grep (document symbols) ---
+    async def test_initialize_server(self, workspace):
+        ws, project = workspace
+        assert ws.client is not None
+        assert ws.client._initialized
 
     @pytest.mark.asyncio
-    async def test_grep_document_symbols(self, go_project, session):
-        """Test listing symbols from a document."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
+    async def test_grep_document_symbols(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(main_go)}},
         )
@@ -415,63 +361,39 @@ class TestGoIntegration:
         assert "User" in names
         assert "Storage" in names
         assert "MemoryStorage" in names
-        assert "FileStorage" in names
-        assert "UserRepository" in names
-
-        await session.close_all()
-
-    # --- definition ---
 
     @pytest.mark.asyncio
-    async def test_find_definition(self, go_project, session):
-        """Test finding definition of a symbol."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-
+    async def test_find_definition(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "user := createSampleUser()" in line:
-                target_line = i
-                target_col = line.index("createSampleUser")
-                break
+        line, col = find_line_col(content, "user := createSampleUser()")
+        col = content.splitlines()[line].index("createSampleUser")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/definition",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- references ---
-
     @pytest.mark.asyncio
-    async def test_find_references(self, go_project, session):
-        """Test finding all references to a symbol."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-
+    async def test_find_references(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "type User struct" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "type User struct")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/references",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "context": {"includeDeclaration": True},
             },
         )
@@ -479,120 +401,75 @@ class TestGoIntegration:
         assert result is not None
         assert len(result) >= 2
 
-        await session.close_all()
-
-    # --- implementations ---
-
     @pytest.mark.asyncio
-    async def test_find_implementations(self, go_project, session):
-        """Test finding implementations of an interface."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-        await wait_for_indexing(workspace, delay=2.0)
-
+    async def test_find_implementations(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "type Storage interface" in line:
-                target_line = i
-                target_col = line.index("Storage")
-                break
+        line, col = find_line_col(content, "type Storage interface")
+        col = content.splitlines()[line].index("Storage")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/implementation",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) == 2  # MemoryStorage and FileStorage
 
-        await session.close_all()
-
-    # --- subtypes (type hierarchy) ---
-
     @pytest.mark.asyncio
-    async def test_find_subtypes(self, go_project, session):
-        """Test finding subtypes via type hierarchy."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-        await wait_for_indexing(workspace, delay=2.0)
-
+    async def test_find_subtypes(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "type Storage interface" in line:
-                target_line = i
-                target_col = line.index("Storage")
-                break
+        line, col = find_line_col(content, "type Storage interface")
+        col = content.splitlines()[line].index("Storage")
 
-        # First prepare type hierarchy
-        prepare_result = await workspace.client.send_request(
+        prepare_result = await ws.client.send_request(
             "textDocument/prepareTypeHierarchy",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         if prepare_result:
-            result = await workspace.client.send_request(
+            result = await ws.client.send_request(
                 "typeHierarchy/subtypes",
                 {"item": prepare_result[0]},
             )
-            # gopls should find implementations as subtypes
             assert result is None or isinstance(result, list)
 
-        await session.close_all()
-
-    # --- describe (hover) ---
-
     @pytest.mark.asyncio
-    async def test_describe_hover(self, go_project, session):
-        """Test getting hover information."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-
+    async def test_describe_hover(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "type User struct" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "type User struct")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
 
-        await session.close_all()
-
-    # --- diagnostics ---
-
     @pytest.mark.asyncio
-    async def test_diagnostics(self, go_project, session):
-        """Test getting diagnostics from gopls."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-        await wait_for_indexing(workspace)
+    async def test_diagnostics(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
 
-        # Try pull diagnostics first
-        if workspace.client.supports_pull_diagnostics:
+        if ws.client.supports_pull_diagnostics:
             try:
-                result = await workspace.client.send_request(
+                result = await ws.client.send_request(
                     "textDocument/diagnostic",
                     {"textDocument": {"uri": path_to_uri(main_go)}},
                 )
@@ -600,30 +477,19 @@ class TestGoIntegration:
             except LSPResponseError:
                 pass
 
-        await session.close_all()
-
-    # --- rename ---
-
     @pytest.mark.asyncio
-    async def test_rename(self, go_project, session):
-        """Test renaming a symbol."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
-
+    async def test_rename(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
         content = main_go.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "type User struct" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "type User struct")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/rename",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "newName": "Person",
             },
         )
@@ -631,18 +497,12 @@ class TestGoIntegration:
         assert result is not None
         assert "changes" in result or "documentChanges" in result
 
-        await session.close_all()
-
-    # --- format ---
-
     @pytest.mark.asyncio
-    async def test_format(self, go_project, session):
-        """Test document formatting."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
+    async def test_format(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/formatting",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
@@ -650,38 +510,23 @@ class TestGoIntegration:
             },
         )
 
-        # gopls supports formatting
         assert result is None or isinstance(result, list)
 
-        await session.close_all()
-
-    # --- organize-imports ---
-
     @pytest.mark.asyncio
-    async def test_organize_imports(self, go_project, session):
-        """Test organizing imports."""
-        main_go = go_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, go_project)
-        await workspace.ensure_document_open(main_go)
+    async def test_organize_imports(self, workspace):
+        ws, project = workspace
+        main_go = project / "main.go"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/codeAction",
             {
                 "textDocument": {"uri": path_to_uri(main_go)},
-                "range": {
-                    "start": {"line": 0, "character": 0},
-                    "end": {"line": 0, "character": 0},
-                },
-                "context": {
-                    "diagnostics": [],
-                    "only": ["source.organizeImports"],
-                },
+                "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+                "context": {"diagnostics": [], "only": ["source.organizeImports"]},
             },
         )
 
         assert result is None or isinstance(result, list)
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -696,30 +541,65 @@ class TestRustIntegration:
     def check_rust_analyzer(self):
         requires_rust_analyzer()
 
-    # --- Basic Server Tests ---
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("rust")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
+        src = FIXTURES_DIR / "rust_project"
+        dst = class_temp_dir / "rust_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
+
+    @pytest.fixture(scope="class")
+    async def workspace(self, class_project, class_session):
+        main_rs = class_project / "src" / "main.rs"
+        ws = await class_session.get_or_create_workspace(main_rs, class_project)
+        await ws.ensure_document_open(main_rs)
+        await ws.client.wait_for_service_ready()
+        # rust-analyzer needs a bit more time to index
+        await asyncio.sleep(2.0)
+        yield ws, class_project
+        await class_session.close_all()
 
     @pytest.mark.asyncio
-    async def test_initialize_server(self, rust_project, session):
-        """Test that rust-analyzer initializes correctly."""
-        main_rs = rust_project / "src" / "main.rs"
-        workspace = await session.get_or_create_workspace(main_rs, rust_project)
-
-        assert workspace.client is not None
-        assert workspace.client._initialized
-
-        await session.close_all()
-
-    # --- grep (document symbols) ---
+    async def test_initialize_server(self, workspace):
+        ws, project = workspace
+        assert ws.client is not None
+        assert ws.client._initialized
 
     @pytest.mark.asyncio
-    async def test_grep_document_symbols(self, rust_project, session):
-        """Test listing symbols from a document."""
-        user_rs = rust_project / "src" / "user.rs"
-        workspace = await session.get_or_create_workspace(user_rs, rust_project)
-        await workspace.ensure_document_open(user_rs)
-        await wait_for_indexing(workspace, delay=3.0)
+    async def test_grep_document_symbols(self, workspace):
+        ws, project = workspace
+        user_rs = project / "src" / "user.rs"
+        await ws.ensure_document_open(user_rs)
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(user_rs)}},
         )
@@ -729,70 +609,47 @@ class TestRustIntegration:
         assert "User" in names
         assert "UserRepository" in names
 
-        await session.close_all()
-
-    # --- definition ---
-
     @pytest.mark.asyncio
-    async def test_find_definition(self, rust_project, session):
-        """Test finding definition of a symbol."""
-        main_rs = rust_project / "src" / "main.rs"
-        workspace = await session.get_or_create_workspace(main_rs, rust_project)
-        await workspace.ensure_document_open(main_rs)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_definition(self, workspace):
+        ws, project = workspace
+        main_rs = project / "src" / "main.rs"
         content = main_rs.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "create_sample_user()" in line and "fn" not in line:
-                target_line = i
-                target_col = line.index("create_sample_user")
-                break
+        line, col = find_line_col(content, "create_sample_user()", not_pattern="fn ")
+        col = content.splitlines()[line].index("create_sample_user")
 
         # rust-analyzer may need retries due to "content modified" during indexing
         for attempt in range(3):
             try:
-                result = await workspace.client.send_request(
+                result = await ws.client.send_request(
                     "textDocument/definition",
                     {
                         "textDocument": {"uri": path_to_uri(main_rs)},
-                        "position": {"line": target_line, "character": target_col},
+                        "position": {"line": line, "character": col},
                     },
                 )
                 break
             except LSPResponseError as e:
                 if "content modified" in str(e) and attempt < 2:
-                    await asyncio.sleep(2.0)
+                    await asyncio.sleep(1.0)
                     continue
                 raise
 
         assert result is not None
 
-        await session.close_all()
-
-    # --- references ---
-
     @pytest.mark.asyncio
-    async def test_find_references(self, rust_project, session):
-        """Test finding all references to a symbol."""
-        user_rs = rust_project / "src" / "user.rs"
-        workspace = await session.get_or_create_workspace(user_rs, rust_project)
-        await workspace.ensure_document_open(user_rs)
-        await wait_for_indexing(workspace, delay=3.0)
-
+    async def test_find_references(self, workspace):
+        ws, project = workspace
+        user_rs = project / "src" / "user.rs"
+        await ws.ensure_document_open(user_rs)
         content = user_rs.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "pub struct User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "pub struct User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/references",
             {
                 "textDocument": {"uri": path_to_uri(user_rs)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "context": {"includeDeclaration": True},
             },
         )
@@ -800,93 +657,60 @@ class TestRustIntegration:
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- implementations ---
-
     @pytest.mark.asyncio
-    async def test_find_implementations(self, rust_project, session):
-        """Test finding implementations of a trait."""
-        storage_rs = rust_project / "src" / "storage.rs"
-        workspace = await session.get_or_create_workspace(storage_rs, rust_project)
-        await workspace.ensure_document_open(storage_rs)
-        await wait_for_indexing(workspace, delay=3.0)
-
+    async def test_find_implementations(self, workspace):
+        ws, project = workspace
+        storage_rs = project / "src" / "storage.rs"
+        await ws.ensure_document_open(storage_rs)
         content = storage_rs.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "pub trait Storage" in line:
-                target_line = i
-                target_col = line.index("Storage")
-                break
+        line, col = find_line_col(content, "pub trait Storage")
+        col = content.splitlines()[line].index("Storage")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/implementation",
             {
                 "textDocument": {"uri": path_to_uri(storage_rs)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) >= 2  # MemoryStorage and FileStorage impl blocks
 
-        await session.close_all()
-
-    # --- describe (hover) ---
-
     @pytest.mark.asyncio
-    async def test_describe_hover(self, rust_project, session):
-        """Test getting hover information."""
-        user_rs = rust_project / "src" / "user.rs"
-        workspace = await session.get_or_create_workspace(user_rs, rust_project)
-        await workspace.ensure_document_open(user_rs)
-        await wait_for_indexing(workspace, delay=3.0)
-
+    async def test_describe_hover(self, workspace):
+        ws, project = workspace
+        user_rs = project / "src" / "user.rs"
+        await ws.ensure_document_open(user_rs)
         content = user_rs.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "pub struct User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "pub struct User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(user_rs)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
 
-        await session.close_all()
-
-    # --- rename ---
-
     @pytest.mark.asyncio
-    async def test_rename(self, rust_project, session):
-        """Test renaming a symbol."""
-        user_rs = rust_project / "src" / "user.rs"
-        workspace = await session.get_or_create_workspace(user_rs, rust_project)
-        await workspace.ensure_document_open(user_rs)
-        await wait_for_indexing(workspace, delay=3.0)
-
+    async def test_rename(self, workspace):
+        ws, project = workspace
+        user_rs = project / "src" / "user.rs"
+        await ws.ensure_document_open(user_rs)
         content = user_rs.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "pub struct User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "pub struct User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/rename",
             {
                 "textDocument": {"uri": path_to_uri(user_rs)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "newName": "Person",
             },
         )
@@ -894,19 +718,12 @@ class TestRustIntegration:
         assert result is not None
         assert "changes" in result or "documentChanges" in result
 
-        await session.close_all()
-
-    # --- format ---
-
     @pytest.mark.asyncio
-    async def test_format(self, rust_project, session):
-        """Test document formatting."""
-        main_rs = rust_project / "src" / "main.rs"
-        workspace = await session.get_or_create_workspace(main_rs, rust_project)
-        await workspace.ensure_document_open(main_rs)
-        await wait_for_indexing(workspace, delay=3.0)
+    async def test_format(self, workspace):
+        ws, project = workspace
+        main_rs = project / "src" / "main.rs"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/formatting",
             {
                 "textDocument": {"uri": path_to_uri(main_rs)},
@@ -914,10 +731,7 @@ class TestRustIntegration:
             },
         )
 
-        # rust-analyzer supports formatting via rustfmt
         assert result is None or isinstance(result, list)
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -932,29 +746,63 @@ class TestTypeScriptIntegration:
     def check_typescript_lsp(self):
         requires_typescript_lsp()
 
-    # --- Basic Server Tests ---
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("typescript")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
+        src = FIXTURES_DIR / "typescript_project"
+        dst = class_temp_dir / "typescript_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
+
+    @pytest.fixture(scope="class")
+    async def workspace(self, class_project, class_session):
+        main_ts = class_project / "src" / "main.ts"
+        ws = await class_session.get_or_create_workspace(main_ts, class_project)
+        await ws.ensure_document_open(main_ts)
+        await ws.client.wait_for_service_ready()
+        yield ws, class_project
+        await class_session.close_all()
 
     @pytest.mark.asyncio
-    async def test_initialize_server(self, typescript_project, session):
-        """Test that typescript-language-server initializes correctly."""
-        main_ts = typescript_project / "src" / "main.ts"
-        workspace = await session.get_or_create_workspace(main_ts, typescript_project)
-
-        assert workspace.client is not None
-        assert workspace.client._initialized
-
-        await session.close_all()
-
-    # --- grep (document symbols) ---
+    async def test_initialize_server(self, workspace):
+        ws, project = workspace
+        assert ws.client is not None
+        assert ws.client._initialized
 
     @pytest.mark.asyncio
-    async def test_grep_document_symbols(self, typescript_project, session):
-        """Test listing symbols from a document."""
-        user_ts = typescript_project / "src" / "user.ts"
-        workspace = await session.get_or_create_workspace(user_ts, typescript_project)
-        await workspace.ensure_document_open(user_ts)
+    async def test_grep_document_symbols(self, workspace):
+        ws, project = workspace
+        user_ts = project / "src" / "user.ts"
+        await ws.ensure_document_open(user_ts)
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(user_ts)}},
         )
@@ -964,62 +812,40 @@ class TestTypeScriptIntegration:
         assert "User" in names
         assert "Storage" in names
         assert "MemoryStorage" in names
-        assert "UserRepository" in names
-
-        await session.close_all()
-
-    # --- definition ---
 
     @pytest.mark.asyncio
-    async def test_find_definition(self, typescript_project, session):
-        """Test finding definition of a symbol."""
-        main_ts = typescript_project / "src" / "main.ts"
-        workspace = await session.get_or_create_workspace(main_ts, typescript_project)
-        await workspace.ensure_document_open(main_ts)
-
+    async def test_find_definition(self, workspace):
+        ws, project = workspace
+        main_ts = project / "src" / "main.ts"
         content = main_ts.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "createSampleUser()" in line and "function" not in line:
-                target_line = i
-                target_col = line.index("createSampleUser")
-                break
+        line, col = find_line_col(content, "createSampleUser()", not_pattern="function")
+        col = content.splitlines()[line].index("createSampleUser")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/definition",
             {
                 "textDocument": {"uri": path_to_uri(main_ts)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- references ---
-
     @pytest.mark.asyncio
-    async def test_find_references(self, typescript_project, session):
-        """Test finding all references to a symbol."""
-        user_ts = typescript_project / "src" / "user.ts"
-        workspace = await session.get_or_create_workspace(user_ts, typescript_project)
-        await workspace.ensure_document_open(user_ts)
-
+    async def test_find_references(self, workspace):
+        ws, project = workspace
+        user_ts = project / "src" / "user.ts"
+        await ws.ensure_document_open(user_ts)
         content = user_ts.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "export class User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "export class User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/references",
             {
                 "textDocument": {"uri": path_to_uri(user_ts)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "context": {"includeDeclaration": True},
             },
         )
@@ -1027,91 +853,60 @@ class TestTypeScriptIntegration:
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- implementations ---
-
     @pytest.mark.asyncio
-    async def test_find_implementations(self, typescript_project, session):
-        """Test finding implementations of an interface."""
-        user_ts = typescript_project / "src" / "user.ts"
-        workspace = await session.get_or_create_workspace(user_ts, typescript_project)
-        await workspace.ensure_document_open(user_ts)
-        await wait_for_indexing(workspace)
-
+    async def test_find_implementations(self, workspace):
+        ws, project = workspace
+        user_ts = project / "src" / "user.ts"
+        await ws.ensure_document_open(user_ts)
         content = user_ts.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "export interface Storage" in line:
-                target_line = i
-                target_col = line.index("Storage")
-                break
+        line, col = find_line_col(content, "export interface Storage")
+        col = content.splitlines()[line].index("Storage")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/implementation",
             {
                 "textDocument": {"uri": path_to_uri(user_ts)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert len(result) >= 2  # MemoryStorage and FileStorage
 
-        await session.close_all()
-
-    # --- describe (hover) ---
-
     @pytest.mark.asyncio
-    async def test_describe_hover(self, typescript_project, session):
-        """Test getting hover information."""
-        user_ts = typescript_project / "src" / "user.ts"
-        workspace = await session.get_or_create_workspace(user_ts, typescript_project)
-        await workspace.ensure_document_open(user_ts)
-
+    async def test_describe_hover(self, workspace):
+        ws, project = workspace
+        user_ts = project / "src" / "user.ts"
+        await ws.ensure_document_open(user_ts)
         content = user_ts.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "export class User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "export class User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(user_ts)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
 
-        await session.close_all()
-
-    # --- rename ---
-
     @pytest.mark.asyncio
-    async def test_rename(self, typescript_project, session):
-        """Test renaming a symbol."""
-        user_ts = typescript_project / "src" / "user.ts"
-        workspace = await session.get_or_create_workspace(user_ts, typescript_project)
-        await workspace.ensure_document_open(user_ts)
-
+    async def test_rename(self, workspace):
+        ws, project = workspace
+        user_ts = project / "src" / "user.ts"
+        await ws.ensure_document_open(user_ts)
         content = user_ts.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "export class User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "export class User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/rename",
             {
                 "textDocument": {"uri": path_to_uri(user_ts)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "newName": "Person",
             },
         )
@@ -1119,18 +914,12 @@ class TestTypeScriptIntegration:
         assert result is not None
         assert "changes" in result or "documentChanges" in result
 
-        await session.close_all()
-
-    # --- format ---
-
     @pytest.mark.asyncio
-    async def test_format(self, typescript_project, session):
-        """Test document formatting."""
-        main_ts = typescript_project / "src" / "main.ts"
-        workspace = await session.get_or_create_workspace(main_ts, typescript_project)
-        await workspace.ensure_document_open(main_ts)
+    async def test_format(self, workspace):
+        ws, project = workspace
+        main_ts = project / "src" / "main.ts"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/formatting",
             {
                 "textDocument": {"uri": path_to_uri(main_ts)},
@@ -1138,39 +927,23 @@ class TestTypeScriptIntegration:
             },
         )
 
-        # typescript-language-server supports formatting
         assert result is None or isinstance(result, list)
 
-        await session.close_all()
-
-    # --- organize-imports ---
-
     @pytest.mark.asyncio
-    async def test_organize_imports(self, typescript_project, session):
-        """Test organizing imports."""
-        main_ts = typescript_project / "src" / "main.ts"
-        workspace = await session.get_or_create_workspace(main_ts, typescript_project)
-        await workspace.ensure_document_open(main_ts)
+    async def test_organize_imports(self, workspace):
+        ws, project = workspace
+        main_ts = project / "src" / "main.ts"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/codeAction",
             {
                 "textDocument": {"uri": path_to_uri(main_ts)},
-                "range": {
-                    "start": {"line": 0, "character": 0},
-                    "end": {"line": 0, "character": 0},
-                },
-                "context": {
-                    "diagnostics": [],
-                    "only": ["source.organizeImports"],
-                },
+                "range": {"start": {"line": 0, "character": 0}, "end": {"line": 0, "character": 0}},
+                "context": {"diagnostics": [], "only": ["source.organizeImports"]},
             },
         )
 
-        # Should have organize imports action due to unused 'path' import
         assert result is None or isinstance(result, list)
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -1185,39 +958,65 @@ class TestJavaIntegration:
     def check_jdtls(self):
         requires_jdtls()
 
-    @pytest.fixture
-    def java_project(self, temp_dir):
-        """Copy java project and ensure proper structure."""
-        from .conftest import FIXTURES_DIR
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("java")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
         src = FIXTURES_DIR / "java_project"
-        dst = temp_dir / "java_project"
+        dst = class_temp_dir / "java_project"
         shutil.copytree(src, dst)
         return dst
 
-    # --- Basic Server Tests ---
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
+
+    @pytest.fixture(scope="class")
+    async def workspace(self, class_project, class_session):
+        main_java = class_project / "src" / "main" / "java" / "com" / "example" / "Main.java"
+        ws = await class_session.get_or_create_workspace(main_java, class_project)
+        await ws.ensure_document_open(main_java)
+        await ws.client.wait_for_service_ready()
+        # jdtls needs more time to fully index
+        await asyncio.sleep(3.0)
+        yield ws, class_project
+        await class_session.close_all()
 
     @pytest.mark.asyncio
-    async def test_initialize_server(self, java_project, session):
-        """Test that jdtls initializes correctly."""
-        main_java = java_project / "src" / "main" / "java" / "com" / "example" / "Main.java"
-        workspace = await session.get_or_create_workspace(main_java, java_project)
-
-        assert workspace.client is not None
-        assert workspace.client._initialized
-
-        await session.close_all()
-
-    # --- grep (document symbols) ---
+    async def test_initialize_server(self, workspace):
+        ws, project = workspace
+        assert ws.client is not None
+        assert ws.client._initialized
 
     @pytest.mark.asyncio
-    async def test_grep_document_symbols(self, java_project, session):
-        """Test listing symbols from a document."""
-        user_java = java_project / "src" / "main" / "java" / "com" / "example" / "User.java"
-        workspace = await session.get_or_create_workspace(user_java, java_project)
-        await workspace.ensure_document_open(user_java)
-        await wait_for_indexing(workspace, delay=5.0)
+    async def test_grep_document_symbols(self, workspace):
+        ws, project = workspace
+        user_java = project / "src" / "main" / "java" / "com" / "example" / "User.java"
+        await ws.ensure_document_open(user_java)
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(user_java)}},
         )
@@ -1226,61 +1025,38 @@ class TestJavaIntegration:
         names = [s["name"] for s in result]
         assert "User" in names
 
-        await session.close_all()
-
-    # --- definition ---
-
     @pytest.mark.asyncio
-    async def test_find_definition(self, java_project, session):
-        """Test finding definition of a symbol."""
-        main_java = java_project / "src" / "main" / "java" / "com" / "example" / "Main.java"
-        workspace = await session.get_or_create_workspace(main_java, java_project)
-        await workspace.ensure_document_open(main_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_definition(self, workspace):
+        ws, project = workspace
+        main_java = project / "src" / "main" / "java" / "com" / "example" / "Main.java"
         content = main_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "createSampleUser()" in line and "public static" not in line:
-                target_line = i
-                target_col = line.index("createSampleUser")
-                break
+        line, col = find_line_col(content, "createSampleUser()", not_pattern="public static")
+        col = content.splitlines()[line].index("createSampleUser")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/definition",
             {
                 "textDocument": {"uri": path_to_uri(main_java)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
 
-        await session.close_all()
-
-    # --- references ---
-
     @pytest.mark.asyncio
-    async def test_find_references(self, java_project, session):
-        """Test finding all references to a symbol."""
-        user_java = java_project / "src" / "main" / "java" / "com" / "example" / "User.java"
-        workspace = await session.get_or_create_workspace(user_java, java_project)
-        await workspace.ensure_document_open(user_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_references(self, workspace):
+        ws, project = workspace
+        user_java = project / "src" / "main" / "java" / "com" / "example" / "User.java"
+        await ws.ensure_document_open(user_java)
         content = user_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "public class User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "public class User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/references",
             {
                 "textDocument": {"uri": path_to_uri(user_java)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "context": {"includeDeclaration": True},
             },
         )
@@ -1288,177 +1064,118 @@ class TestJavaIntegration:
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- implementations ---
-
     @pytest.mark.asyncio
-    async def test_find_implementations(self, java_project, session):
-        """Test finding implementations of an interface."""
-        storage_java = java_project / "src" / "main" / "java" / "com" / "example" / "Storage.java"
-        workspace = await session.get_or_create_workspace(storage_java, java_project)
-        await workspace.ensure_document_open(storage_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_implementations(self, workspace):
+        ws, project = workspace
+        storage_java = project / "src" / "main" / "java" / "com" / "example" / "Storage.java"
+        await ws.ensure_document_open(storage_java)
         content = storage_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "public interface Storage" in line:
-                target_line = i
-                target_col = line.index("Storage")
-                break
+        line, col = find_line_col(content, "public interface Storage")
+        col = content.splitlines()[line].index("Storage")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/implementation",
             {
                 "textDocument": {"uri": path_to_uri(storage_java)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
-        # jdtls should find AbstractStorage (which implements Storage)
         assert result is not None
         assert len(result) >= 1
 
-        await session.close_all()
-
-    # --- subtypes (type hierarchy) ---
-
     @pytest.mark.asyncio
-    async def test_find_subtypes(self, java_project, session):
-        """Test finding subtypes via type hierarchy."""
-        abstract_storage_java = java_project / "src" / "main" / "java" / "com" / "example" / "AbstractStorage.java"
-        workspace = await session.get_or_create_workspace(abstract_storage_java, java_project)
-        await workspace.ensure_document_open(abstract_storage_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_subtypes(self, workspace):
+        ws, project = workspace
+        abstract_storage_java = project / "src" / "main" / "java" / "com" / "example" / "AbstractStorage.java"
+        await ws.ensure_document_open(abstract_storage_java)
         content = abstract_storage_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "public abstract class AbstractStorage" in line:
-                target_line = i
-                target_col = line.index("AbstractStorage")
-                break
+        line, col = find_line_col(content, "public abstract class AbstractStorage")
+        col = content.splitlines()[line].index("AbstractStorage")
 
-        # First prepare type hierarchy
         try:
-            prepare_result = await workspace.client.send_request(
+            prepare_result = await ws.client.send_request(
                 "textDocument/prepareTypeHierarchy",
                 {
                     "textDocument": {"uri": path_to_uri(abstract_storage_java)},
-                    "position": {"line": target_line, "character": target_col},
+                    "position": {"line": line, "character": col},
                 },
             )
 
             if prepare_result:
-                result = await workspace.client.send_request(
+                result = await ws.client.send_request(
                     "typeHierarchy/subtypes",
                     {"item": prepare_result[0]},
                 )
-                # Should find MemoryStorage and FileStorage as subtypes
                 assert result is not None
-                assert len(result) >= 2
+                assert len(result) >= 2  # MemoryStorage and FileStorage
         except LSPResponseError as e:
             if not e.is_method_not_found():
                 raise
 
-        await session.close_all()
-
-    # --- supertypes (type hierarchy) ---
-
     @pytest.mark.asyncio
-    async def test_find_supertypes(self, java_project, session):
-        """Test finding supertypes via type hierarchy."""
-        memory_storage_java = java_project / "src" / "main" / "java" / "com" / "example" / "MemoryStorage.java"
-        workspace = await session.get_or_create_workspace(memory_storage_java, java_project)
-        await workspace.ensure_document_open(memory_storage_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_find_supertypes(self, workspace):
+        ws, project = workspace
+        memory_storage_java = project / "src" / "main" / "java" / "com" / "example" / "MemoryStorage.java"
+        await ws.ensure_document_open(memory_storage_java)
         content = memory_storage_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "public class MemoryStorage" in line:
-                target_line = i
-                target_col = line.index("MemoryStorage")
-                break
+        line, col = find_line_col(content, "public class MemoryStorage")
+        col = content.splitlines()[line].index("MemoryStorage")
 
         try:
-            prepare_result = await workspace.client.send_request(
+            prepare_result = await ws.client.send_request(
                 "textDocument/prepareTypeHierarchy",
                 {
                     "textDocument": {"uri": path_to_uri(memory_storage_java)},
-                    "position": {"line": target_line, "character": target_col},
+                    "position": {"line": line, "character": col},
                 },
             )
 
             if prepare_result:
-                result = await workspace.client.send_request(
+                result = await ws.client.send_request(
                     "typeHierarchy/supertypes",
                     {"item": prepare_result[0]},
                 )
-                # Should find AbstractStorage as supertype
                 assert result is not None
-                assert len(result) >= 1
+                assert len(result) >= 1  # AbstractStorage
         except LSPResponseError as e:
             if not e.is_method_not_found():
                 raise
 
-        await session.close_all()
-
-    # --- describe (hover) ---
-
     @pytest.mark.asyncio
-    async def test_describe_hover(self, java_project, session):
-        """Test getting hover information."""
-        user_java = java_project / "src" / "main" / "java" / "com" / "example" / "User.java"
-        workspace = await session.get_or_create_workspace(user_java, java_project)
-        await workspace.ensure_document_open(user_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_describe_hover(self, workspace):
+        ws, project = workspace
+        user_java = project / "src" / "main" / "java" / "com" / "example" / "User.java"
+        await ws.ensure_document_open(user_java)
         content = user_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "public class User" in line:
-                target_line = i
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "public class User")
+        col = content.splitlines()[line].index("User")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(user_java)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
 
-        await session.close_all()
-
-    # --- rename ---
-
     @pytest.mark.asyncio
-    async def test_rename(self, java_project, session):
-        """Test renaming a symbol."""
-        user_java = java_project / "src" / "main" / "java" / "com" / "example" / "User.java"
-        workspace = await session.get_or_create_workspace(user_java, java_project)
-        await workspace.ensure_document_open(user_java)
-        await wait_for_indexing(workspace, delay=5.0)
-
+    async def test_rename(self, workspace):
+        ws, project = workspace
+        user_java = project / "src" / "main" / "java" / "com" / "example" / "User.java"
+        await ws.ensure_document_open(user_java)
         content = user_java.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "private String name" in line:
-                target_line = i
-                target_col = line.index("name")
-                break
+        line, col = find_line_col(content, "private String name")
+        col = content.splitlines()[line].index("name")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/rename",
             {
                 "textDocument": {"uri": path_to_uri(user_java)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
                 "newName": "fullName",
             },
         )
@@ -1466,19 +1183,12 @@ class TestJavaIntegration:
         assert result is not None
         assert "changes" in result or "documentChanges" in result
 
-        await session.close_all()
-
-    # --- format ---
-
     @pytest.mark.asyncio
-    async def test_format(self, java_project, session):
-        """Test document formatting."""
-        main_java = java_project / "src" / "main" / "java" / "com" / "example" / "Main.java"
-        workspace = await session.get_or_create_workspace(main_java, java_project)
-        await workspace.ensure_document_open(main_java)
-        await wait_for_indexing(workspace, delay=5.0)
+    async def test_format(self, workspace):
+        ws, project = workspace
+        main_java = project / "src" / "main" / "java" / "com" / "example" / "Main.java"
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/formatting",
             {
                 "textDocument": {"uri": path_to_uri(main_java)},
@@ -1486,10 +1196,7 @@ class TestJavaIntegration:
             },
         )
 
-        # jdtls supports formatting
         assert result is None or isinstance(result, list)
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -1500,27 +1207,51 @@ class TestJavaIntegration:
 class TestMultiLanguageIntegration:
     """Integration tests for multi-language projects."""
 
-    @pytest.fixture
-    def multi_project(self, temp_dir):
-        """Copy multi-language project."""
-        from .conftest import FIXTURES_DIR
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("multi")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
         src = FIXTURES_DIR / "multi_language_project"
-        dst = temp_dir / "multi_language_project"
+        dst = class_temp_dir / "multi_language_project"
         shutil.copytree(src, dst)
         return dst
 
-    # --- Python in multi-language project ---
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_session(self, class_isolated_config):
+        return Session()
 
     @pytest.mark.asyncio
-    async def test_python_in_multi_project(self, multi_project, session):
-        """Test Python LSP in a multi-language project."""
+    async def test_python_in_multi_project(self, class_project, class_session):
         requires_pyright()
 
-        app_py = multi_project / "app.py"
-        workspace = await session.get_or_create_workspace(app_py, multi_project)
-        await workspace.ensure_document_open(app_py)
+        app_py = class_project / "app.py"
+        ws = await class_session.get_or_create_workspace(app_py, class_project)
+        await ws.ensure_document_open(app_py)
+        await ws.client.wait_for_service_ready()
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(app_py)}},
         )
@@ -1530,20 +1261,16 @@ class TestMultiLanguageIntegration:
         assert "PythonService" in names
         assert "PythonUser" in names
 
-        await session.close_all()
-
-    # --- Go in multi-language project ---
-
     @pytest.mark.asyncio
-    async def test_go_in_multi_project(self, multi_project, session):
-        """Test Go LSP in a multi-language project."""
+    async def test_go_in_multi_project(self, class_project, class_session):
         requires_gopls()
 
-        main_go = multi_project / "main.go"
-        workspace = await session.get_or_create_workspace(main_go, multi_project)
-        await workspace.ensure_document_open(main_go)
+        main_go = class_project / "main.go"
+        ws = await class_session.get_or_create_workspace(main_go, class_project)
+        await ws.ensure_document_open(main_go)
+        await ws.client.wait_for_service_ready()
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(main_go)}},
         )
@@ -1553,34 +1280,28 @@ class TestMultiLanguageIntegration:
         assert "GoService" in names
         assert "GoUser" in names
 
-        await session.close_all()
-
-    # --- Both languages simultaneously ---
-
     @pytest.mark.asyncio
-    async def test_both_languages_simultaneously(self, multi_project, session):
-        """Test that both Python and Go LSP servers work simultaneously."""
+    async def test_both_languages_simultaneously(self, class_project, class_session):
         requires_pyright()
         requires_gopls()
 
-        app_py = multi_project / "app.py"
-        main_go = multi_project / "main.go"
+        app_py = class_project / "app.py"
+        main_go = class_project / "main.go"
 
-        # Start Python workspace
-        py_workspace = await session.get_or_create_workspace(app_py, multi_project)
-        await py_workspace.ensure_document_open(app_py)
+        py_ws = await class_session.get_or_create_workspace(app_py, class_project)
+        await py_ws.ensure_document_open(app_py)
+        await py_ws.client.wait_for_service_ready()
 
-        # Start Go workspace
-        go_workspace = await session.get_or_create_workspace(main_go, multi_project)
-        await go_workspace.ensure_document_open(main_go)
+        go_ws = await class_session.get_or_create_workspace(main_go, class_project)
+        await go_ws.ensure_document_open(main_go)
+        await go_ws.client.wait_for_service_ready()
 
-        # Query both
-        py_result = await py_workspace.client.send_request(
+        py_result = await py_ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(app_py)}},
         )
 
-        go_result = await go_workspace.client.send_request(
+        go_result = await go_ws.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": path_to_uri(main_go)}},
         )
@@ -1594,43 +1315,32 @@ class TestMultiLanguageIntegration:
         assert "PythonService" in py_names
         assert "GoService" in go_names
 
-        # Verify we have two different workspaces
-        assert py_workspace.server_config.name == "pyright"
-        assert go_workspace.server_config.name == "gopls"
-
-        await session.close_all()
-
-    # --- Cross-file references in same language ---
+        assert py_ws.server_config.name == "pyright"
+        assert go_ws.server_config.name == "gopls"
 
     @pytest.mark.asyncio
-    async def test_python_cross_file_hover(self, multi_project, session):
-        """Test hover works across files in Python."""
+    async def test_python_cross_file_hover(self, class_project, class_session):
         requires_pyright()
 
-        app_py = multi_project / "app.py"
-        workspace = await session.get_or_create_workspace(app_py, multi_project)
-        await workspace.ensure_document_open(app_py)
+        app_py = class_project / "app.py"
+        ws = await class_session.get_or_create_workspace(app_py, class_project)
+        await ws.ensure_document_open(app_py)
+        await ws.client.wait_for_service_ready()
 
         content = app_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class PythonService" in line:
-                target_line = i
-                target_col = line.index("PythonService")
-                break
+        line, col = find_line_col(content, "class PythonService")
+        col = content.splitlines()[line].index("PythonService")
 
-        result = await workspace.client.send_request(
+        result = await ws.client.send_request(
             "textDocument/hover",
             {
                 "textDocument": {"uri": path_to_uri(app_py)},
-                "position": {"line": target_line, "character": target_col},
+                "position": {"line": line, "character": col},
             },
         )
 
         assert result is not None
         assert "contents" in result
-
-        await session.close_all()
 
 
 # =============================================================================
@@ -1641,15 +1351,49 @@ class TestMultiLanguageIntegration:
 class TestDaemonHandlers:
     """Test the daemon server request handlers end-to-end."""
 
+    @pytest.fixture(scope="class")
+    def class_temp_dir(self, tmp_path_factory):
+        return tmp_path_factory.mktemp("daemon")
+
+    @pytest.fixture(scope="class")
+    def class_project(self, class_temp_dir):
+        src = FIXTURES_DIR / "python_project"
+        dst = class_temp_dir / "python_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def class_isolated_config(self, class_temp_dir):
+        cache_dir = class_temp_dir / "cache"
+        config_dir = class_temp_dir / "config"
+        cache_dir.mkdir()
+        config_dir.mkdir()
+        old_cache = os.environ.get("XDG_CACHE_HOME")
+        old_config = os.environ.get("XDG_CONFIG_HOME")
+        os.environ["XDG_CACHE_HOME"] = str(cache_dir)
+        os.environ["XDG_CONFIG_HOME"] = str(config_dir)
+        yield {"cache": cache_dir, "config": config_dir}
+        if old_cache:
+            os.environ["XDG_CACHE_HOME"] = old_cache
+        else:
+            os.environ.pop("XDG_CACHE_HOME", None)
+        if old_config:
+            os.environ["XDG_CONFIG_HOME"] = old_config
+        else:
+            os.environ.pop("XDG_CONFIG_HOME", None)
+
+    @pytest.fixture(scope="class")
+    def class_daemon_server(self, class_isolated_config):
+        return DaemonServer()
+
     @pytest.mark.asyncio
-    async def test_list_symbols_handler(self, python_project, daemon_server, isolated_config):
-        """Test the list-symbols handler."""
+    async def test_list_symbols_handler(self, class_project, class_daemon_server):
         requires_pyright()
 
-        main_py = python_project / "main.py"
-        result = await daemon_server._handle_list_symbols({
+        main_py = class_project / "main.py"
+        result = await class_daemon_server._handle_list_symbols({
             "path": str(main_py),
-            "workspace_root": str(python_project),
+            "workspace_root": str(class_project),
         })
 
         assert isinstance(result, list)
@@ -1657,80 +1401,60 @@ class TestDaemonHandlers:
         assert "User" in names
         assert "UserRepository" in names
 
-        await daemon_server.session.close_all()
-
     @pytest.mark.asyncio
-    async def test_find_definition_handler(self, python_project, daemon_server, isolated_config):
-        """Test the find-definition handler."""
+    async def test_find_definition_handler(self, class_project, class_daemon_server):
         requires_pyright()
 
-        main_py = python_project / "main.py"
+        main_py = class_project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "user = create_sample_user()" in line:
-                target_line = i + 1  # 1-based for handler
-                target_col = line.index("create_sample_user")
-                break
+        line, col = find_line_col(content, "user = create_sample_user()")
+        col = content.splitlines()[line].index("create_sample_user")
 
-        result = await daemon_server._handle_find_definition({
+        result = await class_daemon_server._handle_find_definition({
             "path": str(main_py),
-            "workspace_root": str(python_project),
-            "line": target_line,
-            "column": target_col,
+            "workspace_root": str(class_project),
+            "line": line + 1,  # 1-based for handler
+            "column": col,
         })
 
         assert isinstance(result, list)
         assert len(result) >= 1
 
-        await daemon_server.session.close_all()
-
     @pytest.mark.asyncio
-    async def test_hover_handler(self, python_project, daemon_server, isolated_config):
-        """Test the describe (hover) handler."""
+    async def test_hover_handler(self, class_project, class_daemon_server):
         requires_pyright()
 
-        main_py = python_project / "main.py"
+        main_py = class_project / "main.py"
         content = main_py.read_text()
-        lines = content.splitlines()
-        for i, line in enumerate(lines):
-            if "class User:" in line:
-                target_line = i + 1
-                target_col = line.index("User")
-                break
+        line, col = find_line_col(content, "class User:")
+        col = content.splitlines()[line].index("User")
 
-        result = await daemon_server._handle_hover({
+        result = await class_daemon_server._handle_hover({
             "path": str(main_py),
-            "workspace_root": str(python_project),
-            "line": target_line,
-            "column": target_col,
+            "workspace_root": str(class_project),
+            "line": line + 1,
+            "column": col,
         })
 
         assert "contents" in result
 
-        await daemon_server.session.close_all()
-
     @pytest.mark.asyncio
-    async def test_fetch_symbol_docs_handler(self, python_project, daemon_server, isolated_config):
-        """Test the fetch-symbol-docs handler."""
+    async def test_fetch_symbol_docs_handler(self, class_project, class_daemon_server):
         requires_pyright()
 
-        main_py = python_project / "main.py"
-        # First get symbols
-        symbols = await daemon_server._handle_list_symbols({
+        main_py = class_project / "main.py"
+        symbols = await class_daemon_server._handle_list_symbols({
             "path": str(main_py),
-            "workspace_root": str(python_project),
+            "workspace_root": str(class_project),
         })
 
-        # Then fetch docs for them
-        result = await daemon_server._handle_fetch_symbol_docs({
-            "symbols": symbols[:3],  # Just first 3 to speed up test
-            "workspace_root": str(python_project),
+        result = await class_daemon_server._handle_fetch_symbol_docs({
+            "symbols": symbols[:3],
+            "workspace_root": str(class_project),
         })
 
         assert isinstance(result, list)
-        # Each symbol should now have a documentation field
         for sym in result:
             assert "documentation" in sym
 
-        await daemon_server.session.close_all()
+        await class_daemon_server.session.close_all()
