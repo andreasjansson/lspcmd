@@ -64,22 +64,26 @@ def has_command(cmd: str) -> bool:
     return shutil.which(cmd) is not None
 
 
-requires_pyright = pytest.mark.skipif(
-    not has_command("pyright-langserver"),
-    reason="pyright-langserver not installed"
-)
+def require_command(cmd: str, name: str):
+    if not has_command(cmd):
+        raise RuntimeError(
+            f"{name} not installed (command '{cmd}' not found). "
+            f"Install it to run this test."
+        )
 
-requires_rust_analyzer = pytest.mark.skipif(
-    not has_command("rust-analyzer") or not has_command("cargo"),
-    reason="rust-analyzer or cargo not installed"
-)
 
-requires_typescript_lsp = pytest.mark.skipif(
-    not has_command("typescript-language-server"),
-    reason="typescript-language-server not installed"
-)
+def requires_pyright():
+    require_command("pyright-langserver", "pyright")
 
-requires_gopls = pytest.mark.skipif(
-    not has_command("gopls"),
-    reason="gopls not installed"
-)
+
+def requires_rust_analyzer():
+    require_command("rust-analyzer", "rust-analyzer")
+    require_command("cargo", "cargo")
+
+
+def requires_typescript_lsp():
+    require_command("typescript-language-server", "typescript-language-server")
+
+
+def requires_gopls():
+    require_command("gopls", "gopls")
