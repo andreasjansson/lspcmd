@@ -223,6 +223,7 @@ def expand_exclude_pattern(pattern: str) -> set[Path]:
         "grep",
         "definition",
         "references",
+        "implementations",
         "declaration",
         "describe",
         "rename",
