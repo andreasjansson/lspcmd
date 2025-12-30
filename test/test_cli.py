@@ -10,7 +10,7 @@ from lspcmd.cli import cli, parse_position
 from lspcmd.daemon.pidfile import is_daemon_running
 from lspcmd.utils.config import get_pid_path, get_socket_path, add_workspace_root, load_config
 
-from .conftest import requires_pyright, requires_gopls
+from .conftest import requires_basedpyright, requires_gopls
 
 
 class TestParsePosition:
