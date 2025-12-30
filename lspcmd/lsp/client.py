@@ -247,6 +247,18 @@ class LSPClient:
     def on_notification(self, method: str, handler: Callable) -> None:
         self._notification_handlers[method] = handler
 
+    async def wait_for_service_ready(self, timeout: float = 30.0) -> bool:
+        if not self._needs_service_ready:
+            return True
+        if self._service_ready.is_set():
+            return True
+        try:
+            await asyncio.wait_for(self._service_ready.wait(), timeout=timeout)
+            return True
+        except asyncio.TimeoutError:
+            logger.warning(f"Timeout waiting for {self.server_name} to become ServiceReady")
+            return False
+
     @property
     def capabilities(self) -> dict[str, Any]:
         return self._server_capabilities
