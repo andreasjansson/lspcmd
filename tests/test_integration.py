@@ -106,8 +106,9 @@ class TestPythonIntegration:
 
     def test_grep_document_symbols(self, workspace):
         response = run_request("grep", {
-            "path": str(workspace / "main.py"),
+            "paths": [str(workspace / "main.py")],
             "workspace_root": str(workspace),
+            "pattern": ".*",
         })
         output = format_output(response["result"], "plain")
 
