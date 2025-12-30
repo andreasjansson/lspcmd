@@ -585,12 +585,12 @@ Renamed in 1 file(s):
         response = run_request("declaration", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 25,
+            "line": 27,
             "column": 6,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
-        assert output == "main.py:25 class User:"
+        assert output == "main.py:27 class User:"
 
     # =========================================================================
     # implementations tests
