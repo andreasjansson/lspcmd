@@ -107,11 +107,12 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "Config file:" in result.output
 
-    def test_find_definition_help(self):
+    def test_definition_help(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["find-definition", "--help"])
+        result = runner.invoke(cli, ["definition", "--help"])
         assert result.exit_code == 0
         assert "LINE,COLUMN" in result.output
+        assert "--body" in result.output
 
     def test_workspace_init(self, python_project, isolated_config):
         runner = CliRunner()
