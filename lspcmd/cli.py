@@ -229,6 +229,28 @@ def expand_exclude_pattern(pattern: str) -> set[Path]:
     return {Path(m).resolve() for m in matches if Path(m).is_file()}
 
 
+CLI_HELP = """\
+lspcmd is a command line LSP client. It can quickly search for symbols across
+large code bases with regular expressions, print full function and method bodies,
+find references, implementations, subtypes, etc. It also has refactoring tools,
+like renaming symbols across the entire code base or formatting files.
+
+`lspcmd grep` can be much better than naive text search tools when you want to
+understand a code base. Note that `lspcmd grep` only exposes symbols that are
+declared in its workspace, so use (rip)grep or other search tools when you're
+looking for specific multi-symbol strings, puncuation, or library functions.
+`lspcmd grep PATTERN [PATH] --docs` prints function and method documentation
+for all matching symbols.
+
+Use `lspcmd definition POSITION` to jump to the definition of a symbol that is
+used at `POSITION`, and use `lspcmd references POSITION` to find all the uses
+of a symbol at POSITION. These two (and other) commands accept `--context N`.
+`lspcmd definition POSITION --body` prints the full body of a function/method.
+
+See `lscmd COMMAND --help` for more documentation and command-specific options.
+"""
+
+
 @click.group(
     cls=OrderedGroup,
     commands_order=[
@@ -250,6 +272,7 @@ def expand_exclude_pattern(pattern: str) -> set[Path]:
         "daemon",
         "config",
     ],
+    help=CLI_HELP,
     context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 120},
 )
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
