@@ -774,7 +774,7 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
 @click.option("-x", "--exclude", multiple=True, help="Exclude files matching glob pattern or directory (repeatable)")
 @click.pass_context
 def tree(ctx, exclude):
-    """Show source file tree with line counts.
+    """Show source file tree with file sizes.
     
     Only includes files that have an associated language server
     (i.e., source files the LSP understands).
