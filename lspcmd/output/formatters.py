@@ -83,10 +83,9 @@ def format_locations(locations: list[dict]) -> str:
     for loc in locations:
         path = loc["path"]
         line = loc["line"]
-        col = loc.get("column", 0)
 
         if "context_lines" in loc:
-            lines.append(f"{path}:{line}:{col}")
+            lines.append(f"{path}:{line}")
             context_start = loc.get("context_start", line)
             for i, context_line in enumerate(loc["context_lines"]):
                 line_num = context_start + i
@@ -96,9 +95,9 @@ def format_locations(locations: list[dict]) -> str:
         else:
             line_content = _get_line_content(path, line)
             if line_content is not None:
-                lines.append(f"{path}:{line}:{col}: {line_content}")
+                lines.append(f"{path}:{line}: {line_content}")
             else:
-                lines.append(f"{path}:{line}:{col}")
+                lines.append(f"{path}:{line}")
 
     return "\n".join(lines)
 
