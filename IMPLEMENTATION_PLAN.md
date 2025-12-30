@@ -106,13 +106,10 @@ lspcmd raw-lsp-request workspace/symbol '{"query": "Handler"}' -l typescript
 
 | Command | Description |
 |---------|-------------|
-| `lspcmd find-definition PATH POSITION [-n CONTEXT]` | Find definition at position |
-| `lspcmd find-declaration PATH POSITION [-n CONTEXT]` | Find declaration at position |
-| `lspcmd find-implementation PATH POSITION [-n CONTEXT]` | Find implementation at position |
-| `lspcmd find-type-definition PATH POSITION [-n CONTEXT]` | Find type definition at position |
-| `lspcmd find-references PATH POSITION [-n CONTEXT]` | Find all references at position |
-| `lspcmd print-definition PATH POSITION` | Print full definition body at position |
-| `lspcmd describe-thing-at-point PATH POSITION` | Show hover information (type, docs) |
+| `lspcmd definition PATH POSITION [-n CONTEXT] [-b]` | Find definition at position (-b for full body) |
+| `lspcmd declaration PATH POSITION [-n CONTEXT]` | Find declaration at position |
+| `lspcmd references PATH POSITION [-n CONTEXT]` | Find all references at position |
+| `lspcmd describe PATH POSITION` | Show hover information (type, docs) |
 
 ### Symbol Commands
 
