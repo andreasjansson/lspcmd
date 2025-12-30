@@ -247,7 +247,7 @@ used at `POSITION`, and use `lspcmd references POSITION` to find all the uses
 of a symbol at POSITION. These two (and other) commands accept `--context N`.
 `lspcmd definition POSITION --body` prints the full body of a function/method.
 
-See `lscmd COMMAND --help` for more documentation and command-specific options.
+See `lspcmd COMMAND --help` for more documentation and command-specific options.
 """
 
 
@@ -767,6 +767,34 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     })
 
     click.echo(format_output(response.get("result", []), "json" if ctx.obj["json"] else "plain"))
+
+
+@cli.command("tree")
+@click.option("-x", "--exclude", multiple=True, help="Exclude files matching glob pattern or directory (repeatable)")
+@click.pass_context
+def tree(ctx, exclude):
+    """Show source file tree with line counts.
+    
+    Only includes files that have an associated language server
+    (i.e., source files the LSP understands).
+    
+    Examples:
+    
+      lspcmd tree                       # current workspace
+    
+      lspcmd tree -x tests -x vendor    # exclude directories
+    
+      lspcmd --json tree                # JSON output
+    """
+    config = load_config()
+    workspace_root = get_workspace_root_for_cwd(config)
+    
+    response = run_request("tree", {
+        "workspace_root": str(workspace_root),
+        "exclude_patterns": list(exclude),
+    })
+    
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("raw-lsp-request")
