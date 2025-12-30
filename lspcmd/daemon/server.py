@@ -414,6 +414,57 @@ class DaemonServer:
 
         return diagnostics
 
+    async def _handle_get_workspace_diagnostics(self, params: dict) -> list[dict]:
+        workspace_root = Path(params["workspace_root"]).resolve()
+        
+        all_diagnostics = []
+        
+        for servers in self.session.workspaces.get(workspace_root, {}).values():
+            workspace = servers
+            if not workspace.client:
+                continue
+                
+            await workspace.client.wait_for_service_ready()
+            
+            files = self._find_workspace_files(workspace_root, workspace.server_config.file_patterns)
+            
+            for file_path in files:
+                doc = await workspace.ensure_document_open(file_path)
+                try:
+                    result = await workspace.client.send_request(
+                        "textDocument/diagnostic",
+                        {"textDocument": {"uri": doc.uri}},
+                    )
+                    if result and result.get("items"):
+                        all_diagnostics.extend(
+                            self._format_diagnostics(result["items"], file_path, workspace_root)
+                        )
+                except LSPResponseError:
+                    pass
+                finally:
+                    await workspace.close_document(file_path)
+        
+        all_diagnostics.sort(key=lambda d: (d["path"], d["line"], d["column"]))
+        return all_diagnostics
+
+    def _find_workspace_files(self, workspace_root: Path, file_patterns: list[str]) -> list[Path]:
+        import fnmatch
+        
+        files = []
+        exclude_dirs = {".git", "__pycache__", "node_modules", ".venv", "venv", 
+                       "target", "build", "dist", ".tox", ".mypy_cache", ".pytest_cache"}
+        
+        for root, dirs, filenames in os.walk(workspace_root):
+            dirs[:] = [d for d in dirs if d not in exclude_dirs]
+            
+            for filename in filenames:
+                for pattern in file_patterns:
+                    if fnmatch.fnmatch(filename, pattern):
+                        files.append(Path(root) / filename)
+                        break
+        
+        return files
+
     async def _handle_list_code_actions(self, params: dict) -> list[dict]:
         workspace, doc, path = await self._get_workspace_and_document(params)
         line, column = self._parse_position(params)
