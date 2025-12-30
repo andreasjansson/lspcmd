@@ -7,7 +7,7 @@ A command-line wrapper around LSP language servers, inspired by lsp-mode.el.
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           lspcmd CLI                                │
-│  (User-facing commands: find-definition, rename, format, grep...)   │
+│  (User-facing commands: definition, rename, format, grep...)        │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
                            Unix socket
