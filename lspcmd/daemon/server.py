@@ -445,16 +445,16 @@ class DaemonServer:
                 )
                 if result and result.get("items"):
                     return self._format_diagnostics(result["items"], path, workspace.root)
-                return []
+                # Pull returned empty - fall through to check push diagnostics
             except LSPResponseError as e:
-                if e.is_method_not_found():
+                if e.is_method_not_found() or e.is_unsupported():
                     workspace.client.supports_pull_diagnostics = False
                 else:
                     raise
 
         # Use stored diagnostics from publishDiagnostics notifications
-        # Wait briefly for server to analyze and push diagnostics
-        await asyncio.sleep(0.5)
+        # Wait for server to analyze and push diagnostics
+        await asyncio.sleep(1.0)
         stored = workspace.client.get_stored_diagnostics(doc.uri)
         if stored:
             return self._format_diagnostics(stored, path, workspace.root)
