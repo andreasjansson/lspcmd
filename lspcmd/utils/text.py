@@ -19,6 +19,7 @@ LANGUAGE_IDS = {
     ".java": "java",
     ".rb": "ruby",
     ".php": "php",
+    ".phtml": "php",
     ".cs": "csharp",
     ".fs": "fsharp",
     ".swift": "swift",
