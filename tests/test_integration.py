@@ -2013,13 +2013,14 @@ class TestLuaIntegration:
         assert "processUsers" in output
         assert "main" in output
 
-    def test_grep_kind_filter_variable(self, workspace):
+    def test_grep_kind_filter_object(self, workspace):
         os.chdir(workspace)
+        # In Lua, classes/tables are reported as objects by lua-language-server
         response = run_request("grep", {
             "paths": [str(workspace / "user.lua")],
             "workspace_root": str(workspace),
             "pattern": "^User$",
-            "kinds": ["variable"],
+            "kinds": ["object"],
         })
         output = format_output(response["result"], "plain")
         assert "User" in output
