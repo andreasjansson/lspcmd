@@ -540,6 +540,11 @@ Attributes:
 
     def test_rename(self, workspace):
         os.chdir(workspace)
+        
+        # Verify User class exists before rename
+        original_content = (workspace / "main.py").read_text()
+        assert "class User:" in original_content
+        
         response = run_request("rename", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
@@ -548,8 +553,14 @@ Attributes:
             "new_name": "Person",
         })
         output = format_output(response["result"], "plain")
-        assert "Renamed in 1 file(s):" in output
-        assert "main.py" in output
+        assert output == """\
+Renamed in 1 file(s):
+  main.py"""
+
+        # Verify rename actually happened in the file
+        renamed_content = (workspace / "main.py").read_text()
+        assert "class Person:" in renamed_content
+        assert "class User:" not in renamed_content
 
         # Revert the rename
         run_request("rename", {
@@ -559,6 +570,11 @@ Attributes:
             "column": 6,
             "new_name": "User",
         })
+        
+        # Verify revert worked
+        reverted_content = (workspace / "main.py").read_text()
+        assert "class User:" in reverted_content
+        assert "class Person:" not in reverted_content
 
     # =========================================================================
     # declaration tests
