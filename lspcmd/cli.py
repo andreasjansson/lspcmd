@@ -217,7 +217,26 @@ def expand_exclude_pattern(pattern: str) -> set[Path]:
     return {Path(m).resolve() for m in matches if Path(m).is_file()}
 
 
-@click.group(context_settings={"help_option_names": ["-h", "--help"]})
+@click.group(
+    cls=OrderedGroup,
+    commands_order=[
+        "grep",
+        "definition",
+        "references",
+        "declaration",
+        "describe",
+        "rename",
+        "list-code-actions",
+        "execute-code-action",
+        "format",
+        "organize-imports",
+        "raw-lsp-request",
+        "workspace",
+        "daemon",
+        "config",
+    ],
+    context_settings={"help_option_names": ["-h", "--help"], "max_content_width": 120},
+)
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.pass_context
 def cli(ctx, json_output):
