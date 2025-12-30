@@ -80,11 +80,11 @@ def class_daemon(class_isolated_config):
 
 
 class TestPythonIntegration:
-    """Integration tests for Python using pyright."""
+    """Integration tests for Python using basedpyright."""
 
     @pytest.fixture(autouse=True)
-    def check_pyright(self):
-        requires_pyright()
+    def check_basedpyright(self):
+        requires_basedpyright()
 
     @pytest.fixture(scope="class")
     def project(self, class_temp_dir):
