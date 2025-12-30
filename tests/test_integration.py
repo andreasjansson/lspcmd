@@ -1898,8 +1898,8 @@ class TestZigIntegration:
         response = run_request("definition", {
             "path": str(workspace / "src" / "main.zig"),
             "workspace_root": str(workspace),
-            "line": 13,
-            "column": 29,
+            "line": 12,
+            "column": 24,
             "context": 0,
             "body": False,
         })
@@ -1911,8 +1911,8 @@ class TestZigIntegration:
         response = run_request("definition", {
             "path": str(workspace / "src" / "main.zig"),
             "workspace_root": str(workspace),
-            "line": 13,
-            "column": 29,
+            "line": 12,
+            "column": 24,
             "context": 0,
             "body": True,
         })
