@@ -20,6 +20,7 @@ from .utils.config import (
     get_known_workspace_root,
     add_workspace_root,
 )
+from .utils.text import resolve_regex_position
 
 
 def ensure_daemon_running() -> None:
