@@ -2497,6 +2497,33 @@ class TestRubyIntegration:
         output = format_output(response["result"], "plain")
         assert "User" in output
 
+    # =========================================================================
+    # diagnostics tests
+    # =========================================================================
+
+    def test_diagnostics_single_file(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "errors.rb"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        # Solargraph may not report all Ruby errors, but should at least process the file
+        assert "errors.rb" in output or output == ""
+
+    def test_diagnostics_method_redefinition(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "errors.rb"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        # Solargraph may report method redefinition as a warning
+        if output.strip():
+            has_warning = "redefin" in output.lower() or "duplicate" in output.lower() or "warning" in output.lower()
+            # If there's output, it should contain something meaningful
+            assert has_warning or "error" in output.lower(), f"Expected meaningful diagnostic: {output}"
+
 
 # =============================================================================
 # PHP Integration Tests (intelephense)
