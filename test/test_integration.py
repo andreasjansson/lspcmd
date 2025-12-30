@@ -1930,42 +1930,60 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     # move-file tests
     # =========================================================================
 
-    def test_move_file(self, workspace):
-        import click
+    def test_move_file_renames_class(self, workspace):
         os.chdir(workspace)
         
         base_path = workspace / "src" / "main" / "java" / "com" / "example"
         
-        # Verify User.java exists
+        # Verify User.java exists and check initial class usage
         assert (base_path / "User.java").exists()
+        original_main = (base_path / "Main.java").read_text()
+        assert "User u = new User" in original_main
         
-        try:
-            response = run_request("move-file", {
-                "old_path": str(base_path / "User.java"),
-                "new_path": str(base_path / "Person.java"),
-                "workspace_root": str(workspace),
-            })
-            output = format_output(response["result"], "plain")
-            
-            # jdtls supports move-file
-            assert not (base_path / "User.java").exists()
-            assert (base_path / "Person.java").exists()
-            assert "Moved file" in output
-            
-            # Move file back
-            run_request("move-file", {
-                "old_path": str(base_path / "Person.java"),
-                "new_path": str(base_path / "User.java"),
-                "workspace_root": str(workspace),
-            })
-            
-            assert (base_path / "User.java").exists()
-            assert not (base_path / "Person.java").exists()
-        except click.ClickException as e:
-            # jdtls doesn't support move-file
-            assert str(e) == "move-file is not supported by jdtls"
-            assert (base_path / "User.java").exists()
-            assert not (base_path / "Person.java").exists()
+        # Rename User.java to Person.java
+        response = run_request("move-file", {
+            "old_path": str(base_path / "User.java"),
+            "new_path": str(base_path / "Person.java"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        
+        # Verify the file was moved
+        assert not (base_path / "User.java").exists()
+        assert (base_path / "Person.java").exists()
+        
+        # Check exact output - jdtls updates class references
+        assert output == """\
+Moved file and updated imports in 3 file(s):
+  src/main/java/com/example/Main.java
+  src/main/java/com/example/User.java
+  src/main/java/com/example/Person.java"""
+        
+        # Check that class references were updated in Main.java
+        updated_main = (base_path / "Main.java").read_text()
+        assert "Person u = new Person" in updated_main
+        assert "User u = new User" not in updated_main
+        
+        # Move file back
+        response = run_request("move-file", {
+            "old_path": str(base_path / "Person.java"),
+            "new_path": str(base_path / "User.java"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        
+        # Verify file moved back
+        assert (base_path / "User.java").exists()
+        assert not (base_path / "Person.java").exists()
+        
+        # Check exact output and class reference restored
+        assert output == """\
+Moved file and updated imports in 3 file(s):
+  src/main/java/com/example/Main.java
+  src/main/java/com/example/Person.java
+  src/main/java/com/example/User.java"""
+        restored_main = (base_path / "Main.java").read_text()
+        assert "User u = new User" in restored_main
 
 
 # =============================================================================
