@@ -1,5 +1,7 @@
 mod user;
 mod storage;
+#[allow(dead_code)]
+mod errors;
 
 use storage::{MemoryStorage, Storage};
 use user::{User, UserRepository};
