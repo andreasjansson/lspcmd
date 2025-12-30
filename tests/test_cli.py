@@ -249,8 +249,8 @@ class TestCliWithGopls:
         add_workspace_root(go_project, config)
 
         runner = CliRunner()
-        # Find implementations of Storage interface (line 14)
-        result = runner.invoke(cli, ["implementations", str(main_go), "14:Storage"])
-        assert result.exit_code == 0
+        # Find implementations of Storage interface (line 16)
+        result = runner.invoke(cli, ["implementations", str(main_go), "16:Storage"])
+        assert result.exit_code == 0, f"Failed with: {result.output}"
         assert "MemoryStorage" in result.output
         assert "FileStorage" in result.output
