@@ -2500,29 +2500,18 @@ class TestZigIntegration:
     # =========================================================================
 
     def test_move_file_not_supported(self, workspace):
+        import click
         os.chdir(workspace)
         
-        # zls doesn't support workspace/willRenameFiles
-        # It will move the file but won't update any @import statements
-        response = run_request("move-file", {
-            "old_path": str(workspace / "src" / "user.zig"),
-            "new_path": str(workspace / "src" / "person.zig"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
+        with pytest.raises(click.ClickException) as exc_info:
+            run_request("move-file", {
+                "old_path": str(workspace / "src" / "user.zig"),
+                "new_path": str(workspace / "src" / "person.zig"),
+                "workspace_root": str(workspace),
+            })
+        assert str(exc_info.value) == "move-file is not supported by zls"
         
-        # File should be moved
-        assert not (workspace / "src" / "user.zig").exists()
-        assert (workspace / "src" / "person.zig").exists()
-        assert "Moved file" in output
-        
-        # Move file back
-        run_request("move-file", {
-            "old_path": str(workspace / "src" / "person.zig"),
-            "new_path": str(workspace / "src" / "user.zig"),
-            "workspace_root": str(workspace),
-        })
-        
+        # Verify file was NOT moved
         assert (workspace / "src" / "user.zig").exists()
         assert not (workspace / "src" / "person.zig").exists()
 
