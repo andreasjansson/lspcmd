@@ -546,12 +546,11 @@ class DaemonServer:
         from ..servers.registry import get_server_for_language
 
         start_time = time.time()
-        logger.info(f"Starting workspace symbol collection for {workspace_root}")
+        logger.info(f"=== Starting workspace symbol collection for {workspace_root}, query={query!r} ===")
 
         skip_dirs = {"node_modules", "__pycache__", ".git", "venv", ".venv", "build", "dist", ".tox", ".eggs"}
         excluded_languages = set(self.session.config.get("workspaces", {}).get("excluded_languages", []))
         
-        # Find all unique languages in the workspace
         scan_start = time.time()
         languages_found: dict[str, list[Path]] = {}
         for file_path in workspace_root.rglob("*"):
