@@ -140,7 +140,7 @@ def resolve_regex_position(content: str, pattern: str, line: int | None = None) 
             match_positions = [f"column {m.start()}" for m in matches]
             raise ValueError(
                 f"Pattern '{pattern}' matches {len(matches)} times on line {line}: "
-                f"{', '.join(match_positions)}. Use LINE,COLUMN syntax to specify which one."
+                f"{', '.join(match_positions)}. Use LINE,COLUMN to specify which one."
             )
         
         return (line, matches[0].start())
