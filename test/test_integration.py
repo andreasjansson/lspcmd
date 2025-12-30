@@ -354,7 +354,7 @@ main.py:127 [Function] main"""
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.py:111 [Function] create_sample_user
+main.py:113 [Function] create_sample_user
     ```python
     (function) def create_sample_user() -> User
     ```
