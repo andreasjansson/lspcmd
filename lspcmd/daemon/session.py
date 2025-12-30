@@ -172,19 +172,43 @@ class Workspace:
             if file_path.suffix in source_extensions:
                 files_to_index.append(file_path)
         
+        if not files_to_index:
+            return
+            
         logger.info(f"Pre-indexing {len(files_to_index)} files for clangd: {[f.name for f in files_to_index]}")
         
         # Open all files to trigger indexing
         for file_path in files_to_index:
-            logger.debug(f"Opening {file_path.name} for indexing")
             await self.ensure_document_open(file_path)
         
-        # Wait for indexing to complete
-        await self.client.wait_for_indexing(timeout=30.0)
+        # Wait for clangd to build ASTs and send diagnostics
+        # Clangd builds files asynchronously after didOpen, we need to wait
+        await self._wait_for_diagnostics(files_to_index, timeout=30.0)
         
         logger.info(f"Pre-indexing complete, closing {len(self.open_documents)} documents")
-        # Close all files to avoid memory issues
         await self.close_all_documents()
+
+    async def _wait_for_diagnostics(self, files: list[Path], timeout: float) -> None:
+        """Wait until clangd has sent diagnostics for all files (indicating AST is built)."""
+        import asyncio
+        
+        uris = {path_to_uri(f) for f in files}
+        start_time = asyncio.get_event_loop().time()
+        
+        while True:
+            # Check if we've received diagnostics for all files
+            received = {uri for uri in uris if uri in self.client._diagnostics}
+            if received == uris:
+                logger.debug(f"Received diagnostics for all {len(files)} files")
+                return
+            
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed >= timeout:
+                missing = len(uris - received)
+                logger.warning(f"Timeout waiting for diagnostics, {missing} files not indexed")
+                return
+            
+            await asyncio.sleep(0.1)
 
     async def ensure_document_open(self, path: Path) -> OpenDocument:
         uri = path_to_uri(path)
