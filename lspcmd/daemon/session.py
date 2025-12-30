@@ -118,6 +118,30 @@ class Workspace:
         self.client = None
         self.open_documents.clear()
 
+    async def close_document(self, path: Path) -> None:
+        uri = path_to_uri(path)
+        if uri not in self.open_documents:
+            return
+        
+        del self.open_documents[uri]
+        
+        if self.client is not None:
+            await self.client.send_notification(
+                "textDocument/didClose",
+                {"textDocument": {"uri": uri}},
+            )
+
+    async def close_all_documents(self) -> None:
+        if self.client is None:
+            return
+        
+        for uri in list(self.open_documents.keys()):
+            await self.client.send_notification(
+                "textDocument/didClose",
+                {"textDocument": {"uri": uri}},
+            )
+        self.open_documents.clear()
+
     async def ensure_document_open(self, path: Path) -> OpenDocument:
         uri = path_to_uri(path)
 
