@@ -484,6 +484,38 @@ class DaemonServer:
         all_diagnostics.sort(key=lambda d: (d["path"], d["line"], d["column"]))
         return all_diagnostics
 
+    async def _wait_for_diagnostics_stable(
+        self, 
+        workspace: Workspace, 
+        docs: list,
+        quiet_period: float = 0.3,
+        max_wait: float = 30.0,
+    ) -> None:
+        """Wait until diagnostics stop arriving (quiet period with no changes)."""
+        uris = [doc.uri for doc in docs]
+        
+        def count_diagnostics() -> int:
+            return sum(len(workspace.client.get_stored_diagnostics(uri)) for uri in uris)
+        
+        last_count = count_diagnostics()
+        stable_since = asyncio.get_event_loop().time()
+        start_time = stable_since
+        
+        while True:
+            await asyncio.sleep(0.05)
+            now = asyncio.get_event_loop().time()
+            
+            if now - start_time > max_wait:
+                logger.warning(f"Timed out waiting for diagnostics after {max_wait}s")
+                break
+            
+            current_count = count_diagnostics()
+            if current_count != last_count:
+                last_count = current_count
+                stable_since = now
+            elif now - stable_since >= quiet_period:
+                break
+
     async def _check_pull_diagnostics_support(self, workspace: Workspace, sample_file: Path) -> bool:
         """Check if the server supports pull diagnostics by trying one request."""
         doc = await workspace.ensure_document_open(sample_file)
