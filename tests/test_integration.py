@@ -801,12 +801,12 @@ Renamed in 2 file(s):
   src/user.ts
   src/main.ts"""
 
-        # Revert the rename
+        # Revert the rename - column stays the same since "Person" starts at same position
         run_request("rename", {
             "path": str(workspace / "src" / "user.ts"),
             "workspace_root": str(workspace),
             "line": 4,
-            "column": 13,
+            "column": 14,  # "Person" is longer, so position of 'P' is 13, use 14 to be in the word
             "new_name": "User",
         })
 
