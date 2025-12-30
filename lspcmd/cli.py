@@ -305,9 +305,13 @@ def describe_thing_at_point(ctx, path, position):
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
 def find_definition(ctx, path, position, context):
-    """Find definition at position (LINE,COLUMN)."""
+    """Find definition at position.
+    
+    POSITION can be LINE,COLUMN (e.g. 42,10), LINE,REGEX (e.g. 42,def foo),
+    or just REGEX (e.g. def foo) to search the whole file.
+    """
     path = Path(path).resolve()
-    line, column = parse_position(position)
+    line, column = parse_position(position, path)
     config = load_config()
     workspace_root = get_workspace_root_for_path(path, config)
 
