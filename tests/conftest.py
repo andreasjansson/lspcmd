@@ -95,3 +95,11 @@ def requires_jdtls():
 
 def requires_clangd():
     require_command("clangd", "clangd")
+
+
+def requires_zls():
+    require_command("zls", "zls")
+
+
+def requires_lua_ls():
+    require_command("lua-language-server", "lua-language-server")
