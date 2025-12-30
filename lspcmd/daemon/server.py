@@ -276,19 +276,69 @@ class DaemonServer:
 
         return locations
 
-    async def _handle_find_definition(self, params: dict) -> list[dict]:
+    async def _handle_definition(self, params: dict) -> list[dict] | dict:
+        body = params.get("body", False)
+        if body:
+            return await self._handle_definition_body(params)
         return await self._handle_location_request(params, "textDocument/definition")
 
-    async def _handle_find_declaration(self, params: dict) -> list[dict]:
+    async def _handle_definition_body(self, params: dict) -> dict:
+        locations = await self._handle_location_request(params, "textDocument/definition")
+        if not locations:
+            return {"error": "Definition not found"}
+
+        loc = locations[0]
+        workspace_root = Path(params["workspace_root"]).resolve()
+        rel_path = loc["path"]
+        file_path = workspace_root / rel_path
+        target_line = loc["line"] - 1
+        context = params.get("context", 0)
+
+        workspace, doc, _ = await self._get_workspace_and_document({
+            "path": str(file_path),
+            "workspace_root": params["workspace_root"],
+        })
+
+        result = await workspace.client.send_request(
+            "textDocument/documentSymbol",
+            {"textDocument": {"uri": doc.uri}},
+        )
+
+        content = read_file_content(file_path)
+        lines = content.splitlines()
+
+        if result:
+            symbol = self._find_symbol_at_line(result, target_line)
+            if symbol:
+                start = symbol["range"]["start"]["line"]
+                end = symbol["range"]["end"]["line"]
+                if context > 0:
+                    start = max(0, start - context)
+                    end = min(len(lines) - 1, end + context)
+                return {
+                    "path": rel_path,
+                    "start_line": start + 1,
+                    "end_line": end + 1,
+                    "content": "\n".join(lines[start : end + 1]),
+                }
+
+        return {
+            "path": rel_path,
+            "start_line": loc["line"],
+            "end_line": loc["line"],
+            "content": lines[target_line] if target_line < len(lines) else "",
+        }
+
+    async def _handle_declaration(self, params: dict) -> list[dict]:
         return await self._handle_location_request(params, "textDocument/declaration")
 
-    async def _handle_find_implementations(self, params: dict) -> list[dict]:
+    async def _handle_implementations(self, params: dict) -> list[dict]:
         return await self._handle_location_request(params, "textDocument/implementation")
 
-    async def _handle_find_subtypes(self, params: dict) -> list[dict]:
+    async def _handle_subtypes(self, params: dict) -> list[dict]:
         return await self._handle_type_hierarchy_request(params, "typeHierarchy/subtypes")
 
-    async def _handle_find_supertypes(self, params: dict) -> list[dict]:
+    async def _handle_supertypes(self, params: dict) -> list[dict]:
         return await self._handle_type_hierarchy_request(params, "typeHierarchy/supertypes")
 
     async def _handle_type_hierarchy_request(self, params: dict, method: str) -> list[dict]:
