@@ -72,8 +72,8 @@ def require_command(cmd: str, name: str):
         )
 
 
-def requires_pyright():
-    require_command("pyright-langserver", "pyright")
+def requires_basedpyright():
+    require_command("basedpyright-langserver", "basedpyright")
 
 
 def requires_rust_analyzer():
