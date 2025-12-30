@@ -25,6 +25,8 @@ from .conftest import (
     requires_typescript_lsp,
     requires_jdtls,
     requires_clangd,
+    requires_zls,
+    requires_lua_ls,
     FIXTURES_DIR,
 )
 
