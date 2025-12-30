@@ -252,5 +252,6 @@ class TestCliWithGopls:
         # Find implementations of Storage interface (line 16)
         result = runner.invoke(cli, ["implementations", str(main_go), "16:Storage"])
         assert result.exit_code == 0, f"Failed with: {result.output}"
-        assert "MemoryStorage" in result.output
-        assert "FileStorage" in result.output
+        # Should find MemoryStorage (line 22) and FileStorage (line 36)
+        assert "main.go:22" in result.output
+        assert "main.go:36" in result.output
