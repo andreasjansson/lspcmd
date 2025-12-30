@@ -2147,6 +2147,39 @@ class TestZigIntegration:
         output = format_output(response["result"], "plain")
         assert "User" in output
 
+    # =========================================================================
+    # diagnostics tests
+    # =========================================================================
+
+    def test_diagnostics_single_file(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "src" / "errors.zig"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        assert "errors.zig" in output
+        assert "error" in output.lower()
+
+    def test_diagnostics_undefined_identifier(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "src" / "errors.zig"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        assert "undefined_var" in output or "undefined" in output.lower() or "undeclared" in output.lower()
+
+    def test_diagnostics_type_error(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "src" / "errors.zig"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        has_type_error = "i32" in output and ("u8" in output or "const" in output)
+        assert has_type_error, f"Expected type error in output: {output}"
+
 
 # =============================================================================
 # Lua Integration Tests (lua-language-server)
