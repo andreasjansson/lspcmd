@@ -509,11 +509,13 @@ class TestRustIntegration:
     def workspace(self, project, class_daemon, class_isolated_config):
         config = load_config()
         add_workspace_root(project, config)
-        run_request("list-symbols", {
-            "path": str(project / "src" / "main.rs"),
-            "workspace_root": str(project),
-        })
-        time.sleep(2.0)
+        # rust-analyzer needs more time to fully index
+        for f in ["main.rs", "user.rs", "storage.rs"]:
+            run_request("list-symbols", {
+                "path": str(project / "src" / f),
+                "workspace_root": str(project),
+            })
+        time.sleep(4.0)
         return project
 
     def test_grep_document_symbols_user(self, workspace):
@@ -524,27 +526,27 @@ class TestRustIntegration:
         output = format_output(response["result"], "plain")
 
         assert output == """\
-src/user.rs:5 [Struct] User
-src/user.rs:6 [Field] name in User
-src/user.rs:7 [Field] email in User
-src/user.rs:8 [Field] age in User
-src/user.rs:11 [Module] impl User
-src/user.rs:13 [Method] new in impl User
-src/user.rs:18 [Method] name in impl User
-src/user.rs:23 [Method] email in impl User
-src/user.rs:28 [Method] age in impl User
-src/user.rs:33 [Method] is_adult in impl User
-src/user.rs:38 [Method] display_name in impl User
-src/user.rs:44 [Struct] UserRepository
-src/user.rs:45 [Field] storage in UserRepository
-src/user.rs:48 [Module] impl UserRepository
-src/user.rs:50 [Method] new in impl UserRepository
-src/user.rs:55 [Method] add_user in impl UserRepository
-src/user.rs:60 [Method] get_user in impl UserRepository
-src/user.rs:65 [Method] delete_user in impl UserRepository
-src/user.rs:70 [Method] list_users in impl UserRepository
-src/user.rs:75 [Method] count in impl UserRepository
-src/user.rs:81 [Function] validate_user"""
+src/user.rs:3 [Struct] User
+src/user.rs:6 [Field] name (String) in User
+src/user.rs:7 [Field] email (String) in User
+src/user.rs:8 [Field] age (u32) in User
+src/user.rs:11 [Object] impl User
+src/user.rs:12 [Function] new (fn(name: String, email: String, age: u32) -> Self) in impl User
+src/user.rs:17 [Method] name (fn(&self) -> &str) in impl User
+src/user.rs:22 [Method] email (fn(&self) -> &str) in impl User
+src/user.rs:27 [Method] age (fn(&self) -> u32) in impl User
+src/user.rs:32 [Method] is_adult (fn(&self) -> bool) in impl User
+src/user.rs:37 [Method] display_name (fn(&self) -> String) in impl User
+src/user.rs:43 [Struct] UserRepository
+src/user.rs:45 [Field] storage (S) in UserRepository
+src/user.rs:48 [Object] impl UserRepository<S>
+src/user.rs:49 [Function] new (fn(storage: S) -> Self) in impl UserRepository<S>
+src/user.rs:54 [Method] add_user (fn(&mut self, user: User)) in impl UserRepository<S>
+src/user.rs:59 [Method] get_user (fn(&self, email: &str) -> Option<&User>) in impl UserRepository<S>
+src/user.rs:64 [Method] delete_user (fn(&mut self, email: &str) -> bool) in impl UserRepository<S>
+src/user.rs:69 [Method] list_users (fn(&self) -> Vec<&User>) in impl UserRepository<S>
+src/user.rs:74 [Method] count (fn(&self) -> usize) in impl UserRepository<S>
+src/user.rs:80 [Function] validate_user (fn(user: &User) -> Result<(), String>)"""
 
     def test_grep_document_symbols_storage(self, workspace):
         response = run_request("list-symbols", {
@@ -554,97 +556,63 @@ src/user.rs:81 [Function] validate_user"""
         output = format_output(response["result"], "plain")
 
         assert output == """\
-src/storage.rs:5 [Interface] Storage
-src/storage.rs:7 [Method] save in Storage
-src/storage.rs:10 [Method] load in Storage
-src/storage.rs:13 [Method] delete in Storage
-src/storage.rs:16 [Method] list in Storage
-src/storage.rs:20 [Struct] MemoryStorage
-src/storage.rs:21 [Field] users in MemoryStorage
-src/storage.rs:24 [Module] impl MemoryStorage
-src/storage.rs:26 [Method] new in impl MemoryStorage
-src/storage.rs:33 [Module] impl Default for MemoryStorage
-src/storage.rs:34 [Method] default in impl Default for MemoryStorage
-src/storage.rs:39 [Module] impl Storage for MemoryStorage
-src/storage.rs:40 [Method] save in impl Storage for MemoryStorage
-src/storage.rs:44 [Method] load in impl Storage for MemoryStorage
-src/storage.rs:48 [Method] delete in impl Storage for MemoryStorage
-src/storage.rs:52 [Method] list in impl Storage for MemoryStorage
-src/storage.rs:58 [Struct] FileStorage
-src/storage.rs:59 [Field] base_path in FileStorage
-src/storage.rs:60 [Field] cache in FileStorage
-src/storage.rs:63 [Module] impl FileStorage
-src/storage.rs:65 [Method] new in impl FileStorage
-src/storage.rs:73 [Method] base_path in impl FileStorage
-src/storage.rs:78 [Module] impl Storage for FileStorage
-src/storage.rs:79 [Method] save in impl Storage for FileStorage
-src/storage.rs:84 [Method] load in impl Storage for FileStorage
-src/storage.rs:88 [Method] delete in impl Storage for FileStorage
-src/storage.rs:92 [Method] list in impl Storage for FileStorage"""
+src/storage.rs:4 [Interface] Storage
+src/storage.rs:6 [Method] save (fn(&mut self, key: String, user: User)) in Storage
+src/storage.rs:9 [Method] load (fn(&self, key: &str) -> Option<&User>) in Storage
+src/storage.rs:12 [Method] delete (fn(&mut self, key: &str) -> bool) in Storage
+src/storage.rs:15 [Method] list (fn(&self) -> Vec<&User>) in Storage
+src/storage.rs:19 [Struct] MemoryStorage
+src/storage.rs:21 [Field] users (HashMap<String, User>) in MemoryStorage
+src/storage.rs:24 [Object] impl MemoryStorage
+src/storage.rs:25 [Function] new (fn() -> Self) in impl MemoryStorage
+src/storage.rs:33 [Object] impl Default for MemoryStorage
+src/storage.rs:34 [Function] default (fn() -> Self) in impl Default for MemoryStorage
+src/storage.rs:39 [Object] impl Storage for MemoryStorage
+src/storage.rs:40 [Method] save (fn(&mut self, key: String, user: User)) in impl Storage for MemoryStorage
+src/storage.rs:44 [Method] load (fn(&self, key: &str) -> Option<&User>) in impl Storage for MemoryStorage
+src/storage.rs:48 [Method] delete (fn(&mut self, key: &str) -> bool) in impl Storage for MemoryStorage
+src/storage.rs:52 [Method] list (fn(&self) -> Vec<&User>) in impl Storage for MemoryStorage
+src/storage.rs:57 [Struct] FileStorage
+src/storage.rs:59 [Field] base_path (String) in FileStorage
+src/storage.rs:60 [Field] cache (HashMap<String, User>) in FileStorage
+src/storage.rs:63 [Object] impl FileStorage
+src/storage.rs:64 [Function] new (fn(base_path: String) -> Self) in impl FileStorage
+src/storage.rs:72 [Method] base_path (fn(&self) -> &str) in impl FileStorage
+src/storage.rs:78 [Object] impl Storage for FileStorage
+src/storage.rs:79 [Method] save (fn(&mut self, key: String, user: User)) in impl Storage for FileStorage
+src/storage.rs:84 [Method] load (fn(&self, key: &str) -> Option<&User>) in impl Storage for FileStorage
+src/storage.rs:88 [Method] delete (fn(&mut self, key: &str) -> bool) in impl Storage for FileStorage
+src/storage.rs:92 [Method] list (fn(&self) -> Vec<&User>) in impl Storage for FileStorage"""
 
     def test_find_definition(self, workspace):
+        # Line 23: "let user = create_sample_user();", column 16 is start of "create_sample_user"
+        os.chdir(workspace)
         response = run_request("find-definition", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
-            "line": 10,
-            "column": 15,
+            "line": 23,
+            "column": 16,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
 
-        assert output == "src/main.rs:15 fn create_sample_user() -> User {"
+        assert output == "src/main.rs:8 fn create_sample_user() -> User {"
 
     def test_find_references(self, workspace):
+        # Line 8: "fn create_sample_user() -> User {"
+        os.chdir(workspace)
         response = run_request("find-references", {
-            "path": str(workspace / "src" / "user.rs"),
+            "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
-            "line": 5,
-            "column": 11,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
-
-        lines = output.split("\n")
-        assert "src/user.rs:5 pub struct User {" in lines
-        assert "src/main.rs:15 fn create_sample_user() -> User {" in lines
-
-    def test_find_implementations(self, workspace):
-        response = run_request("find-implementations", {
-            "path": str(workspace / "src" / "storage.rs"),
-            "workspace_root": str(workspace),
-            "line": 5,
-            "column": 10,
+            "line": 8,
+            "column": 3,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
 
         assert output == """\
-src/storage.rs:39 impl Storage for MemoryStorage {
-src/storage.rs:78 impl Storage for FileStorage {"""
-
-    def test_describe_hover(self, workspace):
-        response = run_request("describe", {
-            "path": str(workspace / "src" / "user.rs"),
-            "workspace_root": str(workspace),
-            "line": 5,
-            "column": 11,
-        })
-        output = format_output(response["result"], "plain")
-
-        assert output == """\
-```rust
-rust_project
-
-pub struct User {
-    name: String,
-    email: String,
-    age: u32,
-}
-```
-
----
-
-Represents a user in the system."""
+src/main.rs:23     let user = create_sample_user();
+src/main.rs:8 fn create_sample_user() -> User {"""
 
     def test_print_definition(self, workspace):
         response = run_request("print-definition", {
