@@ -290,7 +290,7 @@ class DaemonServer:
             },
         )
 
-        return self._format_locations(result, params.get("context", 0))
+        return self._format_locations(result, workspace.root, params.get("context", 0))
 
     async def _handle_list_code_actions(self, params: dict) -> list[dict]:
         workspace, doc, path = await self._get_workspace_and_document(params)
