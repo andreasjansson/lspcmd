@@ -12,6 +12,13 @@ setup(
         "tomli>=2.0",
         "tomli-w>=1.0",
     ],
+    extras_require={
+        "test": [
+            "pytest>=7.0",
+            "pytest-asyncio>=0.21",
+            "pytest-xdist>=3.0",
+        ],
+    },
     entry_points={
         "console_scripts": [
             "lspcmd=lspcmd.cli:cli",
