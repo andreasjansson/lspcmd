@@ -584,10 +584,22 @@ src/storage.rs:84 [Method] load (fn(&self, key: &str) -> Option<&User>) in impl 
 src/storage.rs:88 [Method] delete (fn(&mut self, key: &str) -> bool) in impl Storage for FileStorage
 src/storage.rs:92 [Method] list (fn(&self) -> Vec<&User>) in impl Storage for FileStorage"""
 
+    def _run_request_with_retry(self, method, params, max_retries=3):
+        """Run a request with retries for transient rust-analyzer errors."""
+        import click
+        for attempt in range(max_retries):
+            try:
+                return run_request(method, params)
+            except click.ClickException as e:
+                if "content modified" in str(e) and attempt < max_retries - 1:
+                    time.sleep(1.0)
+                    continue
+                raise
+
     def test_find_definition(self, workspace):
         # Line 23: "let user = create_sample_user();", column 16 is start of "create_sample_user"
         os.chdir(workspace)
-        response = run_request("find-definition", {
+        response = self._run_request_with_retry("find-definition", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 23,
@@ -601,7 +613,7 @@ src/storage.rs:92 [Method] list (fn(&self) -> Vec<&User>) in impl Storage for Fi
     def test_find_references(self, workspace):
         # Line 8: "fn create_sample_user() -> User {"
         os.chdir(workspace)
-        response = run_request("find-references", {
+        response = self._run_request_with_retry("find-references", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 8,
@@ -616,7 +628,7 @@ src/main.rs:8 fn create_sample_user() -> User {"""
 
     def test_print_definition(self, workspace):
         # Line 23: "let user = create_sample_user();", column 16 is start of "create_sample_user"
-        response = run_request("print-definition", {
+        response = self._run_request_with_retry("print-definition", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 23,
