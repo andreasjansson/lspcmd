@@ -123,7 +123,7 @@ class TestResolveRegexPosition:
         with pytest.raises(ValueError) as exc_info:
             resolve_regex_position(content, "foo", line=None)
         assert "matches 3 times in file" in str(exc_info.value)
-        assert "LINE,REGEX or LINE,COLUMN" in str(exc_info.value)
+        assert "LINE:REGEX or LINE,COLUMN" in str(exc_info.value)
     
     def test_no_match_on_line_raises(self):
         content = "def bar():\n    pass"
