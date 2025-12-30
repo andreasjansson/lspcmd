@@ -38,6 +38,11 @@ class LSPResponseError(Exception):
     def is_method_not_found(self) -> bool:
         return self.code == -32601 or "not found" in self.message.lower() or "not yet implemented" in self.message.lower()
 
+    def is_unsupported(self) -> bool:
+        msg = self.message.lower()
+        return ("unsupported" in msg or 
+                ("internal error" in msg and self.code == -32603))
+
 
 class LSPMethodNotSupported(Exception):
     def __init__(self, method: str, server_name: str):
