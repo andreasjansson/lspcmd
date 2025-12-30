@@ -458,8 +458,15 @@ class DaemonServer:
                         all_diagnostics.extend(
                             self._format_diagnostics(result["items"], file_path, workspace_root)
                         )
-                except LSPResponseError:
-                    pass
+                except LSPResponseError as e:
+                    if e.is_method_not_found():
+                        # Fall back to stored diagnostics
+                        await asyncio.sleep(0.3)
+                        stored = workspace.client.get_stored_diagnostics(doc.uri)
+                        if stored:
+                            all_diagnostics.extend(
+                                self._format_diagnostics(stored, file_path, workspace_root)
+                            )
                 finally:
                     await workspace.close_document(file_path)
         
