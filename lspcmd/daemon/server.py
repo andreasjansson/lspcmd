@@ -437,6 +437,7 @@ class DaemonServer:
 
         await workspace.client.wait_for_service_ready()
 
+        just_discovered_no_pull = False
         if workspace.client.supports_pull_diagnostics:
             try:
                 result = await workspace.client.send_request(
@@ -449,12 +450,15 @@ class DaemonServer:
             except LSPResponseError as e:
                 if e.is_method_not_found() or e.is_unsupported():
                     workspace.client.supports_pull_diagnostics = False
+                    just_discovered_no_pull = True
                 else:
                     raise
 
         # Use stored diagnostics from publishDiagnostics notifications
         # Wait for server to analyze and push diagnostics
-        await asyncio.sleep(1.0)
+        # Wait longer if we just discovered this server doesn't support pull diagnostics
+        wait_time = 2.0 if just_discovered_no_pull else 1.0
+        await asyncio.sleep(wait_time)
         stored = workspace.client.get_stored_diagnostics(doc.uri)
         if stored:
             return self._format_diagnostics(stored, path, workspace.root)
