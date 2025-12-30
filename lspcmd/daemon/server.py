@@ -682,6 +682,7 @@ class DaemonServer:
                 elif kind == "rename":
                     old_path = uri_to_path(change["oldUri"])
                     new_path = uri_to_path(change["newUri"])
+                    new_path.parent.mkdir(parents=True, exist_ok=True)
                     old_path.rename(new_path)
                     files_modified.append(self._relative_path(new_path, workspace_root))
                 elif kind == "delete":
@@ -694,6 +695,47 @@ class DaemonServer:
                     files_modified.append(self._relative_path(file_path, workspace_root))
 
         return files_modified
+
+    async def _apply_workspace_edit_for_move(
+        self, edit: dict, workspace_root: Path, move_old_path: Path, move_new_path: Path
+    ) -> tuple[list[str], bool]:
+        """Apply workspace edit for a move operation, tracking if the file was moved."""
+        files_modified = []
+        file_moved = False
+
+        if edit.get("changes"):
+            for uri, text_edits in edit["changes"].items():
+                file_path = uri_to_path(uri)
+                await self._apply_text_edits(file_path, text_edits)
+                files_modified.append(self._relative_path(file_path, workspace_root))
+
+        if edit.get("documentChanges"):
+            for change in edit["documentChanges"]:
+                kind = change.get("kind")
+                if kind == "create":
+                    file_path = uri_to_path(change["uri"])
+                    file_path.parent.mkdir(parents=True, exist_ok=True)
+                    file_path.touch()
+                    files_modified.append(self._relative_path(file_path, workspace_root))
+                elif kind == "rename":
+                    old_path = uri_to_path(change["oldUri"])
+                    new_path = uri_to_path(change["newUri"])
+                    # Check if this is the file we're moving
+                    if old_path == move_old_path and new_path == move_new_path:
+                        file_moved = True
+                    new_path.parent.mkdir(parents=True, exist_ok=True)
+                    old_path.rename(new_path)
+                    files_modified.append(self._relative_path(new_path, workspace_root))
+                elif kind == "delete":
+                    file_path = uri_to_path(change["uri"])
+                    file_path.unlink(missing_ok=True)
+                    files_modified.append(self._relative_path(file_path, workspace_root))
+                elif "textDocument" in change:
+                    file_path = uri_to_path(change["textDocument"]["uri"])
+                    await self._apply_text_edits(file_path, change["edits"])
+                    files_modified.append(self._relative_path(file_path, workspace_root))
+
+        return files_modified, file_moved
 
     async def _apply_text_edits(self, file_path: Path, edits: list[dict]) -> None:
         content = read_file_content(file_path)
