@@ -79,8 +79,6 @@ def format_plain(data: Any) -> str:
 
 
 def format_locations(locations: list[dict]) -> str:
-    from pathlib import Path
-    
     lines = []
     for loc in locations:
         path = loc["path"]
