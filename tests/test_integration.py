@@ -227,3 +227,34 @@ class TestGoIntegration:
         assert "User" in names
         assert "UserRepository" in names
         await session.close_all()
+
+    @pytest.mark.asyncio
+    async def test_implementations(self, go_project, session):
+        main_go = go_project / "main.go"
+        workspace = await session.get_or_create_workspace(main_go, go_project)
+        await workspace.ensure_document_open(main_go)
+
+        # Find implementations of the Storage interface (line 14, "Storage")
+        result = await workspace.client.send_request(
+            "textDocument/implementation",
+            {
+                "textDocument": {"uri": path_to_uri(main_go)},
+                "position": {"line": 13, "character": 5},
+            },
+        )
+
+        assert result is not None
+        assert len(result) == 2  # MemoryStorage and FileStorage
+
+        # Extract the struct names from the results
+        content = main_go.read_text()
+        lines = content.splitlines()
+        impl_names = []
+        for loc in result:
+            line_num = loc["range"]["start"]["line"]
+            impl_names.append(lines[line_num])
+
+        assert any("MemoryStorage" in name for name in impl_names)
+        assert any("FileStorage" in name for name in impl_names)
+
+        await session.close_all()
