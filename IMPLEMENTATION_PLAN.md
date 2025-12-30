@@ -156,7 +156,7 @@ Position arguments support flexible formats:
 | Format | Example | Description |
 |--------|---------|-------------|
 | `LINE,COLUMN` | `42,10` | Line 42, column 10 |
-| `LINE,REGEX` | `42,def foo` | Line 42, first match of regex |
+| `LINE:REGEX` | `42:def foo` | Line 42, first match of regex |
 | `REGEX` | `def foo` | First match anywhere in file |
 
 Where:
@@ -172,7 +172,7 @@ Examples:
 lspcmd find-definition src/main.py 42,10
 
 # Search for unique pattern on a specific line
-lspcmd find-definition src/main.py "42,UserRepository"
+lspcmd find-definition src/main.py "42:UserRepository"
 
 # Search for unique pattern in the whole file
 lspcmd find-definition src/main.py "class UserRepository:"
@@ -188,7 +188,7 @@ Error: Pattern 'self' matches 15 times in file:
   line 17: self._users[user.email] = user
   line 20: return self._users.get(email)
   ... and 12 more matches
-Use LINE,REGEX or LINE,COLUMN syntax to specify which one.
+Use LINE:REGEX or LINE,COLUMN to specify which one.
 ```
 
 ### Output Format
