@@ -622,6 +622,21 @@ class DaemonServer:
         if not supports_will_rename:
             raise ValueError(f"move-file is not supported by {server_name}")
 
+        # For Python (basedpyright), we need to ensure all source files in the workspace
+        # are indexed/tracked before calling willRenameFiles, otherwise it won't find
+        # files to update. Open all Python files briefly to trigger indexing.
+        opened_for_indexing = []
+        if old_path.suffix == ".py":
+            python_files = self._find_all_source_files(workspace_root)
+            python_files = [f for f in python_files if f.suffix == ".py" and f != old_path]
+            for file_path in python_files:
+                if str(file_path) not in workspace.open_documents:
+                    await workspace.ensure_document_open(file_path)
+                    opened_for_indexing.append(file_path)
+            # Give the server time to index
+            if opened_for_indexing:
+                await asyncio.sleep(0.5)
+
         old_uri = path_to_uri(old_path)
         new_uri = path_to_uri(new_path)
 
@@ -638,6 +653,10 @@ class DaemonServer:
             if e.is_method_not_found():
                 raise ValueError(f"move-file is not supported by {server_name}")
             raise
+        finally:
+            # Close the files we opened just for indexing
+            for file_path in opened_for_indexing:
+                await workspace.close_document(file_path)
 
         files_modified = []
         imports_updated = False
