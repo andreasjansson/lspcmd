@@ -228,7 +228,7 @@ class DaemonServer:
             },
         )
 
-        return self._format_locations(result, context)
+        return self._format_locations(result, workspace.root, context)
 
     def _format_locations(self, result: Any, context: int = 0) -> list[dict]:
         if not result:
