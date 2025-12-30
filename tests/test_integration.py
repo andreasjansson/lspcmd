@@ -123,6 +123,7 @@ class TestPythonIntegration:
             "paths": [str(workspace / "main.py")],
             "workspace_root": str(workspace),
             "pattern": "^User",
+            "case_sensitive": True,
         })
         symbols = response["result"]
         names = [s["name"] for s in symbols]
