@@ -33,6 +33,8 @@ class LSPClient:
         self._server_capabilities: dict[str, Any] = {}
         self._notification_handlers: dict[str, Callable] = {}
         self._log_handle: Any | None = None
+        self._service_ready = asyncio.Event()
+        self._needs_service_ready = server_name == "jdtls"
 
     @property
     def stdin(self) -> asyncio.StreamWriter:
