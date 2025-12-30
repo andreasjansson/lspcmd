@@ -452,25 +452,44 @@ class DaemonServer:
             use_pull = workspace.client.supports_pull_diagnostics
             
             if use_pull:
-                for file_path in files:
-                    doc = await workspace.ensure_document_open(file_path)
-                    try:
-                        result = await workspace.client.send_request(
-                            "textDocument/diagnostic",
-                            {"textDocument": {"uri": doc.uri}},
+                # Probe first file with short timeout to check if pull is supported
+                first_file = files[0]
+                doc = await workspace.ensure_document_open(first_file)
+                try:
+                    result = await workspace.client.send_request(
+                        "textDocument/diagnostic",
+                        {"textDocument": {"uri": doc.uri}},
+                        timeout=2.0,
+                    )
+                    if result and result.get("items"):
+                        all_diagnostics.extend(
+                            self._format_diagnostics(result["items"], first_file, workspace_root)
                         )
-                        if result and result.get("items"):
-                            all_diagnostics.extend(
-                                self._format_diagnostics(result["items"], file_path, workspace_root)
-                            )
-                    except LSPResponseError as e:
-                        if e.is_method_not_found():
-                            workspace.client.supports_pull_diagnostics = False
-                            use_pull = False
-                            break
+                except (LSPResponseError, asyncio.TimeoutError) as e:
+                    if isinstance(e, LSPResponseError) and not e.is_method_not_found():
                         raise
-                    finally:
-                        await workspace.close_document(file_path)
+                    workspace.client.supports_pull_diagnostics = False
+                    use_pull = False
+                finally:
+                    await workspace.close_document(first_file)
+                
+                # Process remaining files if pull is supported
+                if use_pull:
+                    for file_path in files[1:]:
+                        doc = await workspace.ensure_document_open(file_path)
+                        try:
+                            result = await workspace.client.send_request(
+                                "textDocument/diagnostic",
+                                {"textDocument": {"uri": doc.uri}},
+                            )
+                            if result and result.get("items"):
+                                all_diagnostics.extend(
+                                    self._format_diagnostics(result["items"], file_path, workspace_root)
+                                )
+                        except LSPResponseError:
+                            pass
+                        finally:
+                            await workspace.close_document(file_path)
             
             if not use_pull:
                 # For push diagnostics: open all files, wait, then collect
