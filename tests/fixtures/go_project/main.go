@@ -12,36 +12,54 @@ func NewUser(name, email string, age int) *User {
 	return &User{Name: name, Email: email, Age: age}
 }
 
-type UserRepository struct {
+// Storage is an interface for user storage backends
+type Storage interface {
+	Save(user *User) error
+	Load(email string) (*User, error)
+}
+
+// MemoryStorage stores users in memory
+type MemoryStorage struct {
 	users map[string]*User
 }
 
-func NewUserRepository() *UserRepository {
-	return &UserRepository{users: make(map[string]*User)}
+func (m *MemoryStorage) Save(user *User) error {
+	m.users[user.Email] = user
+	return nil
+}
+
+func (m *MemoryStorage) Load(email string) (*User, error) {
+	return m.users[email], nil
+}
+
+// FileStorage stores users in files (stub)
+type FileStorage struct {
+	basePath string
+}
+
+func (f *FileStorage) Save(user *User) error {
+	return nil
+}
+
+func (f *FileStorage) Load(email string) (*User, error) {
+	return nil, nil
+}
+
+type UserRepository struct {
+	storage Storage
+}
+
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{storage: storage}
 }
 
 func (r *UserRepository) AddUser(user *User) {
-	r.users[user.Email] = user
+	r.storage.Save(user)
 }
 
 func (r *UserRepository) GetUser(email string) *User {
-	return r.users[email]
-}
-
-func (r *UserRepository) DeleteUser(email string) bool {
-	if _, ok := r.users[email]; ok {
-		delete(r.users, email)
-		return true
-	}
-	return false
-}
-
-func (r *UserRepository) ListUsers() []*User {
-	users := make([]*User, 0, len(r.users))
-	for _, user := range r.users {
-		users = append(users, user)
-	}
-	return users
+	user, _ := r.storage.Load(email)
+	return user
 }
 
 func createSampleUser() *User {
@@ -49,7 +67,8 @@ func createSampleUser() *User {
 }
 
 func main() {
-	repo := NewUserRepository()
+	storage := &MemoryStorage{users: make(map[string]*User)}
+	repo := NewUserRepository(storage)
 	user := createSampleUser()
 	repo.AddUser(user)
 
