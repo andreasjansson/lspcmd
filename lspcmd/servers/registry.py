@@ -18,11 +18,11 @@ class ServerConfig:
 SERVERS: dict[str, list[ServerConfig]] = {
     "python": [
         ServerConfig(
-            name="pyright",
-            command=["pyright-langserver", "--stdio"],
+            name="basedpyright",
+            command=["basedpyright-langserver", "--stdio"],
             languages=["python"],
             file_patterns=["*.py", "*.pyi"],
-            install_cmd="npm install -g pyright",
+            install_cmd="npm install -g @anthropic/basedpyright",
             root_markers=["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt", "pyrightconfig.json"],
         ),
         ServerConfig(
