@@ -673,11 +673,11 @@ VALID_SYMBOL_KINDS = {
 }
 
 
-def parse_kinds(kinds_str: str) -> set[str] | None:
-    """Parse comma-separated kinds into a set of normalized kind names."""
+def parse_kinds(kinds_str: str) -> list[str] | None:
+    """Parse comma-separated kinds into a list of normalized kind names."""
     if not kinds_str:
         return None
-    kinds = set()
+    kinds = []
     for k in kinds_str.split(","):
         k = k.strip().lower()
         if k and k not in VALID_SYMBOL_KINDS:
@@ -685,22 +685,8 @@ def parse_kinds(kinds_str: str) -> set[str] | None:
                 f"Unknown kind '{k}'. Valid kinds: {', '.join(sorted(VALID_SYMBOL_KINDS))}"
             )
         if k:
-            kinds.add(k)
+            kinds.append(k)
     return kinds if kinds else None
-
-
-def filter_symbols(symbols: list[dict], pattern: str, kinds: set[str] | None, case_sensitive: bool = False) -> list[dict]:
-    """Filter symbols by regex pattern and/or kinds."""
-    import re
-    
-    flags = 0 if case_sensitive else re.IGNORECASE
-    regex = re.compile(pattern, flags)
-    result = [s for s in symbols if regex.search(s.get("name", ""))]
-    
-    if kinds:
-        result = [s for s in result if s.get("kind", "").lower() in kinds]
-    
-    return result
 
 
 KIND_HELP = (
@@ -741,57 +727,29 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     """
     config = load_config()
     kinds = parse_kinds(kind)
-    excluded_paths = expand_exclude_pattern(exclude) if exclude else set()
+    exclude_patterns = [exclude] if exclude else []
 
     if path:
         files = expand_path_pattern(path)
-        if excluded_paths:
-            files = [f for f in files if f not in excluded_paths]
-        
         if not files:
             click.echo(format_output([], "json" if ctx.obj["json"] else "plain"))
             return
-        
-        all_symbols = []
-        for file_path in files:
-            workspace_root = get_workspace_root_for_path(file_path, config)
-            response = run_request("grep", {
-                "path": str(file_path),
-                "workspace_root": str(workspace_root),
-            })
-            result = response.get("result", [])
-            if isinstance(result, list):
-                all_symbols.extend(result)
-        
-        all_symbols = filter_symbols(all_symbols, pattern, kinds, case_sensitive)
-        
-        if docs and all_symbols:
-            workspace_root = get_workspace_root_for_path(files[0], config)
-            all_symbols = fetch_docs_for_symbols(all_symbols, workspace_root)
-        
-        click.echo(format_output(all_symbols, "json" if ctx.obj["json"] else "plain"))
+        workspace_root = get_workspace_root_for_path(files[0], config)
     else:
+        files = None
         workspace_root = get_workspace_root_for_cwd(config)
-        response = run_request("grep", {
-            "workspace_root": str(workspace_root),
-        })
-        result = response.get("result", [])
-        if isinstance(result, list):
-            if excluded_paths:
-                result = [s for s in result if (workspace_root / s.get("path", "")).resolve() not in excluded_paths]
-            result = filter_symbols(result, pattern, kinds, case_sensitive)
-            if docs and result:
-                result = fetch_docs_for_symbols(result, workspace_root)
-        click.echo(format_output(result, "json" if ctx.obj["json"] else "plain"))
 
-
-def fetch_docs_for_symbols(symbols: list[dict], workspace_root: Path) -> list[dict]:
-    """Fetch documentation for a list of symbols via the daemon."""
-    response = run_request("fetch-symbol-docs", {
-        "symbols": symbols,
+    response = run_request("grep", {
         "workspace_root": str(workspace_root),
+        "pattern": pattern,
+        "kinds": kinds,
+        "case_sensitive": case_sensitive,
+        "include_docs": docs,
+        "paths": [str(f) for f in files] if files else None,
+        "exclude_patterns": exclude_patterns,
     })
-    return response.get("result", symbols)
+
+    click.echo(format_output(response.get("result", []), "json" if ctx.obj["json"] else "plain"))
 
 
 @cli.command("raw-lsp-request")
