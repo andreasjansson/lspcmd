@@ -1078,29 +1078,18 @@ Renamed in 1 file(s):
     # =========================================================================
 
     def test_move_file_not_supported(self, workspace):
+        import click
         os.chdir(workspace)
         
-        # gopls doesn't support workspace/willRenameFiles for updating imports
-        # It will move the file but won't update any references
-        response = run_request("move-file", {
-            "old_path": str(workspace / "utils.go"),
-            "new_path": str(workspace / "helpers.go"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
+        with pytest.raises(click.ClickException) as exc_info:
+            run_request("move-file", {
+                "old_path": str(workspace / "utils.go"),
+                "new_path": str(workspace / "helpers.go"),
+                "workspace_root": str(workspace),
+            })
+        assert str(exc_info.value) == "move-file is not supported by gopls"
         
-        # File should be moved
-        assert not (workspace / "utils.go").exists()
-        assert (workspace / "helpers.go").exists()
-        assert "Moved file" in output
-        
-        # Move file back
-        run_request("move-file", {
-            "old_path": str(workspace / "helpers.go"),
-            "new_path": str(workspace / "utils.go"),
-            "workspace_root": str(workspace),
-        })
-        
+        # Verify file was NOT moved
         assert (workspace / "utils.go").exists()
         assert not (workspace / "helpers.go").exists()
 
