@@ -472,7 +472,7 @@ class DaemonServer:
 
         return diagnostics
 
-    async def _handle_get_workspace_diagnostics(self, params: dict) -> list[dict]:
+    async def _handle_workspace_diagnostics(self, params: dict) -> list[dict]:
         workspace_root = Path(params["workspace_root"]).resolve()
         
         all_diagnostics = []
