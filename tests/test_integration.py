@@ -786,30 +786,6 @@ class User
 ```
 Represents a user in the system."""
 
-    def test_rename(self, workspace):
-        response = run_request("rename", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-            "new_name": "Person",
-        })
-        output = format_output(response["result"], "plain")
-
-        assert output == """\
-Renamed in 2 file(s):
-  src/user.ts
-  src/main.ts"""
-
-        # Revert the rename - column stays the same since "Person" starts at same position
-        run_request("rename", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 14,  # "Person" is longer, so position of 'P' is 13, use 14 to be in the word
-            "new_name": "User",
-        })
-
     def test_print_definition(self, workspace):
         response = run_request("print-definition", {
             "path": str(workspace / "src" / "main.ts"),
@@ -825,6 +801,22 @@ src/main.ts:6-8
 function createSampleUser(): User {
     return new User("John Doe", "john@example.com", 30);
 }"""
+
+    def test_rename(self, workspace):
+        # Run rename last since it modifies the file and we don't want to affect other tests
+        response = run_request("rename", {
+            "path": str(workspace / "src" / "user.ts"),
+            "workspace_root": str(workspace),
+            "line": 4,
+            "column": 13,
+            "new_name": "Person",
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == """\
+Renamed in 2 file(s):
+  src/user.ts
+  src/main.ts"""
 
 
 # =============================================================================
