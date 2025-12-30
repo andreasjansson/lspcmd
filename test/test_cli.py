@@ -141,7 +141,7 @@ class TestCliCommands:
 class TestCliWithDaemon:
     @pytest.fixture(autouse=True)
     def setup_teardown(self, isolated_config):
-        requires_pyright()
+        requires_basedpyright()
         yield
         pid_path = get_pid_path()
 
