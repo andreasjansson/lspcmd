@@ -241,6 +241,54 @@ class TestCliWithDaemon:
         assert result.exit_code == 1
         assert "not supported" in result.output.lower() or "method not found" in result.output.lower()
 
+    def test_diagnostics_single_file(self, python_project, isolated_config):
+        """Test diagnostics for a single file."""
+        config = load_config()
+        add_workspace_root(python_project, config)
+
+        # Create a file with errors
+        bad_file = python_project / "bad.py"
+        bad_file.write_text('x: str = 123\n')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["diagnostics", str(bad_file)])
+        assert result.exit_code == 0, f"Failed with: {result.output}"
+        assert "error" in result.output.lower()
+
+    def test_diagnostics_workspace(self, python_project, isolated_config):
+        """Test diagnostics for entire workspace."""
+        config = load_config()
+        add_workspace_root(python_project, config)
+
+        # Create a file with errors
+        bad_file = python_project / "bad.py"
+        bad_file.write_text('x: str = 123\n')
+
+        runner = CliRunner()
+        # Run from the python_project directory
+        with runner.isolated_filesystem():
+            import os
+            os.chdir(python_project)
+            result = runner.invoke(cli, ["diagnostics"])
+        assert result.exit_code == 0, f"Failed with: {result.output}"
+        # Should find the error in bad.py
+        assert "bad.py" in result.output or "error" in result.output.lower()
+
+    def test_diagnostics_severity_filter(self, python_project, isolated_config):
+        """Test diagnostics with severity filter."""
+        config = load_config()
+        add_workspace_root(python_project, config)
+
+        # Create a file with errors
+        bad_file = python_project / "bad.py"
+        bad_file.write_text('x: str = 123\nundefined_var\n')
+
+        runner = CliRunner()
+        result = runner.invoke(cli, ["diagnostics", str(bad_file), "-s", "error"])
+        assert result.exit_code == 0, f"Failed with: {result.output}"
+        # Should have errors but filter out warnings
+        assert "error" in result.output.lower()
+
 
 class TestCliWithGopls:
     @pytest.fixture(autouse=True)
