@@ -1510,6 +1510,52 @@ Represents a user in the system."""
         has_type_error = "number" in output.lower() and "string" in output.lower()
         assert has_type_error, f"Expected type error in output: {output}"
 
+    # =========================================================================
+    # move-file tests
+    # =========================================================================
+
+    def test_move_file_updates_imports(self, workspace):
+        os.chdir(workspace)
+        
+        # Create a subdirectory to move the file into
+        models_dir = workspace / "src" / "models"
+        models_dir.mkdir(exist_ok=True)
+        
+        # Check initial import in main.ts
+        original_main = (workspace / "src" / "main.ts").read_text()
+        assert "from './user'" in original_main
+        
+        # Move user.ts to models/user.ts
+        response = run_request("move-file", {
+            "old_path": str(workspace / "src" / "user.ts"),
+            "new_path": str(workspace / "src" / "models" / "user.ts"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        
+        # Verify the file was moved
+        assert not (workspace / "src" / "user.ts").exists()
+        assert (workspace / "src" / "models" / "user.ts").exists()
+        
+        # Check that the response indicates imports were updated
+        assert "Moved file" in output
+        
+        # Check that imports were updated in main.ts
+        updated_main = (workspace / "src" / "main.ts").read_text()
+        # TypeScript language server should update the import path
+        assert "from './models/user'" in updated_main or "from './user'" not in updated_main
+        
+        # Move file back and restore original import
+        run_request("move-file", {
+            "old_path": str(workspace / "src" / "models" / "user.ts"),
+            "new_path": str(workspace / "src" / "user.ts"),
+            "workspace_root": str(workspace),
+        })
+        
+        # Verify file moved back
+        assert (workspace / "src" / "user.ts").exists()
+        assert not (workspace / "src" / "models" / "user.ts").exists()
+
 
 # =============================================================================
 # Java Integration Tests (jdtls)
