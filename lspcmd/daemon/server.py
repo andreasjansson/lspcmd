@@ -418,15 +418,27 @@ class DaemonServer:
         workspace_root = Path(params["workspace_root"]).resolve()
         
         all_diagnostics = []
-        servers_dict = self.session.workspaces.get(workspace_root, {})
         
-        for workspace in servers_dict.values():
+        all_files = list(self._find_all_source_files(workspace_root))
+        if not all_files:
+            return []
+        
+        files_by_language: dict[str, list[Path]] = {}
+        for file_path in all_files:
+            lang = get_language_id(file_path)
+            if lang:
+                files_by_language.setdefault(lang, []).append(file_path)
+        
+        for lang, files in files_by_language.items():
+            try:
+                workspace = await self.session.get_or_create_workspace(files[0], workspace_root)
+            except ValueError:
+                continue
+            
             if not workspace.client:
                 continue
                 
             await workspace.client.wait_for_service_ready()
-            
-            files = self._find_workspace_files(workspace_root, workspace.server_config.file_patterns)
             
             for file_path in files:
                 doc = await workspace.ensure_document_open(file_path)
