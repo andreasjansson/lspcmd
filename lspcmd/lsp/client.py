@@ -35,6 +35,7 @@ class LSPClient:
         self._log_handle: Any | None = None
         self._service_ready = asyncio.Event()
         self._needs_service_ready = server_name == "jdtls"
+        self._diagnostics: dict[str, list[dict]] = {}  # uri -> diagnostics
 
     @property
     def stdin(self) -> asyncio.StreamWriter:
