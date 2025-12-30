@@ -152,13 +152,13 @@ class TestCliWithDaemon:
         result = runner.invoke(cli, ["daemon", "info"])
         assert result.exit_code == 0
 
-    def test_find_definition(self, python_project, isolated_config):
+    def test_definition(self, python_project, isolated_config):
         main_py = python_project / "main.py"
         config = load_config()
         add_workspace_root(python_project, config)
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["find-definition", str(main_py), "36,11"])
+        result = runner.invoke(cli, ["definition", str(main_py), "36,11"])
         assert result.exit_code == 0
 
     def test_describe(self, python_project, isolated_config):
