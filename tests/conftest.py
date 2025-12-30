@@ -91,3 +91,7 @@ def requires_gopls():
 
 def requires_jdtls():
     require_command("jdtls", "jdtls")
+
+
+def requires_clangd():
+    require_command("clangd", "clangd")
