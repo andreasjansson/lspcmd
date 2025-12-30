@@ -60,7 +60,7 @@ class TestParsePosition:
     def test_line_regex_not_found_on_line(self, python_project):
         main_py = python_project / "main.py"
         with pytest.raises(Exception) as exc_info:
-            parse_position("1,User", main_py)
+            parse_position("1:User", main_py)
         assert "not found on line 1" in str(exc_info.value)
 
     def test_regex_with_special_chars(self, python_project):
