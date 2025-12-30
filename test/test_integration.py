@@ -282,9 +282,9 @@ main.py:61 [Class] FileStorage"""
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.py:111 [Function] create_sample_user
-main.py:116 [Function] process_users
-main.py:125 [Function] main
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main
 utils.py:9 [Function] validate_email
 utils.py:22 [Function] validate_age
 utils.py:27 [Function] memoize
