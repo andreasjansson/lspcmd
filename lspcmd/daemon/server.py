@@ -129,6 +129,7 @@ class DaemonServer:
             "describe": self._handle_hover,
             "find-definition": self._handle_find_definition,
             "find-declaration": self._handle_find_declaration,
+            "find-implementations": self._handle_find_implementations,
             "find-references": self._handle_find_references,
             "list-code-actions": self._handle_list_code_actions,
             "raw-lsp-request": self._handle_raw_lsp_request,
