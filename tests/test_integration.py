@@ -1135,6 +1135,39 @@ fn create_sample_user() -> User {
 src/main.rs:23     let user = create_sample_user();
 src/main.rs:8 fn create_sample_user() -> User {"""
 
+    # =========================================================================
+    # diagnostics tests
+    # =========================================================================
+
+    def test_diagnostics_single_file(self, workspace):
+        os.chdir(workspace)
+        response = self._run_request_with_retry("diagnostics", {
+            "path": str(workspace / "src" / "errors.rs"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        assert "errors.rs" in output
+        assert "error" in output.lower()
+
+    def test_diagnostics_undefined_variable(self, workspace):
+        os.chdir(workspace)
+        response = self._run_request_with_retry("diagnostics", {
+            "path": str(workspace / "src" / "errors.rs"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        assert "undefined_var" in output or "not found" in output.lower() or "cannot find" in output.lower()
+
+    def test_diagnostics_type_mismatch(self, workspace):
+        os.chdir(workspace)
+        response = self._run_request_with_retry("diagnostics", {
+            "path": str(workspace / "src" / "errors.rs"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        has_type_error = "mismatched" in output.lower() or "expected" in output.lower()
+        assert has_type_error, f"Expected type mismatch error in output: {output}"
+
 
 # =============================================================================
 # TypeScript Integration Tests (typescript-language-server)
