@@ -78,6 +78,7 @@ SERVERS: dict[str, list[ServerConfig]] = {
             command=["clangd"],
             languages=["c", "cpp"],
             file_patterns=["*.c", "*.h", "*.cpp", "*.hpp", "*.cc", "*.cxx"],
+            install_cmd="brew install llvm (macOS) or apt install clangd (Ubuntu)",
             root_markers=["compile_commands.json", "CMakeLists.txt", "Makefile"],
         ),
     ],
