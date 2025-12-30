@@ -228,9 +228,9 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         result = runner.invoke(cli, ["implementations", str(main_py), "6,6"])
-        # Should fail with a "not supported" error
-        assert result.exit_code == 1
-        assert "not supported" in result.output.lower() or "method not found" in result.output.lower()
+        # Should return an error message about not supporting implementations
+        assert result.exit_code == 0
+        assert "does not support implementations" in result.output
 
     def test_subtypes_not_supported(self, python_project, isolated_config):
         """Test that subtypes returns a helpful error for Python."""
