@@ -9,7 +9,7 @@ from typing import Any
 
 from .session import Session, Workspace
 from .pidfile import write_pid, remove_pid
-from ..lsp.protocol import LSPResponseError, LanguageServerNotFound
+from ..lsp.protocol import LSPResponseError, LSPMethodNotSupported, LanguageServerNotFound
 from ..utils.config import get_socket_path, get_pid_path, get_log_dir, load_config
 from ..utils.uri import path_to_uri, uri_to_path
 from ..utils.text import read_file_content, get_lines_around
