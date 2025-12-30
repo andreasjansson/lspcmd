@@ -98,7 +98,8 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "Commands:" in result.output
         assert "find-definition" in result.output
-        assert "init-workspace" in result.output
+        assert "workspace" in result.output
+        assert "daemon" in result.output
 
     def test_config_command(self, isolated_config):
         runner = CliRunner()
@@ -112,16 +113,16 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "LINE,COLUMN" in result.output
 
-    def test_init_workspace(self, python_project, isolated_config):
+    def test_workspace_init(self, python_project, isolated_config):
         runner = CliRunner()
-        result = runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
+        result = runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
         assert result.exit_code == 0
         assert "Initialized workspace:" in result.output
 
-    def test_init_workspace_already_initialized(self, python_project, isolated_config):
+    def test_workspace_init_already_initialized(self, python_project, isolated_config):
         runner = CliRunner()
-        runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
-        result = runner.invoke(cli, ["init-workspace", "--root", str(python_project)])
+        runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
+        result = runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
         assert result.exit_code == 0
         assert "already initialized" in result.output
 
@@ -130,7 +131,7 @@ class TestCliCommands:
         result = runner.invoke(cli, ["grep", ".*"])
         assert result.exit_code == 1
         assert "No workspace initialized" in result.output
-        assert "init-workspace" in result.output
+        assert "workspace init" in result.output
 
 
 @requires_pyright
@@ -142,12 +143,12 @@ class TestCliWithDaemon:
 
         if is_daemon_running(pid_path):
             runner = CliRunner()
-            runner.invoke(cli, ["shutdown"])
+            runner.invoke(cli, ["daemon", "shutdown"])
             time.sleep(0.5)
 
-    def test_describe_session(self, isolated_config):
+    def test_daemon_info(self, isolated_config):
         runner = CliRunner()
-        result = runner.invoke(cli, ["describe-session"])
+        result = runner.invoke(cli, ["daemon", "info"])
         assert result.exit_code == 0
 
     def test_find_definition(self, python_project, isolated_config):
@@ -178,11 +179,11 @@ class TestCliWithDaemon:
         assert result.exit_code == 0
         assert "User" in result.output or "Class" in result.output
 
-    def test_shutdown(self, isolated_config):
+    def test_daemon_shutdown(self, isolated_config):
         runner = CliRunner()
-        runner.invoke(cli, ["describe-session"])
+        runner.invoke(cli, ["daemon", "info"])
 
-        result = runner.invoke(cli, ["shutdown"])
+        result = runner.invoke(cli, ["daemon", "shutdown"])
         assert result.exit_code == 0
 
         time.sleep(0.5)
@@ -190,11 +191,11 @@ class TestCliWithDaemon:
 
     def test_json_output(self, isolated_config):
         runner = CliRunner()
-        result = runner.invoke(cli, ["--json", "describe-session"])
+        result = runner.invoke(cli, ["--json", "daemon", "info"])
         assert result.exit_code == 0
         assert "{" in result.output
 
-    def test_restart_workspace(self, python_project, isolated_config):
+    def test_workspace_restart(self, python_project, isolated_config):
         main_py = python_project / "main.py"
         config = load_config()
         add_workspace_root(python_project, config)
@@ -204,13 +205,13 @@ class TestCliWithDaemon:
         runner.invoke(cli, ["grep", ".*", str(main_py)])
 
         # Now restart it
-        result = runner.invoke(cli, ["restart-workspace", str(python_project)])
+        result = runner.invoke(cli, ["workspace", "restart", str(python_project)])
         assert result.exit_code == 0
         assert "restarted" in result.output.lower() or "True" in result.output
 
-    def test_restart_workspace_not_found(self, temp_dir, isolated_config):
+    def test_workspace_restart_not_found(self, temp_dir, isolated_config):
         runner = CliRunner()
         # Try to restart a workspace that doesn't exist
-        result = runner.invoke(cli, ["restart-workspace", str(temp_dir)])
+        result = runner.invoke(cli, ["workspace", "restart", str(temp_dir)])
         # Should fail because workspace isn't initialized
         assert result.exit_code != 0 or "error" in result.output.lower() or "not" in result.output.lower()
