@@ -489,8 +489,9 @@ class DaemonServer:
         self, 
         workspace: Workspace, 
         docs: list,
-        quiet_period: float = 0.3,
+        quiet_period: float = 0.5,
         max_wait: float = 30.0,
+        min_initial_wait: float = 0.5,
     ) -> None:
         """Wait until diagnostics stop arriving (quiet period with no changes)."""
         uris = [doc.uri for doc in docs]
@@ -499,12 +500,16 @@ class DaemonServer:
         def count_diagnostics() -> int:
             return sum(len(workspace.client.get_stored_diagnostics(uri)) for uri in uris)
         
+        start_time = asyncio.get_event_loop().time()
+        
+        # Wait for initial diagnostics to start arriving
+        await asyncio.sleep(min_initial_wait)
+        
         last_count = count_diagnostics()
         stable_since = asyncio.get_event_loop().time()
-        start_time = stable_since
         
         while True:
-            await asyncio.sleep(0.05)
+            await asyncio.sleep(0.1)
             now = asyncio.get_event_loop().time()
             
             if now - start_time > max_wait:
