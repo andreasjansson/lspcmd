@@ -724,7 +724,7 @@ class DaemonServer:
 
         file_path.write_text(result)
 
-    async def _handle_format_buffer(self, params: dict) -> dict:
+    async def _handle_format(self, params: dict) -> dict:
         workspace, doc, path = await self._get_workspace_and_document(params)
         config = self.session.config.get("formatting", {})
 
