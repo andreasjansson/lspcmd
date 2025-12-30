@@ -109,29 +109,56 @@ class TestPythonIntegration:
 
         assert output == """\
 main.py:12 [Class] StorageProtocol
-main.py:16 [Method] save in StorageProtocol
-main.py:20 [Method] load in StorageProtocol
-main.py:26 [Class] User
-main.py:35 [Method] is_adult in User
-main.py:39 [Method] display_name in User
-main.py:44 [Class] MemoryStorage
-main.py:47 [Method] __init__ in MemoryStorage
-main.py:50 [Method] save in MemoryStorage
-main.py:53 [Method] load in MemoryStorage
-main.py:58 [Class] FileStorage
-main.py:61 [Method] __init__ in FileStorage
-main.py:64 [Method] save in FileStorage
-main.py:69 [Method] load in FileStorage
-main.py:77 [Class] UserRepository
-main.py:83 [Method] __init__ in UserRepository
-main.py:86 [Method] add_user in UserRepository
-main.py:90 [Method] get_user in UserRepository
-main.py:94 [Method] delete_user in UserRepository
-main.py:101 [Method] list_users in UserRepository
-main.py:105 [Method] count_users in UserRepository
-main.py:110 [Function] create_sample_user
-main.py:115 [Function] process_users
-main.py:123 [Function] main"""
+main.py:15 [Method] save in StorageProtocol
+main.py:15 [Variable] key in save
+main.py:15 [Variable] value in save
+main.py:19 [Method] load in StorageProtocol
+main.py:19 [Variable] key in load
+main.py:24 [Class] User
+main.py:33 [Variable] name in User
+main.py:34 [Variable] email in User
+main.py:35 [Variable] age in User
+main.py:37 [Method] is_adult in User
+main.py:41 [Method] display_name in User
+main.py:46 [Class] MemoryStorage
+main.py:49 [Method] __init__ in MemoryStorage
+main.py:52 [Method] save in MemoryStorage
+main.py:52 [Variable] key in save
+main.py:52 [Variable] value in save
+main.py:55 [Method] load in MemoryStorage
+main.py:55 [Variable] key in load
+main.py:50 [Variable] _data in MemoryStorage
+main.py:59 [Class] FileStorage
+main.py:62 [Method] __init__ in FileStorage
+main.py:62 [Variable] base_path in __init__
+main.py:65 [Method] save in FileStorage
+main.py:65 [Variable] key in save
+main.py:65 [Variable] value in save
+main.py:66 [Variable] path in save
+main.py:67 [Variable] f in save
+main.py:70 [Method] load in FileStorage
+main.py:70 [Variable] key in load
+main.py:71 [Variable] path in load
+main.py:73 [Variable] f in load
+main.py:63 [Variable] _base_path in FileStorage
+main.py:78 [Class] UserRepository
+main.py:84 [Method] __init__ in UserRepository
+main.py:87 [Method] add_user in UserRepository
+main.py:87 [Variable] user in add_user
+main.py:91 [Method] get_user in UserRepository
+main.py:91 [Variable] email in get_user
+main.py:95 [Method] delete_user in UserRepository
+main.py:95 [Variable] email in delete_user
+main.py:102 [Method] list_users in UserRepository
+main.py:106 [Method] count_users in UserRepository
+main.py:85 [Variable] _users in UserRepository
+main.py:111 [Function] create_sample_user
+main.py:116 [Function] process_users
+main.py:116 [Variable] repo in process_users
+main.py:125 [Function] main
+main.py:127 [Variable] repo in main
+main.py:128 [Variable] user in main
+main.py:131 [Variable] found in main"""
 
     def test_find_definition(self, workspace):
         response = run_request("find-definition", {
