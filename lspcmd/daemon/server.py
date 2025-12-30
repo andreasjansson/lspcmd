@@ -142,7 +142,6 @@ class DaemonServer:
             "organize-imports": self._handle_organize_imports,
             "rename": self._handle_rename,
             "grep": self._handle_grep,
-            "fetch-symbol-docs": self._handle_fetch_symbol_docs,
             "restart-workspace": self._handle_restart_workspace,
         }
 
