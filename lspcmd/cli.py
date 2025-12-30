@@ -437,7 +437,7 @@ def declaration(ctx, path, position, context):
     POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
     or just REGEX (e.g. def foo) to search the whole file.
     """
-    _run_location_command(ctx, path, position, context, "find-declaration")
+    _run_location_command(ctx, path, position, context, "declaration")
 
 
 @cli.command("references")
