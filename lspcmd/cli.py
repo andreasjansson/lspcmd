@@ -274,11 +274,11 @@ def describe_session(ctx):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
-@cli.command("describe-thing-at-point")
+@cli.command("describe")
 @click.argument("path", type=click.Path(exists=True))
 @click.argument("position")
 @click.pass_context
-def describe_thing_at_point(ctx, path, position):
+def describe(ctx, path, position):
     """Show hover information at position.
     
     POSITION can be LINE,COLUMN (e.g. 42,10), LINE,REGEX (e.g. 42,def foo),
@@ -289,7 +289,7 @@ def describe_thing_at_point(ctx, path, position):
     config = load_config()
     workspace_root = get_workspace_root_for_path(path, config)
 
-    response = run_request("describe-thing-at-point", {
+    response = run_request("describe", {
         "path": str(path),
         "workspace_root": str(workspace_root),
         "line": line,
