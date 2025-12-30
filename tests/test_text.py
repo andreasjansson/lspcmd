@@ -8,6 +8,7 @@ from lspcmd.utils.text import (
     get_lines_around,
     position_to_offset,
     offset_to_position,
+    resolve_regex_position,
 )
 
 
