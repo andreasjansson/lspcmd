@@ -634,6 +634,7 @@ class DaemonServer:
                     ]
                 },
             )
+            logger.info(f"willRenameFiles returned: {workspace_edit}")
         except LSPResponseError as e:
             if e.is_method_not_found():
                 raise ValueError(f"move-file is not supported by {server_name}")
