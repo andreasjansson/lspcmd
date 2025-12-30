@@ -412,6 +412,24 @@ def definition(ctx, path, position, context, body):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
+def _run_location_command(ctx, path: str, position: str, context: int, request_name: str):
+    """Helper for location-based commands (definition, references, implementations, etc.)."""
+    path = Path(path).resolve()
+    line, column = parse_position(position, path)
+    config = load_config()
+    workspace_root = get_workspace_root_for_path(path, config)
+
+    response = run_request(request_name, {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
 @cli.command("declaration")
 @click.argument("path", type=click.Path(exists=True))
 @click.argument("position")
@@ -423,20 +441,7 @@ def declaration(ctx, path, position, context):
     POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
     or just REGEX (e.g. def foo) to search the whole file.
     """
-    path = Path(path).resolve()
-    line, column = parse_position(position, path)
-    config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
-
-    response = run_request("find-declaration", {
-        "path": str(path),
-        "workspace_root": str(workspace_root),
-        "line": line,
-        "column": column,
-        "context": context,
-    })
-
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+    _run_location_command(ctx, path, position, context, "find-declaration")
 
 
 @cli.command("references")
@@ -450,20 +455,7 @@ def references(ctx, path, position, context):
     POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
     or just REGEX (e.g. def foo) to search the whole file.
     """
-    path = Path(path).resolve()
-    line, column = parse_position(position, path)
-    config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
-
-    response = run_request("find-references", {
-        "path": str(path),
-        "workspace_root": str(workspace_root),
-        "line": line,
-        "column": column,
-        "context": context,
-    })
-
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+    _run_location_command(ctx, path, position, context, "find-references")
 
 
 @cli.command("implementations")
@@ -472,25 +464,45 @@ def references(ctx, path, position, context):
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
 def implementations(ctx, path, position, context):
-    """Find implementations of an interface.
+    """Find implementations of an interface or abstract method.
     
     POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
     or just REGEX (e.g. def foo) to search the whole file.
     """
-    path = Path(path).resolve()
-    line, column = parse_position(position, path)
-    config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
+    _run_location_command(ctx, path, position, context, "find-implementations")
 
-    response = run_request("find-implementations", {
-        "path": str(path),
-        "workspace_root": str(workspace_root),
-        "line": line,
-        "column": column,
-        "context": context,
-    })
 
-    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+@cli.command("subtypes")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def subtypes(ctx, path, position, context):
+    """Find direct subtypes of a type at position.
+    
+    Returns types that directly extend/implement the type at position.
+    Use 'implementations' to find all implementations transitively.
+    
+    POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
+    or just REGEX (e.g. def foo) to search the whole file.
+    """
+    _run_location_command(ctx, path, position, context, "find-subtypes")
+
+
+@cli.command("supertypes")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def supertypes(ctx, path, position, context):
+    """Find direct supertypes of a type at position.
+    
+    Returns types that the type at position directly extends/implements.
+    
+    POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
+    or just REGEX (e.g. def foo) to search the whole file.
+    """
+    _run_location_command(ctx, path, position, context, "find-supertypes")
 
 
 @cli.command("list-code-actions")
