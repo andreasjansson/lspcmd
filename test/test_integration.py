@@ -697,12 +697,14 @@ main.py:61 class FileStorage:"""
         assert not (workspace / "utils.py").exists()
         assert (workspace / "helpers" / "utils.py").exists()
         
-        # Check that the response indicates success
-        assert "Moved file" in output
+        # Check output
+        assert output == """\
+Moved file with import updates:
+  helpers/utils.py
+  main.py"""
         
         # Check that imports were updated in main.py
         updated_main = (workspace / "main.py").read_text()
-        # basedpyright should update the import path
         assert "from helpers.utils import validate_email" in updated_main
         
         # Move file back
@@ -712,9 +714,11 @@ main.py:61 class FileStorage:"""
             "workspace_root": str(workspace),
         })
         
-        # Verify file moved back
+        # Verify file moved back and import restored
         assert (workspace / "utils.py").exists()
         assert not (workspace / "helpers" / "utils.py").exists()
+        restored_main = (workspace / "main.py").read_text()
+        assert "from utils import validate_email" in restored_main
 
 
 # =============================================================================
