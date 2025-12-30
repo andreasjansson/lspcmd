@@ -203,7 +203,7 @@ def expand_exclude_pattern(pattern: str) -> set[Path]:
     return {Path(m).resolve() for m in matches if Path(m).is_file()}
 
 
-@click.group()
+@click.group(context_settings={"help_option_names": ["-h", "--help"]})
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.pass_context
 def cli(ctx, json_output):
