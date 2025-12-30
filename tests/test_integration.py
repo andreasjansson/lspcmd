@@ -2334,7 +2334,7 @@ class TestPhpIntegration:
         response = run_request("definition", {
             "path": str(workspace / "src" / "Main.php"),
             "workspace_root": str(workspace),
-            "line": 60,
+            "line": 63,
             "column": 22,
             "context": 0,
             "body": False,
@@ -2347,7 +2347,7 @@ class TestPhpIntegration:
         response = run_request("definition", {
             "path": str(workspace / "src" / "Main.php"),
             "workspace_root": str(workspace),
-            "line": 60,
+            "line": 63,
             "column": 22,
             "context": 0,
             "body": True,
