@@ -103,3 +103,11 @@ def requires_zls():
 
 def requires_lua_ls():
     require_command("lua-language-server", "lua-language-server")
+
+
+def requires_solargraph():
+    require_command("solargraph", "solargraph")
+
+
+def requires_intelephense():
+    require_command("intelephense", "intelephense")
