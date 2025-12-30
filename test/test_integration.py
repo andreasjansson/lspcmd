@@ -448,62 +448,62 @@ def create_sample_user() -> User:
         response = run_request("references", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 25,
+            "line": 27,
             "column": 6,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.py:25 class User:
-main.py:85         self._users: dict[str, User] = {}
-main.py:87     def add_user(self, user: User) -> None:
-main.py:91     def get_user(self, email: str) -> Optional[User]:
-main.py:102     def list_users(self) -> list[User]:
-main.py:111 def create_sample_user() -> User:
-main.py:113     return User(name="John Doe", email="john@example.com", age=30)"""
+main.py:27 class User:
+main.py:87         self._users: dict[str, User] = {}
+main.py:89     def add_user(self, user: User) -> None:
+main.py:93     def get_user(self, email: str) -> Optional[User]:
+main.py:104     def list_users(self) -> list[User]:
+main.py:113 def create_sample_user() -> User:
+main.py:115     return User(name="John Doe", email="john@example.com", age=30)"""
 
     def test_references_with_context(self, workspace):
         os.chdir(workspace)
         response = run_request("references", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 25,
+            "line": 27,
             "column": 6,
             "context": 1,
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.py:24-26
+main.py:26-28
 @dataclass
 class User:
     \"\"\"Represents a user in the system.
 
-main.py:84-86
+main.py:86-88
     def __init__(self) -> None:
         self._users: dict[str, User] = {}
 
 
-main.py:86-88
+main.py:88-90
 
     def add_user(self, user: User) -> None:
         \"\"\"Add a user to the repository.\"\"\"
 
-main.py:90-92
+main.py:92-94
 
     def get_user(self, email: str) -> Optional[User]:
         \"\"\"Retrieve a user by email address.\"\"\"
 
-main.py:101-103
+main.py:103-105
 
     def list_users(self) -> list[User]:
         \"\"\"List all users in the repository.\"\"\"
 
-main.py:110-112
+main.py:112-114
 
 def create_sample_user() -> User:
     \"\"\"Create a sample user for testing.\"\"\"
 
-main.py:112-114
+main.py:114-116
     \"\"\"Create a sample user for testing.\"\"\"
     return User(name="John Doe", email="john@example.com", age=30)
 
