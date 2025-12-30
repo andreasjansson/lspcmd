@@ -64,6 +64,9 @@ def format_plain(data: Any) -> str:
 
         first = data[0]
 
+        if "severity" in first and "message" in first:
+            return format_diagnostics(data)
+
         if "path" in first and "line" in first and "kind" not in first:
             return format_locations(data)
 
