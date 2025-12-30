@@ -396,21 +396,14 @@ def definition(ctx, path, position, context, body):
     config = load_config()
     workspace_root = get_workspace_root_for_path(path, config)
 
-    if body:
-        response = run_request("print-definition", {
-            "path": str(path),
-            "workspace_root": str(workspace_root),
-            "line": line,
-            "column": column,
-        })
-    else:
-        response = run_request("find-definition", {
-            "path": str(path),
-            "workspace_root": str(workspace_root),
-            "line": line,
-            "column": column,
-            "context": context,
-        })
+    response = run_request("definition", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+        "body": body,
+    })
 
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
