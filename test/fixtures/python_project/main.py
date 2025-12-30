@@ -128,6 +128,11 @@ def main() -> None:
     """Main entry point."""
     repo = UserRepository()
     user = create_sample_user()
+    
+    if not validate_email(user.email):
+        print(f"Invalid email: {user.email}")
+        return
+    
     repo.add_user(user)
 
     found = repo.get_user("john@example.com")
