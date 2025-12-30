@@ -465,6 +465,33 @@ def references(ctx, path, position, context):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
+@cli.command("implementations")
+@click.argument("path", type=click.Path(exists=True))
+@click.argument("position")
+@click.option("-n", "--context", default=0, help="Lines of context")
+@click.pass_context
+def implementations(ctx, path, position, context):
+    """Find implementations of an interface or abstract method.
+    
+    POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
+    or just REGEX (e.g. def foo) to search the whole file.
+    """
+    path = Path(path).resolve()
+    line, column = parse_position(position, path)
+    config = load_config()
+    workspace_root = get_workspace_root_for_path(path, config)
+
+    response = run_request("find-implementations", {
+        "path": str(path),
+        "workspace_root": str(workspace_root),
+        "line": line,
+        "column": column,
+        "context": context,
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
 @cli.command("list-code-actions")
 @click.argument("path", type=click.Path(exists=True))
 @click.argument("position")
