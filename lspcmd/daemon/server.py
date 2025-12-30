@@ -802,7 +802,7 @@ class DaemonServer:
         files_modified = await self._apply_workspace_edit(result, workspace.root)
         return {"renamed": True, "files_modified": files_modified}
 
-    async def _handle_list_symbols(self, params: dict) -> list[dict]:
+    async def _handle_grep(self, params: dict) -> list[dict]:
         if params.get("path"):
             return await self._handle_document_symbols(params)
         else:
