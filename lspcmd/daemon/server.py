@@ -534,6 +534,8 @@ class DaemonServer:
         logger.info(f"Got workspace: root={workspace.root}, server={workspace.server_config.name}")
         logger.info(f"Doc URI: {doc.uri}")
 
+        await workspace.client.wait_for_service_ready()
+
         result = await workspace.client.send_request(
             "textDocument/documentSymbol",
             {"textDocument": {"uri": doc.uri}},
