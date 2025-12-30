@@ -72,7 +72,7 @@ class TestParsePosition:
     def test_regex_finds_correct_column(self, python_project):
         main_py = python_project / "main.py"
         # Line 7 is "    name: str"
-        line, col = parse_position("7,name: str", main_py)
+        line, col = parse_position("7:name", main_py)
         assert line == 7
         assert col == 4
 
