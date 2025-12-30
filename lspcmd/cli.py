@@ -624,6 +624,41 @@ def rename(ctx, path, position, new_name):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
+@cli.command("move-file")
+@click.argument("old_path", type=click.Path(exists=True))
+@click.argument("new_path", type=click.Path())
+@click.pass_context
+def move_file(ctx, old_path, new_path):
+    """Move/rename a file and update all imports.
+    
+    Moves OLD_PATH to NEW_PATH and asks the language server to update
+    all import statements across the workspace.
+    
+    This uses the LSP workspace/willRenameFiles request, which is supported
+    by language servers like typescript-language-server, rust-analyzer, and
+    metals (Scala). Servers that don't support this will just move the file
+    without updating imports.
+    
+    Examples:
+    
+      lspcmd move-file src/user.ts src/models/user.ts
+    
+      lspcmd move-file lib/utils.rs lib/helpers.rs
+    """
+    old_path = Path(old_path).resolve()
+    new_path = Path(new_path).resolve()
+    config = load_config()
+    workspace_root = get_workspace_root_for_path(old_path, config)
+
+    response = run_request("move-file", {
+        "old_path": str(old_path),
+        "new_path": str(new_path),
+        "workspace_root": str(workspace_root),
+    })
+
+    click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
+
+
 VALID_SYMBOL_KINDS = {
     "file", "module", "namespace", "package", "class", "method", "property",
     "field", "constructor", "enum", "interface", "function", "variable",
