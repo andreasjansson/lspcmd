@@ -370,10 +370,12 @@ Some LSP capabilities cause servers to send requests to the client and block wai
 
 ## Known Limitations
 
-1. **Workspace symbols with empty query**: Many LSP servers (pyright, gopls, rust-analyzer) don't return results for empty workspace symbol queries. The `grep` command works around this by iterating through files and using document symbols.
+1. **Workspace symbols with empty query**: Many LSP servers (pyright, gopls, rust-analyzer) don't return consistent results for `workspace/symbol` queries, especially with empty queries. The `grep` command uses `textDocument/documentSymbol` on each file instead, which provides reliable and complete results.
 
 2. **No auto-installation**: Language servers must be installed manually. The registry provides install commands as hints.
 
 3. **Single-user**: The daemon uses a Unix socket without authentication, suitable for single-user workstations.
 
 4. **No incremental sync**: Document changes always send full content (simpler, works reliably for CLI use case).
+
+5. **First `--docs` query is slow**: The hover cache starts empty, so the first `grep --docs` query fetches documentation for all symbols. Subsequent queries are fast (cache hit). The cache is invalidated per-file when file content changes (detected via SHA256 hash).
