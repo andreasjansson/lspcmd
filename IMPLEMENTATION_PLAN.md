@@ -310,7 +310,7 @@ lspcmd workspace init
 
 | Language | Server | Install Command |
 |----------|--------|-----------------|
-| Python | pyright | `npm install -g pyright` |
+| Python | basedpyright | `npm install -g @anthropic/basedpyright` |
 | Python | pylsp | `pip install python-lsp-server` |
 | Python | ruff-lsp | `pip install ruff-lsp` |
 | Rust | rust-analyzer | `rustup component add rust-analyzer` |
