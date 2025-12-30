@@ -1910,31 +1910,20 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     # =========================================================================
 
     def test_move_file_not_supported(self, workspace):
+        import click
         os.chdir(workspace)
         
-        # jdtls doesn't support workspace/willRenameFiles for updating imports
-        # It will move the file but won't update any references
         base_path = workspace / "src" / "main" / "java" / "com" / "example"
         
-        response = run_request("move-file", {
-            "old_path": str(base_path / "User.java"),
-            "new_path": str(base_path / "Person.java"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
+        with pytest.raises(click.ClickException) as exc_info:
+            run_request("move-file", {
+                "old_path": str(base_path / "User.java"),
+                "new_path": str(base_path / "Person.java"),
+                "workspace_root": str(workspace),
+            })
+        assert str(exc_info.value) == "move-file is not supported by jdtls"
         
-        # File should be moved
-        assert not (base_path / "User.java").exists()
-        assert (base_path / "Person.java").exists()
-        assert "Moved file" in output
-        
-        # Move file back
-        run_request("move-file", {
-            "old_path": str(base_path / "Person.java"),
-            "new_path": str(base_path / "User.java"),
-            "workspace_root": str(workspace),
-        })
-        
+        # Verify file was NOT moved
         assert (base_path / "User.java").exists()
         assert not (base_path / "Person.java").exists()
 
