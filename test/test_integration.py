@@ -1811,7 +1811,7 @@ main.go:6 [Struct] GoUser (struct{...})
 main.go:12 [Struct] GoService (struct{...})"""
 
     def test_both_languages_workspace_wide(self, workspace):
-        requires_pyright()
+        requires_basedpyright()
         requires_gopls()
         os.chdir(workspace)
 
