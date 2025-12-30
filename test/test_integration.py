@@ -672,65 +672,63 @@ main.py:61 class FileStorage:"""
     # move-file tests
     # =========================================================================
 
-    def test_move_file(self, workspace):
+    def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
         
         # Verify utils.py exists
         assert (workspace / "utils.py").exists()
         
-        # Move utils.py to helpers/utils.py
-        # Note: basedpyright advertises willRenameFiles and returns documentChanges
-        # that reference files, but the edits arrays are empty - so the files are
-        # "touched" but imports are NOT actually updated (this is a pyright limitation -
-        # only Pylance supports actual import updating)
-        helpers_dir = workspace / "helpers"
-        helpers_dir.mkdir(exist_ok=True)
-        
         # Check initial import in main.py
         original_main = (workspace / "main.py").read_text()
         assert "from utils import validate_email" in original_main
         
+        # Rename utils.py to helpers.py (basedpyright only updates imports when
+        # the filename changes, not when the file moves to a different directory)
         response = run_request("move-file", {
             "old_path": str(workspace / "utils.py"),
-            "new_path": str(workspace / "helpers" / "utils.py"),
+            "new_path": str(workspace / "helpers.py"),
             "workspace_root": str(workspace),
         })
         output = format_output(response["result"], "plain")
         
-        # Verify the file was moved
+        # Verify the file was renamed
         assert not (workspace / "utils.py").exists()
-        assert (workspace / "helpers" / "utils.py").exists()
+        assert (workspace / "helpers.py").exists()
         
-        # basedpyright returns documentChanges but with empty edits arrays,
-        # so it reports files as "modified" but doesn't actually change imports
+        # basedpyright updates the import when the filename changes
         assert output == """\
 Moved file and updated imports in 4 file(s):
   main.py
   utils.py
   errors.py
-  helpers/utils.py"""
+  helpers.py"""
         
-        # Verify that imports were NOT actually updated (pyright limitation)
+        # Verify the import was updated
         updated_main = (workspace / "main.py").read_text()
-        assert "from utils import validate_email" in updated_main
+        assert "from helpers import validate_email" in updated_main
+        assert "from utils import validate_email" not in updated_main
         
-        # Move file back
+        # Rename file back
         response = run_request("move-file", {
-            "old_path": str(workspace / "helpers" / "utils.py"),
+            "old_path": str(workspace / "helpers.py"),
             "new_path": str(workspace / "utils.py"),
             "workspace_root": str(workspace),
         })
         output = format_output(response["result"], "plain")
         
-        # Verify file moved back
+        # Verify file renamed back
         assert (workspace / "utils.py").exists()
-        assert not (workspace / "helpers" / "utils.py").exists()
+        assert not (workspace / "helpers.py").exists()
         assert output == """\
 Moved file and updated imports in 4 file(s):
   main.py
-  helpers/utils.py
+  helpers.py
   errors.py
   utils.py"""
+        
+        # Verify the import was restored
+        restored_main = (workspace / "main.py").read_text()
+        assert "from utils import validate_email" in restored_main
 
 
 # =============================================================================
