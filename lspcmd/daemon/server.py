@@ -722,7 +722,9 @@ class DaemonServer:
             return {"error": "Definition not found"}
 
         loc = locations[0]
-        file_path = Path(loc["path"])
+        workspace_root = Path(params["workspace_root"]).resolve()
+        rel_path = loc["path"]
+        file_path = workspace_root / rel_path
         target_line = loc["line"] - 1
 
         workspace, doc, _ = await self._get_workspace_and_document({
@@ -744,14 +746,14 @@ class DaemonServer:
                 start = symbol["range"]["start"]["line"]
                 end = symbol["range"]["end"]["line"]
                 return {
-                    "path": str(file_path),
+                    "path": rel_path,
                     "start_line": start + 1,
                     "end_line": end + 1,
                     "content": "\n".join(lines[start : end + 1]),
                 }
 
         return {
-            "path": str(file_path),
+            "path": rel_path,
             "start_line": loc["line"],
             "end_line": loc["line"],
             "content": lines[target_line] if target_line < len(lines) else "",
