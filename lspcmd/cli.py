@@ -23,6 +23,20 @@ from .utils.config import (
 from .utils.text import resolve_regex_position
 
 
+class OrderedGroup(click.Group):
+    def __init__(self, *args, commands_order: list[str] | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.commands_order = commands_order or []
+
+    def list_commands(self, ctx):
+        commands = super().list_commands(ctx)
+        if self.commands_order:
+            ordered = [c for c in self.commands_order if c in commands]
+            remaining = [c for c in commands if c not in self.commands_order]
+            return ordered + remaining
+        return commands
+
+
 def ensure_daemon_running() -> None:
     pid_path = get_pid_path()
 
