@@ -1918,7 +1918,7 @@ class TestCppIntegration:
         })
         output = format_output(response["result"], "plain")
         assert "class User" in output
-        assert "main.cpp" in output
+        assert "user.hpp" in output
 
     # =========================================================================
     # implementations tests
