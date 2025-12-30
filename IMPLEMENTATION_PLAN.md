@@ -166,16 +166,19 @@ When using REGEX, the column for the LSP request is the start of the match.
 Examples:
 ```bash
 # Traditional line,column format
-lspcmd find-definition src/main.py 42,10
+lspcmd definition src/main.py 42,10
 
 # Search for unique pattern on a specific line
-lspcmd find-definition src/main.py "42:UserRepository"
+lspcmd definition src/main.py "42:UserRepository"
 
 # Search for unique pattern in the whole file
-lspcmd find-definition src/main.py "class UserRepository:"
+lspcmd definition src/main.py "class UserRepository:"
 
 # Regex with special characters (escaped)
-lspcmd find-definition src/main.py "def __init__\\(self\\)"
+lspcmd definition src/main.py "def __init__\\(self\\)"
+
+# Print full definition body
+lspcmd definition src/main.py "class UserRepository:" --body
 ```
 
 If a regex matches multiple times, you'll get a helpful error showing all locations:
