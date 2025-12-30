@@ -71,9 +71,10 @@ class TestParsePosition:
 
     def test_regex_finds_correct_column(self, python_project):
         main_py = python_project / "main.py"
-        line, col = parse_position("6,name: str", main_py)
-        assert line == 6
-        assert col == 6
+        # Line 7 is "    name: str"
+        line, col = parse_position("7,name: str", main_py)
+        assert line == 7
+        assert col == 4
 
     def test_line_column_still_works_with_file(self, python_project):
         main_py = python_project / "main.py"
