@@ -640,5 +640,40 @@ def restart_workspace(ctx, workspace):
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
 
 
+@cli.command("raw-lsp-request")
+@click.argument("method")
+@click.argument("params", required=False)
+@click.option("-l", "--language", default="python", help="Language server to use (python, go, typescript, etc.)")
+@click.pass_context
+def raw_lsp_request(ctx, method, params, language):
+    """Send a raw LSP request and print the response as JSON.
+    
+    METHOD is the LSP method (e.g. textDocument/documentSymbol).
+    PARAMS is optional JSON parameters for the request.
+    
+    Examples:
+    
+      lspcmd raw-lsp-request textDocument/documentSymbol \\
+        '{"textDocument": {"uri": "file:///path/to/file.py"}}'
+    
+      lspcmd raw-lsp-request workspace/symbol '{"query": ""}' -l go
+    """
+    config = load_config()
+    workspace_root = get_workspace_root_for_cwd(config)
+    
+    lsp_params = {}
+    if params:
+        lsp_params = json.loads(params)
+    
+    response = run_request("raw-lsp-request", {
+        "workspace_root": str(workspace_root),
+        "method": method,
+        "params": lsp_params,
+        "language": language,
+    })
+    
+    click.echo(json.dumps(response.get("result", response), indent=2))
+
+
 if __name__ == "__main__":
     cli()
