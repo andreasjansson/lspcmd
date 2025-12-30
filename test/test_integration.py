@@ -675,15 +675,17 @@ main.py:61 class FileStorage:"""
     def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
         
-        # Create a subdirectory to move the file into
-        helpers_dir = workspace / "helpers"
-        helpers_dir.mkdir(exist_ok=True)
-        
         # Check initial import in main.py
         original_main = (workspace / "main.py").read_text()
         assert "from utils import validate_email" in original_main
         
+        # Verify utils.py exists
+        assert (workspace / "utils.py").exists()
+        
         # Move utils.py to helpers/utils.py
+        helpers_dir = workspace / "helpers"
+        helpers_dir.mkdir(exist_ok=True)
+        
         response = run_request("move-file", {
             "old_path": str(workspace / "utils.py"),
             "new_path": str(workspace / "helpers" / "utils.py"),
@@ -701,9 +703,7 @@ main.py:61 class FileStorage:"""
         # Check that imports were updated in main.py
         updated_main = (workspace / "main.py").read_text()
         # basedpyright should update the import path
-        assert "from helpers.utils import validate_email" in updated_main or \
-               "from helpers import utils" in updated_main or \
-               "from utils import validate_email" not in updated_main
+        assert "from helpers.utils import validate_email" in updated_main
         
         # Move file back
         run_request("move-file", {
