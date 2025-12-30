@@ -471,7 +471,7 @@ class DaemonServer:
                     doc = await workspace.ensure_document_open(file_path)
                     opened_docs.append((file_path, doc))
                 
-                await asyncio.sleep(0.5 + len(files) * 0.01)
+                await self._wait_for_diagnostics_stable(workspace, [doc for _, doc in opened_docs])
                 
                 for file_path, doc in opened_docs:
                     stored = workspace.client.get_stored_diagnostics(doc.uri)
