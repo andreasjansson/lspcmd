@@ -141,6 +141,7 @@ class DaemonServer:
             "rename": self._handle_rename,
             "move-file": self._handle_move_file,
             "grep": self._handle_grep,
+            "tree": self._handle_tree,
             "restart-workspace": self._handle_restart_workspace,
         }
 
