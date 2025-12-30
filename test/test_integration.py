@@ -1314,9 +1314,11 @@ src/main.rs:10 fn create_sample_user() -> User {"""
         assert (workspace / "src" / "person.rs").exists()
         
         # Check exact output - rust-analyzer updates mod declarations
+        # storage.rs also uses user module so it gets updated too
         assert output == """\
-Moved file and updated imports in 2 file(s):
+Moved file and updated imports in 3 file(s):
   src/main.rs
+  src/storage.rs
   src/person.rs"""
         
         # Check that mod declaration was updated in main.rs
@@ -1338,8 +1340,9 @@ Moved file and updated imports in 2 file(s):
         
         # Check exact output and mod declaration restored
         assert output == """\
-Moved file and updated imports in 2 file(s):
+Moved file and updated imports in 3 file(s):
   src/main.rs
+  src/storage.rs
   src/user.rs"""
         restored_main = (workspace / "src" / "main.rs").read_text()
         assert "mod user;" in restored_main
