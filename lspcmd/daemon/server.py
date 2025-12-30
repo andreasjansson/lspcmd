@@ -597,76 +597,69 @@ class DaemonServer:
         
         return files
 
-    async def _handle_list_code_actions(self, params: dict) -> list[dict]:
-        workspace, doc, path = await self._get_workspace_and_document(params)
-        line, column = self._parse_position(params)
+    async def _handle_move_file(self, params: dict) -> dict:
+        old_path = Path(params["old_path"]).resolve()
+        new_path = Path(params["new_path"]).resolve()
+        workspace_root = Path(params["workspace_root"]).resolve()
 
-        result = await workspace.client.send_request(
-            "textDocument/codeAction",
-            {
-                "textDocument": {"uri": doc.uri},
-                "range": {
-                    "start": {"line": line, "character": column},
-                    "end": {"line": line, "character": column},
-                },
-                "context": {"diagnostics": []},
-            },
-        )
+        if not old_path.exists():
+            return {"error": f"Source file does not exist: {old_path}"}
 
-        if not result:
-            return []
+        if new_path.exists():
+            return {"error": f"Destination already exists: {new_path}"}
 
-        return [
-            {
-                "title": action.get("title"),
-                "kind": action.get("kind"),
-                "is_preferred": action.get("isPreferred", False),
+        workspace = await self.session.get_or_create_workspace(old_path, workspace_root)
+        if not workspace or not workspace.client:
+            new_path.parent.mkdir(parents=True, exist_ok=True)
+            old_path.rename(new_path)
+            return {
+                "moved": True,
+                "imports_updated": False,
+                "message": "File moved (no language server available to update imports)",
+                "files_modified": [self._relative_path(new_path, workspace_root)],
             }
-            for action in result
-        ]
 
-    async def _handle_execute_code_action(self, params: dict) -> dict:
-        workspace, doc, path = await self._get_workspace_and_document(params)
-        line, column = self._parse_position(params)
-        action_title = params["action_title"]
+        await workspace.client.wait_for_service_ready()
 
-        result = await workspace.client.send_request(
-            "textDocument/codeAction",
-            {
-                "textDocument": {"uri": doc.uri},
-                "range": {
-                    "start": {"line": line, "character": column},
-                    "end": {"line": line, "character": column},
-                },
-                "context": {"diagnostics": []},
-            },
-        )
+        old_uri = path_to_uri(old_path)
+        new_uri = path_to_uri(new_path)
 
-        if not result:
-            return {"error": "No code actions available"}
+        workspace_edit = None
+        supports_will_rename = workspace.client.capabilities.get("workspace", {}).get(
+            "fileOperations", {}
+        ).get("willRename")
 
-        action = None
-        for a in result:
-            if a.get("title") == action_title:
-                action = a
-                break
+        if supports_will_rename:
+            try:
+                workspace_edit = await workspace.client.send_request(
+                    "workspace/willRenameFiles",
+                    {
+                        "files": [
+                            {"oldUri": old_uri, "newUri": new_uri}
+                        ]
+                    },
+                )
+            except LSPResponseError as e:
+                if not e.is_method_not_found():
+                    raise
+                logger.debug(f"Server doesn't support willRenameFiles: {e}")
 
-        if not action:
-            return {"error": f"Code action not found: {action_title}"}
+        new_path.parent.mkdir(parents=True, exist_ok=True)
+        old_path.rename(new_path)
 
-        if action.get("edit"):
-            files_modified = await self._apply_workspace_edit(action["edit"], workspace.root)
-            return {"files_modified": files_modified}
+        files_modified = [self._relative_path(new_path, workspace_root)]
+        imports_updated = False
 
-        if action.get("command"):
-            cmd = action["command"]
-            await workspace.client.send_request(
-                "workspace/executeCommand",
-                {"command": cmd["command"], "arguments": cmd.get("arguments", [])},
-            )
-            return {"command_executed": cmd["command"]}
+        if workspace_edit:
+            additional_files = await self._apply_workspace_edit(workspace_edit, workspace_root)
+            files_modified.extend(additional_files)
+            imports_updated = len(additional_files) > 0
 
-        return {"status": "ok"}
+        return {
+            "moved": True,
+            "imports_updated": imports_updated,
+            "files_modified": files_modified,
+        }
 
     async def _apply_workspace_edit(self, edit: dict, workspace_root: Path) -> list[str]:
         files_modified = []
