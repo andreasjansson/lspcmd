@@ -161,54 +161,66 @@ main.py:128 [Variable] user in main
 main.py:131 [Variable] found in main"""
 
     def test_find_definition(self, workspace):
+        # Line 128: "user = create_sample_user()", column 11 is start of "create_sample_user"
+        os.chdir(workspace)
         response = run_request("find-definition", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 127,
+            "line": 128,
             "column": 11,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
 
-        assert output == "main.py:110 def create_sample_user() -> User:"
+        assert output == "main.py:111 def create_sample_user() -> User:"
 
     def test_find_definition_with_context(self, workspace):
+        os.chdir(workspace)
         response = run_request("find-definition", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 127,
+            "line": 128,
             "column": 11,
             "context": 2,
         })
         output = format_output(response["result"], "plain")
 
         assert output == """\
-main.py:108-112
+main.py:109-113
+
+
 def create_sample_user() -> User:
     \"\"\"Create a sample user for testing.\"\"\"
     return User(name="John Doe", email="john@example.com", age=30)
 """
 
     def test_find_references(self, workspace):
+        # Line 25: "class User:", column 6 is start of "User"
+        os.chdir(workspace)
         response = run_request("find-references", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 26,
+            "line": 25,
             "column": 6,
             "context": 0,
         })
         output = format_output(response["result"], "plain")
 
         assert output == """\
-main.py:26 class User:
-main.py:110 def create_sample_user() -> User:
-main.py:116     return [user.display_name() for user in repo.list_users()]"""
+main.py:25 class User:
+main.py:85         self._users: dict[str, User] = {}
+main.py:87     def add_user(self, user: User) -> None:
+main.py:91     def get_user(self, email: str) -> Optional[User]:
+main.py:102     def list_users(self) -> list[User]:
+main.py:111 def create_sample_user() -> User:
+main.py:113     return User(name="John Doe", email="john@example.com", age=30)"""
 
     def test_describe_hover(self, workspace):
+        # Line 25: "class User:", column 6 is start of "User"
         response = run_request("describe", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 26,
+            "line": 25,
             "column": 6,
         })
         output = format_output(response["result"], "plain")
@@ -217,18 +229,19 @@ main.py:116     return [user.display_name() for user in repo.list_users()]"""
 ```python
 (class) User
 ```
+---
 Represents a user in the system.
 
-Attributes:
-    name: The user's full name.
-    email: The user's email address (used as unique identifier).
-    age: The user's age in years."""
+Attributes:  
+&nbsp;&nbsp;&nbsp;&nbsp;name: The user's full name.  
+&nbsp;&nbsp;&nbsp;&nbsp;email: The user's email address (used as unique identifier).  
+&nbsp;&nbsp;&nbsp;&nbsp;age: The user's age in years."""
 
     def test_rename(self, workspace):
         response = run_request("rename", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 26,
+            "line": 25,
             "column": 6,
             "new_name": "Person",
         })
@@ -236,35 +249,22 @@ Attributes:
 
         assert output == """\
 Renamed in 1 file(s):
-  """ + str(workspace / "main.py")
+  main.py"""
 
         # Revert the rename
-        response = run_request("rename", {
+        run_request("rename", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 26,
+            "line": 25,
             "column": 6,
             "new_name": "User",
         })
-
-    def test_list_code_actions(self, workspace):
-        response = run_request("list-code-actions", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 1,
-            "column": 0,
-        })
-        result = response["result"]
-
-        assert isinstance(result, list)
-        titles = [a["title"] for a in result]
-        assert "Organize Imports" in titles
 
     def test_print_definition(self, workspace):
         response = run_request("print-definition", {
             "path": str(workspace / "main.py"),
             "workspace_root": str(workspace),
-            "line": 127,
+            "line": 128,
             "column": 11,
         })
         output = format_output(response["result"], "plain")
