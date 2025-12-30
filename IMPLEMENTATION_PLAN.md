@@ -245,11 +245,10 @@ The CLI communicates with the daemon via JSON over Unix socket. Each CLI command
 | `diagnostics` (single file) | `diagnostics` |
 | `diagnostics` (workspace) | `workspace-diagnostics` |
 | `grep` | `grep` |
-| `list-code-actions` | `list-code-actions` |
-| `execute-code-action` | `execute-code-action` |
 | `format` | `format` |
 | `organize-imports` | `organize-imports` |
 | `rename` | `rename` |
+| `move-file` | `move-file` |
 | `daemon info` | `describe-session` |
 | `daemon shutdown` | `shutdown` |
 | `workspace restart` | `restart-workspace` |
