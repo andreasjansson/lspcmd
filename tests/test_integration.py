@@ -1008,7 +1008,7 @@ class TestRustIntegration:
         config = load_config()
         add_workspace_root(project, config)
         # rust-analyzer needs more time to fully index
-        for f in ["main.rs", "user.rs", "storage.rs"]:
+        for f in ["main.rs", "user.rs", "storage.rs", "errors.rs"]:
             run_request("grep", {
                 "paths": [str(project / "src" / f)],
                 "workspace_root": str(project),
