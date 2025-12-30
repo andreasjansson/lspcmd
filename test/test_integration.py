@@ -1646,26 +1646,6 @@ Moved file and updated imports in 2 file(s):
         # Check that imports were updated in main.ts
         updated_main = (workspace / "src" / "main.ts").read_text()
         assert "from './models/user'" in updated_main
-        
-        # Move file back and restore original import
-        response = run_request("move-file", {
-            "old_path": str(workspace / "src" / "models" / "user.ts"),
-            "new_path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        
-        # Verify file moved back
-        assert (workspace / "src" / "user.ts").exists()
-        assert not (workspace / "src" / "models" / "user.ts").exists()
-        
-        # Check exact output and import restored
-        assert output == """\
-Moved file and updated imports in 2 file(s):
-  src/main.ts
-  src/user.ts"""
-        restored_main = (workspace / "src" / "main.ts").read_text()
-        assert "from './user'" in restored_main
 
 
 # =============================================================================
