@@ -35,14 +35,16 @@ class TestParsePosition:
 
     def test_line_regex_format(self, python_project):
         main_py = python_project / "main.py"
-        line, col = parse_position("6:User", main_py)
-        assert line == 6
+        # Line 25 has "class User:"
+        line, col = parse_position("25:User", main_py)
+        assert line == 25
         assert col == 6
 
     def test_regex_only_format(self, python_project):
         main_py = python_project / "main.py"
+        # "class User:" is on line 25
         line, col = parse_position("class User:", main_py)
-        assert line == 6
+        assert line == 25
         assert col == 0
 
     def test_regex_multiple_matches_error(self, python_project):
