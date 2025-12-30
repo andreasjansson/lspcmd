@@ -418,9 +418,9 @@ class DaemonServer:
         workspace_root = Path(params["workspace_root"]).resolve()
         
         all_diagnostics = []
+        servers_dict = self.session.workspaces.get(workspace_root, {})
         
-        for servers in self.session.workspaces.get(workspace_root, {}).values():
-            workspace = servers
+        for workspace in servers_dict.values():
             if not workspace.client:
                 continue
                 
