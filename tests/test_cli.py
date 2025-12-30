@@ -41,7 +41,7 @@ class TestParsePosition:
 
     def test_regex_only_format(self, python_project):
         main_py = python_project / "main.py"
-        line, col = parse_position("class User", main_py)
+        line, col = parse_position("class User:", main_py)
         assert line == 6
         assert col == 0
 
