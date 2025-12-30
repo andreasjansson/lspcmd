@@ -1935,7 +1935,7 @@ class TestCppIntegration:
             "user.hpp:114     void addUser(const User& user) {",
             "user.hpp:126     std::vector<User> listUsers() {",
             "user.hpp:135 inline User createSampleUser() {",
-            "user.hpp:136     return User("John Doe", "john@example.com", 30);",
+            'user.hpp:136     return User("John Doe", "john@example.com", 30);',
             "user.hpp:140 inline void validateUser(const User& user) {",
         }
         actual_lines = set(output.strip().split("\n"))
