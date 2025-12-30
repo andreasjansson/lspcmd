@@ -95,7 +95,7 @@ def format_locations(locations: list[dict]) -> str:
         else:
             line_content = _get_line_content(path, line)
             if line_content is not None:
-                lines.append(f"{path}:{line}: {line_content}")
+                lines.append(f"{path}:{line} {line_content}")
             else:
                 lines.append(f"{path}:{line}")
 
