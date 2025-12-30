@@ -713,7 +713,7 @@ KIND_HELP = (
 @click.argument("pattern")
 @click.argument("path", required=False)
 @click.option("-k", "--kind", default="", help=KIND_HELP)
-@click.option("-x", "--exclude", default="", help="Exclude files matching glob pattern (e.g. '*_test.go')")
+@click.option("-x", "--exclude", default="", help="Exclude files matching glob pattern or directory (e.g. '*_test.go', 'tests')")
 @click.option("-d", "--docs", is_flag=True, help="Include documentation for each symbol")
 @click.option("-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching")
 @click.pass_context
@@ -723,7 +723,7 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     PATTERN is a regex matched against symbol names (case-insensitive by default).
     
     PATH supports wildcards. Simple patterns like '*.go' search recursively.
-    Use 'dir/*.go' for non-recursive, or 'dir/**/*.go' for explicit recursive.
+    Directories are automatically expanded to include all files recursively.
     
     Examples:
     
@@ -731,11 +731,11 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     
       lspcmd grep "^User" -k class,struct
     
-      lspcmd grep "Handler$" "internal/**/*.go" -d
+      lspcmd grep "Handler$" internal -d  # search internal/ recursively
     
       lspcmd grep "URL" -C  # case-sensitive
     
-      lspcmd grep ".*" "*.go" -x "*_test.go"  # exclude tests
+      lspcmd grep ".*" "*.go" -x tests  # exclude tests/ directory
     """
     config = load_config()
     kinds = parse_kinds(kind)
