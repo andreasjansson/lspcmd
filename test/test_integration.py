@@ -622,7 +622,7 @@ main.py:61 class FileStorage:"""
             run_request("subtypes", {
                 "path": str(workspace / "main.py"),
                 "workspace_root": str(workspace),
-                "line": 12,
+                "line": 14,
                 "column": 6,
                 "context": 0,
             })
@@ -635,7 +635,7 @@ main.py:61 class FileStorage:"""
             run_request("supertypes", {
                 "path": str(workspace / "main.py"),
                 "workspace_root": str(workspace),
-                "line": 46,
+                "line": 48,
                 "column": 6,
                 "context": 0,
             })
