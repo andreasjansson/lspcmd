@@ -62,7 +62,7 @@ def format_plain(data: Any) -> str:
         if "content" in data and "path" in data:
             return format_definition_content(data)
 
-        if "files" in data and "total_files" in data and "total_lines" in data:
+        if "files" in data and "total_files" in data and "total_bytes" in data:
             return format_tree(data)
 
         if "files_modified" in data:
