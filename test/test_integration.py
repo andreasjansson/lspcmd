@@ -210,9 +210,9 @@ main.py:80 [Class] UserRepository"""
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.py:111 [Function] create_sample_user
-main.py:116 [Function] process_users
-main.py:125 [Function] main"""
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main"""
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
