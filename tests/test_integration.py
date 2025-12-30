@@ -871,6 +871,103 @@ src/main/java/com/example/User.java:51 [Method] isAdult() ( : boolean) in User
 src/main/java/com/example/User.java:60 [Method] displayName() ( : String) in User
 src/main/java/com/example/User.java:69 [Method] toString() ( : String) in User"""
 
+    def test_find_definition(self, workspace):
+        # Line 50: "User user = createSampleUser();", column 21 is start of "createSampleUser"
+        os.chdir(workspace)
+        response = run_request("find-definition", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Main.java"),
+            "workspace_root": str(workspace),
+            "line": 50,
+            "column": 21,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == "src/main/java/com/example/Main.java:15     public static User createSampleUser() {"
+
+    def test_find_references(self, workspace):
+        # Line 6: "public class User {", column 13 is start of "User"
+        os.chdir(workspace)
+        response = run_request("find-references", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java"),
+            "workspace_root": str(workspace),
+            "line": 6,
+            "column": 13,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == """\
+src/main/java/com/example/FileStorage.java:14     private Map<String, User> cache = new HashMap<>();
+src/main/java/com/example/FileStorage.java:39     public void save(User user) {
+src/main/java/com/example/FileStorage.java:48     public User load(String email) {
+src/main/java/com/example/FileStorage.java:64     public List<User> list() {
+src/main/java/com/example/Main.java:15     public static User createSampleUser() {
+src/main/java/com/example/Main.java:16         return new User("John Doe", "john@example.com", 30);
+src/main/java/com/example/Main.java:27                 .map(User::displayName)
+src/main/java/com/example/Main.java:50         User user = createSampleUser();
+src/main/java/com/example/Main.java:54         User found = repo.getUser("john@example.com");
+src/main/java/com/example/MemoryStorage.java:13     private Map<String, User> users = new HashMap<>();
+src/main/java/com/example/MemoryStorage.java:26     public void save(User user) {
+src/main/java/com/example/MemoryStorage.java:34     public User load(String email) {
+src/main/java/com/example/MemoryStorage.java:50     public List<User> list() {
+src/main/java/com/example/Storage.java:14     void save(User user);
+src/main/java/com/example/Storage.java:22     User load(String email);
+src/main/java/com/example/Storage.java:37     List<User> list();
+src/main/java/com/example/User.java:6 public class User {
+src/main/java/com/example/UserRepository.java:26     public void addUser(User user) {
+src/main/java/com/example/UserRepository.java:36     public User getUser(String email) {
+src/main/java/com/example/UserRepository.java:55     public List<User> listUsers() {"""
+
+    def test_find_implementations(self, workspace):
+        # Line 8: "public interface Storage", column 17 is start of "Storage"
+        os.chdir(workspace)
+        response = run_request("find-implementations", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Storage.java"),
+            "workspace_root": str(workspace),
+            "line": 8,
+            "column": 17,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == """\
+src/main/java/com/example/FileStorage.java:12 public class FileStorage extends AbstractStorage {
+src/main/java/com/example/AbstractStorage.java:7 public abstract class AbstractStorage implements Storage {
+src/main/java/com/example/MemoryStorage.java:12 public class MemoryStorage extends AbstractStorage {"""
+
+    def test_describe_hover(self, workspace):
+        response = run_request("describe", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java"),
+            "workspace_root": str(workspace),
+            "line": 6,
+            "column": 13,
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == "com.example.User\nRepresents a user in the system."
+
+    def test_print_definition(self, workspace):
+        response = run_request("print-definition", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Main.java"),
+            "workspace_root": str(workspace),
+            "line": 50,
+            "column": 21,
+        })
+        output = format_output(response["result"], "plain")
+
+        assert output == """\
+src/main/java/com/example/Main.java:10-17
+
+    /**
+     * Creates a sample user for testing.
+     *
+     * @return A sample user
+     */
+    public static User createSampleUser() {
+        return new User("John Doe", "john@example.com", 30);
+    }"""
+
 
 # =============================================================================
 # Multi-Language Project Tests
