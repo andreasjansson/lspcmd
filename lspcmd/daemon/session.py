@@ -334,9 +334,13 @@ class Session:
         result = {"workspaces": []}
         for root, servers in self.workspaces.items():
             for server_name, ws in servers.items():
+                server_pid = None
+                if ws.client is not None and ws.client.process.pid is not None:
+                    server_pid = ws.client.process.pid
                 result["workspaces"].append({
                     "root": str(root),
                     "server": ws.server_config.name,
+                    "server_pid": server_pid,
                     "open_documents": list(ws.open_documents.keys()),
                     "running": ws.client is not None,
                 })
