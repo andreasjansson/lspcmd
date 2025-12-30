@@ -91,7 +91,10 @@ class Workspace:
 
     def _get_init_options(self) -> dict[str, Any]:
         if self.server_config.name == "gopls":
-            return {"linksInHover": False}
+            return {
+                "linksInHover": False,
+                "pullDiagnostics": True,
+            }
         return {}
 
     def _get_server_env(self) -> dict[str, str]:
