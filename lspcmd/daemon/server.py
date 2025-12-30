@@ -965,25 +965,25 @@ class DaemonServer:
             files = [f for f in files if not is_excluded(f)]
         
         tree_data: dict[str, dict] = {}
-        total_lines = 0
+        total_bytes = 0
         total_files = 0
         
         for file_path in sorted(files):
             rel_path = self._relative_path(file_path, workspace_root)
             try:
-                line_count = sum(1 for _ in file_path.open())
+                size = file_path.stat().st_size
             except Exception:
-                line_count = 0
+                size = 0
             
-            tree_data[rel_path] = {"lines": line_count}
-            total_lines += line_count
+            tree_data[rel_path] = {"size": size}
+            total_bytes += size
             total_files += 1
         
         return {
             "root": str(workspace_root),
             "files": tree_data,
             "total_files": total_files,
-            "total_lines": total_lines,
+            "total_bytes": total_bytes,
         }
 
     async def _collect_symbols_for_paths(self, paths: list[Path], workspace_root: Path) -> list[dict]:
