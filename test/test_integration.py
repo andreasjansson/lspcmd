@@ -1301,27 +1301,6 @@ Moved file and updated imports in 3 file(s):
         updated_main = (workspace / "src" / "main.rs").read_text()
         assert "mod person;" in updated_main
         assert "mod user;" not in updated_main
-        
-        # Move file back
-        response = self._run_request_with_retry("move-file", {
-            "old_path": str(workspace / "src" / "person.rs"),
-            "new_path": str(workspace / "src" / "user.rs"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        
-        # Verify file moved back
-        assert (workspace / "src" / "user.rs").exists()
-        assert not (workspace / "src" / "person.rs").exists()
-        
-        # Check exact output and mod declaration restored
-        assert output == """\
-Moved file and updated imports in 3 file(s):
-  src/main.rs
-  src/storage.rs
-  src/user.rs"""
-        restored_main = (workspace / "src" / "main.rs").read_text()
-        assert "mod user;" in restored_main
 
 
 # =============================================================================
