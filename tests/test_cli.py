@@ -230,10 +230,10 @@ class TestCliWithDaemon:
         assert "not supported" in result.output.lower() or "method not found" in result.output.lower()
 
 
-@requires_gopls
 class TestCliWithGopls:
     @pytest.fixture(autouse=True)
     def setup_teardown(self, isolated_config):
+        requires_gopls()
         yield
         pid_path = get_pid_path()
 
