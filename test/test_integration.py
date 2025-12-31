@@ -1577,6 +1577,92 @@ Renamed in 1 file(s):
         assert not (workspace / "helpers.go").exists()
 
     # =========================================================================
+    # replace-function tests
+    # =========================================================================
+
+    def test_replace_function_basic(self, workspace):
+        """Test basic function replacement with matching signature."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.go"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "NewUser",
+                "new_contents": '''func NewUser(name, email string, age int) *User {
+	// Updated implementation
+	return &User{Name: name, Email: email, Age: age}
+}''',
+                "check_signature": True,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            assert result["path"] == "main.go"
+            
+            updated = main_path.read_text()
+            assert '// Updated implementation' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_signature_mismatch(self, workspace):
+        """Test that signature mismatch is detected."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "NewUser",
+            "new_contents": '''func NewUser(name string) *User {
+	return &User{Name: name, Email: "", Age: 0}
+}''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "Signature mismatch" in result["error"]
+
+    def test_replace_function_no_check_signature(self, workspace):
+        """Test that check_signature=False allows signature changes."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.go"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "NewUser",
+                "new_contents": '''func NewUser(name string) *User {
+	return &User{Name: name, Email: "default@example.com", Age: 0}
+}''',
+                "check_signature": False,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            
+            updated = main_path.read_text()
+            assert 'func NewUser(name string)' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_non_function_error(self, workspace):
+        """Test that replacing a non-function symbol gives an error."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "User",
+            "new_contents": '''type User struct {
+	Name string
+}''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "not a Function or Method" in result["error"]
+
+    # =========================================================================
     # resolve-symbol disambiguation tests
     # =========================================================================
 
