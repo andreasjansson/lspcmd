@@ -1085,6 +1085,39 @@ Renamed in 1 file(s):
         assert (workspace / "utils.go").exists()
         assert not (workspace / "helpers.go").exists()
 
+    # =========================================================================
+    # resolve-symbol tests for Go method names
+    # =========================================================================
+
+    def test_resolve_symbol_go_method_by_name(self, workspace):
+        """Test that searching for just 'Save' finds Go methods like '(*MemoryStorage).Save'."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "Save",
+        })
+        result = response["result"]
+        # Should find multiple matches (interface method + implementations)
+        assert "error" in result
+        assert "ambiguous" in result["error"]
+        matches = result.get("matches", [])
+        # Should include (*MemoryStorage).Save and (*FileStorage).Save
+        match_names = [m.get("name", "") for m in matches]
+        assert any("MemoryStorage" in name and "Save" in name for name in match_names)
+        assert any("FileStorage" in name and "Save" in name for name in match_names)
+
+    def test_resolve_symbol_go_method_qualified(self, workspace):
+        """Test that 'MemoryStorage.Save' finds '(*MemoryStorage).Save'."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "MemoryStorage.Save",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "main.go" in result["path"]
+        assert result["line"] == 49
+
 
 # =============================================================================
 # Rust Integration Tests (rust-analyzer)
