@@ -2599,8 +2599,8 @@ class TestCppIntegration:
             "symbol_path": "UserRepository",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "UserRepository" in result["name"]
+        assert result["name"] == "UserRepository"
+        assert result["kind"] == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous C++ symbols show Class.method format."""
@@ -2610,15 +2610,10 @@ class TestCppIntegration:
             "symbol_path": "save",
         })
         result = response["result"]
-        assert "error" in result
-        assert "ambiguous" in result["error"]
-        matches = result.get("matches", [])
-        refs = [m.get("ref", "") for m in matches]
-        # Should use Container.name format where possible
-        for ref in refs:
-            parts = ref.split(":")
-            if len(parts) > 1:
-                assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
+        assert result["error"] == "Symbol 'save' is ambiguous (3 matches)"
+        assert result["total_matches"] == 3
+        refs = [m["ref"] for m in result["matches"]]
+        assert refs == ["Storage.save", "MemoryStorage.save", "FileStorage.save"]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
@@ -2628,8 +2623,8 @@ class TestCppIntegration:
             "symbol_path": "User.isAdult",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "isAdult" in result["name"]
+        assert result["name"] == "isAdult"
+        assert result["kind"] == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
@@ -2639,8 +2634,8 @@ class TestCppIntegration:
             "symbol_path": "main.cpp:main",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "main.cpp" in result["path"]
+        assert result["name"] == "main"
+        assert result["path"].endswith("main.cpp")
 
 
 # =============================================================================
