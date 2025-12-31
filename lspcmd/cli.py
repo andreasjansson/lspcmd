@@ -140,6 +140,15 @@ async def _call_mcp_tool_async(mcp_url: str, tool_name: str, arguments: dict) ->
         return ""
 
 
+def strip_mcp_error_prefix(msg: str) -> str:
+    """Strip MCP 'Error executing tool X: ' prefix from error messages."""
+    import re
+    match = re.match(r'^Error executing tool \w+: (.+)$', msg)
+    if match:
+        return match.group(1)
+    return msg
+
+
 def get_daemon_log_tail(num_lines: int = 10) -> str | None:
     log_path = get_log_dir() / "daemon.log"
     if not log_path.exists():
