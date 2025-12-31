@@ -745,6 +745,12 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     
       lspcmd grep ".*" "*.go" -x tests -x vendor  # exclude multiple directories
     """
+    if " " in pattern:
+        click.echo(
+            f"Warning: Pattern contains a space. lspcmd grep searches symbol names, "
+            f"not file contents. Use ripgrep or grep for text search.",
+            err=True
+        )
     config = load_config()
     kinds = parse_kinds(kind)
     exclude_patterns = list(exclude)
