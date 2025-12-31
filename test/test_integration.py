@@ -193,7 +193,7 @@ def _call_definition_request(params: dict) -> dict:
     async def do_request():
         async with httpx.AsyncClient(timeout=120.0, headers=headers) as client:
             # Initialize session
-            await client.post(
+            init_resp = await client.post(
                 mcp_url,
                 json={
                     "jsonrpc": "2.0",
@@ -206,14 +206,15 @@ def _call_definition_request(params: dict) -> dict:
                     },
                 },
             )
+            session_id = init_resp.headers.get("mcp-session-id")
+            if session_id:
+                client.headers["mcp-session-id"] = session_id
+            
             await client.post(
                 mcp_url,
                 json={"jsonrpc": "2.0", "method": "notifications/initialized"},
             )
             
-            # For definition, we use a special internal tool
-            # We'll need to extend the MCP server to support this
-            # For now, use the grep + show approach
             response = await client.post(
                 mcp_url,
                 json={
