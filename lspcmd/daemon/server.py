@@ -167,6 +167,7 @@ class DaemonServer:
         except LSPMethodNotSupported as e:
             return {"error": str(e)}
         except LSPResponseError as e:
+            logger.error(f"LSP error in {method}: {e.message} (code={e.code})")
             return {"error": f"LSP error: {e.message}"}
         except Exception as e:
             logger.exception(f"Error in handler {method}")
