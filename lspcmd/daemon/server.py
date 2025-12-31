@@ -971,7 +971,7 @@ class DaemonServer:
         files_modified = await self._apply_workspace_edit(result, workspace.root)
         return {"renamed": True, "files_modified": files_modified}
 
-    async def _handle_grep(self, params: dict) -> list[dict]:
+    async def _handle_grep(self, params: dict) -> list[dict] | dict:
         import fnmatch
         import re
         
