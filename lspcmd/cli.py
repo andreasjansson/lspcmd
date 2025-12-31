@@ -477,19 +477,19 @@ def declaration(ctx, symbol, context):
     _run_location_command(ctx, symbol, context, "declaration")
 
 
-@cli.command("references")
+@cli.command("ref")
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
 @with_symbol_help
-def references(ctx, symbol, context):
+def ref(ctx, symbol, context):
     """Find all references to a symbol.
     
     \b
     Examples:
-      lspcmd references UserRepository
-      lspcmd references UserRepository.add_user
-      lspcmd references "*.py:validate_email"
+      lspcmd ref UserRepository
+      lspcmd ref UserRepository.add_user
+      lspcmd ref "*.py:validate_email"
     """
     _run_location_command(ctx, symbol, context, "references")
 
