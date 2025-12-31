@@ -134,7 +134,7 @@ The parent hierarchy follows LSP document symbol containers:
 When a symbol is ambiguous, lspcmd shows all matches with copy-pasteable references:
 
 ```
-$ lspcmd def PredictionPayload
+$ lspcmd show PredictionPayload
 Error: Symbol 'PredictionPayload' is ambiguous (3 matches)
   internal_types.py:PredictionPayload
     mocks/web/internal_types.py:37 [Class] PredictionPayload
