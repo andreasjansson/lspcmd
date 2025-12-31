@@ -1145,7 +1145,7 @@ class TestRustIntegration:
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-src/storage.rs:4 [Interface] Storage
+src/storage.rs:5 [Interface] Storage
 src/storage.rs:20 [Struct] MemoryStorage
 src/storage.rs:58 [Struct] FileStorage"""
 
