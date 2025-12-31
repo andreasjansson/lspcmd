@@ -2155,37 +2155,32 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
             "symbol_path": "UserRepository",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "UserRepository" in result["name"]
+        assert result["name"] == "UserRepository"
+        assert result["kind"] == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous Java symbols show Class.method format."""
         os.chdir(workspace)
         response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
-            "symbol_path": "save",
+            "symbol_path": "save(User)",
         })
         result = response["result"]
-        assert "error" in result
-        assert "ambiguous" in result["error"]
-        matches = result.get("matches", [])
-        refs = [m.get("ref", "") for m in matches]
-        # Should use Container.name format where possible
-        for ref in refs:
-            parts = ref.split(":")
-            if len(parts) > 1:
-                assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
+        assert result["error"] == "Symbol 'save(User)' is ambiguous (3 matches)"
+        assert result["total_matches"] == 3
+        refs = [m["ref"] for m in result["matches"]]
+        assert refs == ["Storage.save(User)", "FileStorage.save(User)", "MemoryStorage.save(User)"]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
         os.chdir(workspace)
         response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
-            "symbol_path": "MemoryStorage.save",
+            "symbol_path": "MemoryStorage.save(User)",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "save" in result["name"]
+        assert result["name"] == "save(User)"
+        assert result["kind"] == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
@@ -2195,8 +2190,8 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
             "symbol_path": "Main.java:main",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "Main.java" in result["path"]
+        assert result["name"] == "main(String[])"
+        assert result["path"].endswith("Main.java")
 
 
 # =============================================================================
