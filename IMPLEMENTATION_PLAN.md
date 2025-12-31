@@ -10,16 +10,19 @@ A command-line wrapper around LSP language servers, inspired by lsp-mode.el.
 │  (User-facing commands: definition, rename, format, grep...)        │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
-                           Unix socket
+                     MCP (Model Context Protocol)
+                      HTTP Streamable Transport
                                   │
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         lspcmd Daemon                               │
+│                    lspcmd Daemon (MCP Server)                       │
+│  - Exposes LSP functionality as MCP tools                           │
 │  - Manages language server processes                                │
 │  - Maintains open documents state                                   │
 │  - Handles LSP initialization/shutdown                              │
 │  - Caches workspace state                                           │
 │  - Supports multiple servers per workspace (one per language)       │
+│  - Accessible by external MCP clients (Claude Desktop, etc.)        │
 └─────────────────────────────────────────────────────────────────────┘
                                   │
           ┌───────────────────────┼───────────────────────┐
@@ -29,6 +32,11 @@ A command-line wrapper around LSP language servers, inspired by lsp-mode.el.
    │    Server     │       │    Server     │       │    Server     │
    └───────────────┘       └───────────────┘       └───────────────┘
 ```
+
+The daemon exposes an MCP (Model Context Protocol) server that can be used by:
+- The `lspcmd` CLI (the primary interface)
+- Claude Desktop and other AI assistants
+- Any MCP-compatible client
 
 ## Project Structure
 
