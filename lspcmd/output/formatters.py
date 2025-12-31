@@ -17,6 +17,9 @@ def format_plain(data: Any) -> str:
         return data
 
     if isinstance(data, dict):
+        if "warning" in data:
+            return f"Warning: {data['warning']}"
+
         if "error" in data:
             return f"Error: {data['error']}"
 
