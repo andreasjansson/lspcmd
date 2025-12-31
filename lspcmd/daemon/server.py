@@ -237,8 +237,6 @@ class DaemonServer:
         line, column = self._parse_position(params)
         context = params.get("context", 0)
 
-        logger.info(f"_handle_location_request: {method} at {path}:{line+1}:{column} (0-indexed line={line})")
-
         try:
             result = await workspace.client.send_request(
                 method,
@@ -252,7 +250,6 @@ class DaemonServer:
                 raise LSPMethodNotSupported(method, workspace.server_config.name)
             raise
 
-        logger.info(f"_handle_location_request: LSP returned {result}")
         return self._format_locations(result, workspace.root, context)
 
     def _format_locations(self, result: Any, workspace_root: Path, context: int = 0) -> list[dict]:
