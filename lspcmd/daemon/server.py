@@ -306,6 +306,7 @@ class DaemonServer:
         workspace_root = Path(params["workspace_root"]).resolve()
         line = params["line"]
         context = params.get("context", 0)
+        head = params.get("head", 200)
         
         rel_path = self._relative_path(path, workspace_root)
         content = read_file_content(path)
@@ -341,11 +342,18 @@ class DaemonServer:
                 start = max(0, start - context)
                 end = min(len(lines) - 1, end + context)
             
+            num_lines = end - start + 1
+            truncated = num_lines > head
+            if truncated:
+                end = start + head - 1
+            
             return {
                 "path": rel_path,
                 "start_line": start + 1,
                 "end_line": end + 1,
                 "content": "\n".join(lines[start:end + 1]),
+                "truncated": truncated,
+                "head": head,
             }
         else:
             location = {
