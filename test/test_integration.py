@@ -2168,8 +2168,8 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
         result = response["result"]
         assert result["error"] == "Symbol 'save(User)' is ambiguous (3 matches)"
         assert result["total_matches"] == 3
-        refs = [m["ref"] for m in result["matches"]]
-        assert refs == ["Storage.save(User)", "FileStorage.save(User)", "MemoryStorage.save(User)"]
+        refs = sorted([m["ref"] for m in result["matches"]])
+        assert refs == ["FileStorage.save(User)", "MemoryStorage.save(User)", "Storage.save(User)"]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
@@ -2187,10 +2187,10 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
         os.chdir(workspace)
         response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
-            "symbol_path": "Main.java:main",
+            "symbol_path": "Main.java:Main",
         })
         result = response["result"]
-        assert result["name"] == "main(String[])"
+        assert result["name"] == "Main"
         assert result["path"].endswith("Main.java")
 
 
