@@ -485,6 +485,329 @@ class TestResolutionLogicMatchesGeneration:
         # This is why disambiguation must generate DIFFERENT refs for these!
 
 
+class TestNormalizeSymbolName:
+    """Tests for _normalize_symbol_name - extracts base name from decorated names."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_simple_name_unchanged(self):
+        assert self.server._normalize_symbol_name("save") == "save"
+        assert self.server._normalize_symbol_name("UserRepository") == "UserRepository"
+        assert self.server._normalize_symbol_name("__init__") == "__init__"
+
+    def test_java_method_signature(self):
+        """Java methods like save(User) -> save"""
+        assert self.server._normalize_symbol_name("save(User)") == "save"
+        assert self.server._normalize_symbol_name("find(String, int)") == "find"
+        assert self.server._normalize_symbol_name("process()") == "process"
+
+    def test_go_pointer_receiver(self):
+        """Go methods like (*Type).Method -> Method"""
+        assert self.server._normalize_symbol_name("(*MemoryStorage).Save") == "Save"
+        assert self.server._normalize_symbol_name("(*UserRepo).FindByID") == "FindByID"
+
+    def test_go_value_receiver(self):
+        """Go methods like (Type).Method -> Method"""
+        assert self.server._normalize_symbol_name("(Config).Validate") == "Validate"
+        assert self.server._normalize_symbol_name("(User).String") == "String"
+
+    def test_mixed_patterns_no_match(self):
+        """Names that look similar but don't match patterns stay unchanged."""
+        # Not a valid Java signature (missing closing paren)
+        assert self.server._normalize_symbol_name("save(User") == "save(User"
+        # Not a valid Go receiver (no dot)
+        assert self.server._normalize_symbol_name("(*Type)") == "(*Type)"
+
+
+class TestGetEffectiveContainer:
+    """Tests for _get_effective_container - extracts container from symbol."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_explicit_container(self):
+        """When container field is set, use it."""
+        sym = {"name": "save", "container": "UserRepo"}
+        assert self.server._get_effective_container(sym) == "UserRepo"
+
+    def test_no_container(self):
+        """When no container, return empty string."""
+        sym = {"name": "main", "container": ""}
+        assert self.server._get_effective_container(sym) == ""
+        sym = {"name": "main"}
+        assert self.server._get_effective_container(sym) == ""
+
+    def test_go_pointer_receiver_in_name(self):
+        """Go methods embed receiver in name: (*Type).Method"""
+        sym = {"name": "(*MemoryStorage).Save", "container": ""}
+        assert self.server._get_effective_container(sym) == "MemoryStorage"
+
+    def test_go_value_receiver_in_name(self):
+        """Go methods with value receiver: (Type).Method"""
+        sym = {"name": "(Config).Validate", "container": ""}
+        assert self.server._get_effective_container(sym) == "Config"
+
+    def test_rust_impl_block(self):
+        """Rust impl blocks like 'impl Storage for MemoryStorage'"""
+        sym = {"name": "save", "container": "impl Storage for MemoryStorage"}
+        assert self.server._get_effective_container(sym) == "MemoryStorage"
+
+    def test_rust_simple_impl(self):
+        """Rust simple impl: 'impl MemoryStorage'"""
+        sym = {"name": "new", "container": "impl MemoryStorage"}
+        assert self.server._get_effective_container(sym) == "MemoryStorage"
+
+
+class TestRefResolvesUniquely:
+    """Tests for _ref_resolves_uniquely - the core disambiguation check."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_container_ref_unique(self):
+        """Container.name ref is unique when containers differ."""
+        symbols = [
+            {"path": "a.py", "line": 1, "name": "save", "container": "UserRepo"},
+            {"path": "b.py", "line": 1, "name": "save", "container": "FileRepo"},
+        ]
+        target = symbols[0]
+        assert self.server._ref_resolves_uniquely("UserRepo.save", target, symbols)
+        assert self.server._ref_resolves_uniquely("FileRepo.save", symbols[1], symbols)
+
+    def test_container_ref_not_unique_module_collision(self):
+        """Container.name is NOT unique when module name matches."""
+        symbols = [
+            {"path": "app.py", "line": 1, "name": "f", "container": "main"},  # container is "main"
+            {"path": "main.py", "line": 1, "name": "f", "container": "other"},  # module is "main"
+        ]
+        # "main.f" matches BOTH - first via container, second via module name
+        assert not self.server._ref_resolves_uniquely("main.f", symbols[0], symbols)
+
+    def test_filename_ref_unique(self):
+        """filename:name ref is unique when filenames differ."""
+        symbols = [
+            {"path": "user.py", "line": 1, "name": "validate", "container": ""},
+            {"path": "order.py", "line": 1, "name": "validate", "container": ""},
+        ]
+        assert self.server._ref_resolves_uniquely("user.py:validate", symbols[0], symbols)
+        assert self.server._ref_resolves_uniquely("order.py:validate", symbols[1], symbols)
+
+    def test_filename_ref_not_unique_same_file(self):
+        """filename:name is NOT unique when same filename."""
+        symbols = [
+            {"path": "utils.py", "line": 10, "name": "log", "container": ""},
+            {"path": "utils.py", "line": 50, "name": "log", "container": ""},
+        ]
+        assert not self.server._ref_resolves_uniquely("utils.py:log", symbols[0], symbols)
+
+    def test_line_ref_always_unique(self):
+        """filename:line:name is always unique (assuming unique lines)."""
+        symbols = [
+            {"path": "utils.py", "line": 10, "name": "log", "container": ""},
+            {"path": "utils.py", "line": 50, "name": "log", "container": ""},
+        ]
+        assert self.server._ref_resolves_uniquely("utils.py:10:log", symbols[0], symbols)
+        assert self.server._ref_resolves_uniquely("utils.py:50:log", symbols[1], symbols)
+
+    def test_go_effective_container(self):
+        """Go methods use effective container from name."""
+        symbols = [
+            {"path": "storage.go", "line": 10, "name": "(*MemoryStorage).Save", "container": ""},
+            {"path": "storage.go", "line": 50, "name": "(*FileStorage).Save", "container": ""},
+        ]
+        assert self.server._ref_resolves_uniquely("MemoryStorage.Save", symbols[0], symbols)
+        assert self.server._ref_resolves_uniquely("FileStorage.Save", symbols[1], symbols)
+
+
+class TestDisambiguationPreferenceOrder:
+    """Test that disambiguation prefers shorter refs."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_prefers_container_over_filename(self):
+        """When container is unique, prefer Container.name over file.py:name."""
+        symbols = [
+            {"path": "repos/user.py", "line": 10, "name": "save", "container": "UserRepo"},
+            {"path": "repos/file.py", "line": 10, "name": "save", "container": "FileRepo"},
+        ]
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "save")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "save")
+        
+        # Should use container, not filename
+        assert ref1 == "UserRepo.save"
+        assert ref2 == "FileRepo.save"
+
+    def test_prefers_filename_over_line_when_unique(self):
+        """When filename is unique, prefer file.py:name over file.py:line:name."""
+        symbols = [
+            {"path": "user.py", "line": 10, "name": "validate", "container": ""},
+            {"path": "order.py", "line": 20, "name": "validate", "container": ""},
+        ]
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "validate")
+        
+        # Should use filename:name, not filename:line:name
+        assert ref1 == "user.py:validate"
+        assert ":10:" not in ref1
+
+    def test_falls_back_to_line_when_needed(self):
+        """When nothing else works, use file.py:line:name."""
+        symbols = [
+            {"path": "config.py", "line": 10, "name": "DEBUG", "container": ""},
+            {"path": "config.py", "line": 50, "name": "DEBUG", "container": ""},
+        ]
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "DEBUG")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "DEBUG")
+        
+        assert "config.py:10:DEBUG" == ref1
+        assert "config.py:50:DEBUG" == ref2
+
+
+class TestModuleNameCollisionHandling:
+    """Test the specific bug: container name colliding with module name."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_avoids_ambiguous_container_ref(self):
+        """When Container.name would match via module too, use file.py:name."""
+        symbols = [
+            # Container is literally "main"
+            {"path": "split_lsp_spec.py", "line": 108, "name": "f", "container": "main"},
+            # File is main.py, so module name is "main"
+            {"path": "main.py", "line": 69, "name": "f", "container": "save"},
+        ]
+        
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "f")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "f")
+        
+        # ref1 cannot be "main.f" because that also matches main.py
+        assert ref1 != "main.f"
+        # ref2 can be "save.f" because "save" is unique
+        assert ref2 == "save.f"
+        # ref1 should use filename to disambiguate
+        assert "split_lsp_spec.py" in ref1
+
+    def test_three_way_collision(self):
+        """The exact bug case: f in main container + two f's in main.py."""
+        symbols = [
+            {"path": "split_lsp_spec.py", "line": 108, "name": "f", "container": "main"},
+            {"path": "main.py", "line": 69, "name": "f", "container": "save"},
+            {"path": "main.py", "line": 75, "name": "f", "container": "load"},
+        ]
+        
+        refs = [self.server._generate_unambiguous_ref(s, symbols, "f") for s in symbols]
+        
+        # All refs must be unique
+        assert len(set(refs)) == 3, f"Duplicate refs: {refs}"
+        
+        # save.f and load.f should work (unique containers)
+        assert "save.f" in refs
+        assert "load.f" in refs
+        
+        # The first one can't use main.f
+        assert "main.f" not in refs
+
+    def test_module_name_match_both_directions(self):
+        """Test collision in both directions: module matches container and vice versa."""
+        symbols = [
+            {"path": "utils.py", "line": 10, "name": "helper", "container": "config"},
+            {"path": "config.py", "line": 20, "name": "helper", "container": "utils"},
+        ]
+        
+        refs = [self.server._generate_unambiguous_ref(s, symbols, "helper") for s in symbols]
+        
+        # Both "config.helper" and "utils.helper" are ambiguous!
+        # config.helper matches: first (container=config) + second (module=config)
+        # utils.helper matches: first (module=utils) + second (container=utils)
+        assert len(set(refs)) == 2
+        # Must use filenames
+        assert "utils.py" in refs[0] or "config.py" in refs[0]
+
+
+class TestGoMethodDisambiguation:
+    """Test disambiguation for Go-style methods with receivers."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_go_methods_use_receiver_type(self):
+        """Go methods (*Type).Method should disambiguate using Type."""
+        symbols = [
+            {"path": "storage.go", "line": 10, "name": "(*MemoryStorage).Save", "container": ""},
+            {"path": "storage.go", "line": 50, "name": "(*FileStorage).Save", "container": ""},
+        ]
+        
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "Save")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "Save")
+        
+        assert ref1 == "MemoryStorage.Save"
+        assert ref2 == "FileStorage.Save"
+
+    def test_go_interface_vs_implementations(self):
+        """Interface method vs implementation methods."""
+        symbols = [
+            {"path": "main.go", "line": 32, "name": "Save", "container": "Storage"},  # interface
+            {"path": "main.go", "line": 49, "name": "(*MemoryStorage).Save", "container": ""},
+            {"path": "main.go", "line": 95, "name": "(*FileStorage).Save", "container": ""},
+        ]
+        
+        refs = [self.server._generate_unambiguous_ref(s, symbols, "Save") for s in symbols]
+        
+        assert len(set(refs)) == 3
+        assert "Storage.Save" in refs
+        assert "MemoryStorage.Save" in refs
+        assert "FileStorage.Save" in refs
+
+    def test_go_value_receiver(self):
+        """Go methods with value receiver (Type).Method."""
+        symbols = [
+            {"path": "types.go", "line": 10, "name": "(User).String", "container": ""},
+            {"path": "types.go", "line": 20, "name": "(Config).String", "container": ""},
+        ]
+        
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "String")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "String")
+        
+        assert ref1 == "User.String"
+        assert ref2 == "Config.String"
+
+
+class TestJavaMethodDisambiguation:
+    """Test disambiguation for Java-style methods with signatures."""
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def test_java_overloaded_methods(self):
+        """Java overloaded methods with different signatures."""
+        symbols = [
+            {"path": "UserRepo.java", "line": 10, "name": "save(User)", "container": "UserRepo"},
+            {"path": "UserRepo.java", "line": 30, "name": "save(User, boolean)", "container": "UserRepo"},
+        ]
+        
+        refs = [self.server._generate_unambiguous_ref(s, symbols, "save") for s in symbols]
+        
+        # Same container, same file - need line numbers
+        assert len(set(refs)) == 2
+        assert ":10:" in refs[0]
+        assert ":30:" in refs[1]
+
+    def test_java_methods_different_classes(self):
+        """Java methods in different classes use container."""
+        symbols = [
+            {"path": "Repo.java", "line": 10, "name": "save(User)", "container": "UserRepo"},
+            {"path": "Repo.java", "line": 50, "name": "save(Order)", "container": "OrderRepo"},
+        ]
+        
+        ref1 = self.server._generate_unambiguous_ref(symbols[0], symbols, "save")
+        ref2 = self.server._generate_unambiguous_ref(symbols[1], symbols, "save")
+        
+        assert ref1 == "UserRepo.save"
+        assert ref2 == "OrderRepo.save"
+
+
 class TestResolveSymbolRoundTrip:
     """Test that suggested refs actually resolve back to the correct symbol.
     
