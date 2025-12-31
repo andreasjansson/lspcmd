@@ -431,50 +431,34 @@ def describe(ctx, symbol):
 
 
 @cli.command("definition")
-@click.argument("path_or_symbol")
-@click.argument("position", required=False)
-@click.option("-n", "--context", default=0, help="Lines of context")
+@click.argument("symbol")
+@click.option("-n", "--context", default=0, help="Lines of context around definition")
 @click.option("-b", "--body", is_flag=True, help="Print full definition body")
 @click.pass_context
-def definition(ctx, path_or_symbol, position, context, body):
-    """Find definition at position.
+def definition(ctx, symbol, context, body):
+    """Jump to the definition of a symbol.
     
     \b
-    Usage:
-      lspcmd definition PATH POSITION      # traditional file+position
-      lspcmd definition @Symbol            # symbol lookup
+    SYMBOL formats:
+      SymbolName            find symbol by name
+      Parent.Symbol         find symbol in parent (Class.method, module.function)
+      path:Symbol           filter by file path pattern
+      path:Parent.Symbol    combine path filter with qualified name
+      path:line:Symbol      exact file + line number + symbol (for edge cases)
     
     \b
-    POSITION can be:
-      - LINE,COLUMN (e.g. 42,10)
-      - LINE:REGEX (e.g. 42:def foo)
-      - REGEX (e.g. def foo) to search the whole file
+    Examples:
+      lspcmd definition UserRepository
+      lspcmd definition UserRepository.add_user
+      lspcmd definition "*.py:User" --body
+      lspcmd definition storage:MemoryStorage -n 2
     
-    \b
-    @Symbol syntax (symbol lookup):
-      - @SymbolName          # find a symbol by name
-      - @Class.method        # find method in Class
-      - @path:Symbol         # find Symbol in files matching path
-      - @*.py:MyClass        # find MyClass in Python files
-    
-    Use -b/--body to print the full definition body (for functions, classes, etc.).
+    Use -b/--body to print the full function/class body.
+    Use -n/--context to show surrounding lines.
     """
     config = load_config()
-    
-    if is_symbol_path(path_or_symbol):
-        workspace_root = get_workspace_root_for_cwd(config)
-        path, line, column = resolve_symbol_path(path_or_symbol, workspace_root)
-    else:
-        path = Path(path_or_symbol).resolve()
-        if not path.exists():
-            raise click.ClickException(f"File not found: {path_or_symbol}")
-        if position is None:
-            raise click.ClickException(
-                "POSITION is required when using PATH.\n"
-                "Use @Symbol syntax for symbol lookup (e.g., @ClassName.method)"
-            )
-        line, column = parse_position(position, path)
-        workspace_root = get_workspace_root_for_path(path, config)
+    workspace_root = get_workspace_root_for_cwd(config)
+    path, line, column = resolve_symbol(symbol, workspace_root)
 
     response = run_request("definition", {
         "path": str(path),
