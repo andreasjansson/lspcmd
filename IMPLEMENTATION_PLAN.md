@@ -108,13 +108,12 @@ All navigation commands use symbol-based lookup:
 
 | Command | Description |
 |---------|-------------|
-| `lspcmd definition SYMBOL [-n CONTEXT]` | Show symbol definition (full body) |
-| `lspcmd references SYMBOL [-n CONTEXT]` | Find all references to a symbol |
+| `lspcmd def SYMBOL [-n CONTEXT]` | Show symbol definition (full body) |
+| `lspcmd ref SYMBOL [-n CONTEXT]` | Find all references to a symbol |
 | `lspcmd implementations SYMBOL [-n CONTEXT]` | Find implementations of interface/method |
 | `lspcmd subtypes SYMBOL [-n CONTEXT]` | Find direct subtypes of a type |
 | `lspcmd supertypes SYMBOL [-n CONTEXT]` | Find direct supertypes of a type |
 | `lspcmd declaration SYMBOL [-n CONTEXT]` | Find declaration of a symbol |
-| `lspcmd describe SYMBOL` | Show hover information (type, docs) |
 
 #### Symbol Format
 
@@ -135,7 +134,7 @@ The parent hierarchy follows LSP document symbol containers:
 When a symbol is ambiguous, lspcmd shows all matches with copy-pasteable references:
 
 ```
-$ lspcmd definition PredictionPayload
+$ lspcmd def PredictionPayload
 Error: Symbol 'PredictionPayload' is ambiguous (3 matches)
   internal_types.py:PredictionPayload
     mocks/web/internal_types.py:37 [Class] PredictionPayload
@@ -148,16 +147,16 @@ Error: Symbol 'PredictionPayload' is ambiguous (3 matches)
 Examples:
 ```bash
 # Find definition by symbol name (shows full body)
-lspcmd definition UserRepository
+lspcmd def UserRepository
 
 # Find definition of a method within a class
-lspcmd definition UserRepository.add_user
+lspcmd def UserRepository.add_user
 
 # Filter by file pattern
-lspcmd definition "*.py:User"
+lspcmd def "*.py:User"
 
 # Find references to a symbol
-lspcmd references Counter.increment
+lspcmd ref Counter.increment
 
 # Rename a symbol across the workspace
 lspcmd rename old_function_name new_name
