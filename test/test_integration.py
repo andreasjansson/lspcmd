@@ -281,19 +281,15 @@ def _call_hover_request(params: dict) -> dict:
 def _call_location_request(method: str, params: dict) -> dict:
     """Call location-based request (references, implementations, declaration)."""
     import asyncio
-    import click
     
     mcp_url = ensure_daemon_running()
-    result = asyncio.run(_mcp_call_tool(mcp_url, f"_internal_{method}", {
+    return asyncio.run(_mcp_call_tool(mcp_url, f"_internal_{method}", {
         "workspace_root": params.get("workspace_root", ""),
         "path": params.get("path", ""),
         "line": params.get("line", 1),
         "column": params.get("column", 0),
         "context": params.get("context", 0),
-    }))
-    if "error" in result:
-        raise click.ClickException(result["error"])
-    return result
+    }, raise_on_error=True))
 
 
 def _call_type_hierarchy_request(method: str, params: dict) -> dict:
