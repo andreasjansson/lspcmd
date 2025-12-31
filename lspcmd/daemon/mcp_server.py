@@ -2024,10 +2024,16 @@ class MCPDaemonServer:
                 s_module = self._get_module_name(s_path)
                 full_container = f"{s_module}.{s_container_normalized}" if s_container_normalized else s_module
                 
+                # Get effective container (handles Go-style (*Type).Method)
+                s_effective_container = self._get_effective_container(s)
+                
                 # Match using same logic as _handle_resolve_symbol
                 if s_container_normalized == container_str:
                     matching.append(s)
                 elif s_container == container_str:
+                    matching.append(s)
+                elif s_effective_container == container_str:
+                    # Go-style: MemoryStorage.Save matches (*MemoryStorage).Save
                     matching.append(s)
                 elif full_container == container_str:
                     matching.append(s)
