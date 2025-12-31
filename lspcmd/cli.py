@@ -660,55 +660,30 @@ def organize_imports(ctx, path):
 
 
 @cli.command("rename")
-@click.argument("path_or_symbol")
-@click.argument("position_or_new_name")
-@click.argument("new_name", required=False)
+@click.argument("symbol")
+@click.argument("new_name")
 @click.pass_context
-def rename(ctx, path_or_symbol, position_or_new_name, new_name):
-    """Rename symbol at position.
+def rename(ctx, symbol, new_name):
+    f"""Rename a symbol across the workspace.
+    
+    {SYMBOL_HELP}
     
     \b
-    Usage:
-      lspcmd rename PATH POSITION NEW_NAME  # traditional file+position
-      lspcmd rename @Symbol NEW_NAME        # symbol lookup
-    
-    \b
-    POSITION formats:
-      LINE,COLUMN    e.g. 42,10
-      LINE:REGEX     e.g. 42:def foo
-      REGEX          search whole file for unique match
-    
-    \b
-    @Symbol formats:
-      @SymbolName          find a symbol by name
-      @Class.method        find method in Class
-      @path:Symbol         find Symbol in files matching path
+    Examples:
+      lspcmd rename old_function new_function
+      lspcmd rename UserRepository.add_user add_new_user
+      lspcmd rename "user.py:User" Person
     """
     config = load_config()
-    
-    if is_symbol_path(path_or_symbol):
-        workspace_root = get_workspace_root_for_cwd(config)
-        path, line, column = resolve_symbol_path(path_or_symbol, workspace_root)
-        actual_new_name = position_or_new_name
-    else:
-        path = Path(path_or_symbol).resolve()
-        if not path.exists():
-            raise click.ClickException(f"File not found: {path_or_symbol}")
-        if new_name is None:
-            raise click.ClickException(
-                "NEW_NAME is required when using PATH POSITION.\n"
-                "Use @Symbol syntax for simpler usage (e.g., lspcmd rename @OldName NewName)"
-            )
-        line, column = parse_position(position_or_new_name, path)
-        workspace_root = get_workspace_root_for_path(path, config)
-        actual_new_name = new_name
+    workspace_root = get_workspace_root_for_cwd(config)
+    path, line, column = resolve_symbol(symbol, workspace_root)
 
     response = run_request("rename", {
         "path": str(path),
         "workspace_root": str(workspace_root),
         "line": line,
         "column": column,
-        "new_name": actual_new_name,
+        "new_name": new_name,
     })
 
     click.echo(format_output(response.get("result", response), "json" if ctx.obj["json"] else "plain"))
