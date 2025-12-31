@@ -372,6 +372,7 @@ class DaemonServer:
         file_path = workspace_root / rel_path
         target_line = loc["line"] - 1
         context = params.get("context", 0)
+        head = params.get("head", 200)
 
         workspace, doc, _ = await self._get_workspace_and_document({
             "path": str(file_path),
@@ -395,15 +396,23 @@ class DaemonServer:
                     if context > 0:
                         start = max(0, start - context)
                         end = min(len(lines) - 1, end + context)
+                    
+                    num_lines = end - start + 1
+                    truncated = num_lines > head
+                    if truncated:
+                        end = start + head - 1
+                    
                     return {
                         "path": rel_path,
                         "start_line": start + 1,
                         "end_line": end + 1,
                         "content": "\n".join(lines[start : end + 1]),
+                        "truncated": truncated,
+                        "head": head,
                     }
                 else:
                     return {
-                        "error": "Language server does not provide symbol ranges (--body not supported)"
+                        "error": "Language server does not provide symbol ranges"
                     }
 
         return {
