@@ -220,21 +220,21 @@ class TestCliWithDaemon:
         # Should fail because workspace isn't initialized
         assert result.exit_code != 0 or "error" in result.output.lower() or "not" in result.output.lower()
 
-    def test_implementations_not_supported(self, python_project, isolated_config):
-        """Test that implementations returns a helpful error or no results for Python.
+    def test_implementations_for_protocol(self, python_project, isolated_config):
+        """Test that implementations works for Python Protocols.
         
-        basedpyright reports implementationProvider but doesn't implement it well,
-        so it may return no results instead of an error.
+        basedpyright now supports implementations for Protocol classes.
         """
         main_py = python_project / "main.py"
         config = load_config()
         add_workspace_root(python_project, config)
 
         runner = CliRunner()
+        # Line 14 is "class StorageProtocol(Protocol):" - should find implementations
         result = runner.invoke(cli, ["implementations", str(main_py), "14,6"])
         assert result.exit_code == 0
-        assert ("does not support implementations" in result.output 
-                or "No results" in result.output)
+        # Should find MemoryStorage and FileStorage as implementations
+        assert "main.py" in result.output
 
     def test_subtypes_not_supported(self, python_project, isolated_config):
         """Test that subtypes returns a helpful error for Python."""
