@@ -56,6 +56,27 @@ def format_plain(data: Any) -> str:
                     return f"Moved file (imports not updated):\n  {files[0]}" if files else "File moved"
             return data.get("error", "Move failed")
 
+        if "replaced" in data:
+            if data["replaced"]:
+                path = data.get("path", "")
+                old_range = data.get("old_range", "")
+                new_range = data.get("new_range", "")
+                return f"Replaced function in {path} (lines {old_range} -> {new_range})"
+            return data.get("error", "Replace failed")
+
+        if "old_signature" in data and "new_signature" in data:
+            old_sig = data["old_signature"]
+            new_sig = data["new_signature"]
+            hint = data.get("hint", "")
+            lines = [
+                f"Error: {data.get('error', 'Signature mismatch')}",
+                f"  Old: {old_sig}",
+                f"  New: {new_sig}",
+            ]
+            if hint:
+                lines.append(f"  Hint: {hint}")
+            return "\n".join(lines)
+
         if "restarted" in data:
             return "Workspace restarted" if data["restarted"] else "Failed to restart workspace"
 
