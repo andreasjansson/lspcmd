@@ -7,16 +7,16 @@ The disambiguation algorithm must ensure that:
 """
 
 import pytest
-from lspcmd.daemon.mcp_server import MCPServer
+from lspcmd.daemon.mcp_server import MCPDaemonServer
 
 
 class TestGenerateUnambiguousRef:
     """Tests for _generate_unambiguous_ref method."""
 
     def setup_method(self):
-        # Create a minimal MCPServer just to test the methods
+        # Create a minimal server instance just to test the methods
         # We'll call the methods directly without starting the server
-        self.server = MCPServer.__new__(MCPServer)
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
 
     def test_unique_container_sufficient(self):
         """When container.name is unique, use that."""
