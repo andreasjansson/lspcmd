@@ -21,6 +21,9 @@ def format_plain(data: Any) -> str:
             return f"Warning: {data['warning']}"
 
         if "error" in data:
+            # Handle ambiguous symbol errors with matches
+            if "matches" in data:
+                return format_ambiguous_symbol_error(data)
             return f"Error: {data['error']}"
 
         if "contents" in data:
