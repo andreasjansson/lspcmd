@@ -2847,6 +2847,43 @@ class TestZigIntegration:
         assert (workspace / "src" / "user.zig").exists()
         assert not (workspace / "src" / "person.zig").exists()
 
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_name(self, workspace):
+        """Test resolving a unique symbol name."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "User",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "User" in result["name"]
+
+    def test_resolve_symbol_struct_method(self, workspace):
+        """Test resolving Struct.method format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "User.isAdult",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "isAdult" in result["name"]
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "main.zig:main",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "main.zig" in result["path"]
+
 
 # =============================================================================
 # Lua Integration Tests (lua-language-server)
