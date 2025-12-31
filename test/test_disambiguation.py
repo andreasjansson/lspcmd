@@ -4,10 +4,162 @@ The disambiguation algorithm must ensure that:
 1. Each suggested reference in an ambiguous error is itself unambiguous
 2. When a user types a suggested reference, it resolves to exactly one symbol
 3. The suggested references use minimal qualification (prefer shorter refs)
+
+The KEY INVARIANT: for every ref we suggest, resolving that ref must return
+exactly the symbol we generated it for. This is tested in TestRoundTripConsistency.
 """
 
 import pytest
 from lspcmd.daemon.mcp_server import MCPDaemonServer
+
+
+class TestRoundTripConsistency:
+    """The critical invariant: suggested refs must resolve back to exactly one symbol.
+    
+    This tests the exact bug reported: when `main.f` is suggested but resolving
+    `main.f` returns multiple matches because it also matches files named main.py.
+    """
+
+    def setup_method(self):
+        self.server = MCPDaemonServer.__new__(MCPDaemonServer)
+
+    def _resolve_ref(self, ref: str, all_symbols: list[dict]) -> list[dict]:
+        """Simulate resolving a ref against a symbol list.
+        
+        This must match the logic in _handle_resolve_symbol.
+        """
+        path_filter = None
+        line_filter = None
+        symbol_path = ref
+        
+        colon_count = ref.count(":")
+        if colon_count == 2:
+            path_filter, line_str, symbol_path = ref.split(":", 2)
+            line_filter = int(line_str)
+        elif colon_count == 1:
+            path_filter, symbol_path = ref.split(":", 1)
+        
+        parts = symbol_path.split(".")
+        target_name = parts[-1]
+        
+        # Apply path filter
+        if path_filter:
+            from pathlib import Path
+            import fnmatch
+            def matches_path(rel_path: str) -> bool:
+                if fnmatch.fnmatch(rel_path, path_filter):
+                    return True
+                if fnmatch.fnmatch(rel_path, f"**/{path_filter}"):
+                    return True
+                if "/" not in path_filter:
+                    if fnmatch.fnmatch(Path(rel_path).name, path_filter):
+                        return True
+                return False
+            all_symbols = [s for s in all_symbols if matches_path(s.get("path", ""))]
+        
+        # Apply line filter
+        if line_filter is not None:
+            all_symbols = [s for s in all_symbols if s.get("line") == line_filter]
+        
+        # Match by name and container
+        if len(parts) == 1:
+            # Simple name - match any symbol with that name
+            return [s for s in all_symbols 
+                    if self.server._normalize_symbol_name(s.get("name", "")) == target_name]
+        else:
+            # Qualified name - container must match exactly
+            container_str = ".".join(parts[:-1])
+            matches = []
+            for sym in all_symbols:
+                sym_name = self.server._normalize_symbol_name(sym.get("name", ""))
+                if sym_name != target_name:
+                    continue
+                sym_container = self.server._get_effective_container(sym)
+                # Container must match exactly (not module name!)
+                if sym_container == container_str:
+                    matches.append(sym)
+            return matches
+
+    def test_main_f_bug(self):
+        """Reproduce the exact bug: main.f suggested but resolves to 3 symbols."""
+        all_symbols = [
+            {"path": "split_lsp_spec.py", "line": 108, "name": "f", "kind": "Variable", "container": "main"},
+            {"path": "main.py", "line": 69, "name": "f", "kind": "Variable", "container": "save"},
+            {"path": "main.py", "line": 75, "name": "f", "kind": "Variable", "container": "load"},
+        ]
+        
+        # Generate refs for each symbol
+        refs = [self.server._generate_unambiguous_ref(s, all_symbols, "f") for s in all_symbols]
+        
+        # Each ref must be unique
+        assert len(set(refs)) == len(refs), f"Duplicate refs: {refs}"
+        
+        # Each ref must resolve to exactly 1 symbol
+        for i, ref in enumerate(refs):
+            resolved = self._resolve_ref(ref, all_symbols)
+            assert len(resolved) == 1, f"Ref '{ref}' resolved to {len(resolved)} symbols: {resolved}"
+            assert resolved[0] == all_symbols[i], f"Ref '{ref}' resolved to wrong symbol"
+
+    def test_same_container_name_different_meanings(self):
+        """Container 'main' vs module name 'main' should not collide."""
+        all_symbols = [
+            # 'main' is literally a function/class container
+            {"path": "app.py", "line": 10, "name": "x", "kind": "Variable", "container": "main"},
+            # 'main' is the module name (file is main.py), but container is different
+            {"path": "main.py", "line": 20, "name": "x", "kind": "Variable", "container": "setup"},
+            {"path": "main.py", "line": 30, "name": "x", "kind": "Variable", "container": "cleanup"},
+        ]
+        
+        refs = [self.server._generate_unambiguous_ref(s, all_symbols, "x") for s in all_symbols]
+        
+        assert len(set(refs)) == len(refs), f"Duplicate refs: {refs}"
+        
+        for i, ref in enumerate(refs):
+            resolved = self._resolve_ref(ref, all_symbols)
+            assert len(resolved) == 1, f"Ref '{ref}' resolved to {len(resolved)} symbols"
+            assert resolved[0] == all_symbols[i]
+
+    def test_all_refs_resolve_uniquely(self):
+        """Generic test: any set of symbols should produce unique resolvable refs."""
+        test_cases = [
+            # Case 1: Same name, different containers
+            [
+                {"path": "a.py", "line": 1, "name": "save", "container": "UserRepo"},
+                {"path": "b.py", "line": 2, "name": "save", "container": "FileRepo"},
+            ],
+            # Case 2: Same name, same container, different files
+            [
+                {"path": "v1/api.py", "line": 1, "name": "handle", "container": "Handler"},
+                {"path": "v2/api.py", "line": 2, "name": "handle", "container": "Handler"},
+            ],
+            # Case 3: Same name, same container, same file (overloads)
+            [
+                {"path": "repo.py", "line": 10, "name": "save", "container": "Repo"},
+                {"path": "repo.py", "line": 50, "name": "save", "container": "Repo"},
+            ],
+            # Case 4: No containers, different files
+            [
+                {"path": "utils.py", "line": 1, "name": "log", "container": ""},
+                {"path": "helpers.py", "line": 1, "name": "log", "container": ""},
+            ],
+            # Case 5: Mixed containers and no containers
+            [
+                {"path": "a.py", "line": 1, "name": "run", "container": "Server"},
+                {"path": "b.py", "line": 1, "name": "run", "container": ""},
+                {"path": "c.py", "line": 1, "name": "run", "container": "Client"},
+            ],
+        ]
+        
+        for symbols in test_cases:
+            refs = [self.server._generate_unambiguous_ref(s, symbols, s["name"]) for s in symbols]
+            
+            # All refs unique
+            assert len(set(refs)) == len(refs), f"Duplicate refs {refs} for {symbols}"
+            
+            # Each ref resolves to exactly the right symbol
+            for i, ref in enumerate(refs):
+                resolved = self._resolve_ref(ref, symbols)
+                assert len(resolved) == 1, f"Ref '{ref}' resolved to {len(resolved)}: {resolved}"
 
 
 class TestGenerateUnambiguousRef:
