@@ -1302,22 +1302,34 @@ class DaemonServer:
 
 
     async def _handle_resolve_symbol(self, params: dict) -> dict:
-        """Resolve a symbol path like 'ClassName.method' to a file location.
+        """Resolve a symbol path to a file location.
         
-        Symbol paths can be:
-        - 'SymbolName' - find a symbol with this name
-        - 'Class.method' - find method in Class
-        - 'package/path:Symbol' - find Symbol in files matching path pattern
-        - 'path:Class.method' - combine path filter with qualified name
+        Symbol path formats:
+        - 'SymbolName'              find a symbol with this name
+        - 'Parent.Symbol'           find symbol in parent (Class.method, module.Class)
+        - 'path:Symbol'             filter by file path pattern
+        - 'path:Parent.Symbol'      combine path filter with qualified name
+        - 'path:line:Symbol'        exact file + line number + symbol (for edge cases)
+        
+        Module prefix: The first part of a dotted path can be a module name derived
+        from the file path (e.g., 'user.User' matches User in user.py).
         """
         import fnmatch
-        import re
         
         workspace_root = Path(params["workspace_root"]).resolve()
         symbol_path = params["symbol_path"]
         
         path_filter = None
-        if ":" in symbol_path:
+        line_filter = None
+        
+        colon_count = symbol_path.count(":")
+        if colon_count == 2:
+            path_filter, line_str, symbol_path = symbol_path.split(":", 2)
+            try:
+                line_filter = int(line_str)
+            except ValueError:
+                return {"error": f"Invalid line number: '{line_str}'"}
+        elif colon_count == 1:
             path_filter, symbol_path = symbol_path.split(":", 1)
         
         parts = symbol_path.split(".")
@@ -1340,36 +1352,48 @@ class DaemonServer:
                 return False
             all_symbols = [s for s in all_symbols if matches_path(s.get("path", ""))]
         
+        if line_filter is not None:
+            all_symbols = [s for s in all_symbols if s.get("line") == line_filter]
+        
+        target_name = parts[-1]
+        
         if len(parts) == 1:
-            target_name = parts[0]
             matches = [s for s in all_symbols if s.get("name") == target_name]
         else:
-            container = ".".join(parts[:-1])
-            target_name = parts[-1]
-            
+            container_parts = parts[:-1]
             matches = []
+            
             for sym in all_symbols:
                 if sym.get("name") != target_name:
                     continue
-                sym_container = sym.get("container", "")
-                if sym_container == container:
+                
+                sym_container = sym.get("container", "") or ""
+                sym_path = sym.get("path", "")
+                module_name = self._get_module_name(sym_path)
+                
+                full_container = f"{module_name}.{sym_container}" if sym_container else module_name
+                
+                container_str = ".".join(container_parts)
+                
+                if sym_container == container_str:
                     matches.append(sym)
-                    continue
-                if container in (sym_container or ""):
+                elif full_container == container_str:
                     matches.append(sym)
-                    continue
-                if sym_container and sym_container.endswith(f".{container}"):
+                elif full_container.endswith(f".{container_str}"):
                     matches.append(sym)
-                    continue
-                if len(parts) == 2:
-                    parent_name = parts[0]
-                    if sym_container == parent_name:
-                        matches.append(sym)
+                elif container_str in sym_container:
+                    matches.append(sym)
+                elif len(container_parts) == 1 and container_parts[0] == module_name:
+                    matches.append(sym)
         
         if not matches:
+            error_parts = []
             if path_filter:
-                return {"error": f"Symbol '{symbol_path}' not found in files matching '{path_filter}'"}
-            return {"error": f"Symbol '{symbol_path}' not found"}
+                error_parts.append(f"in files matching '{path_filter}'")
+            if line_filter is not None:
+                error_parts.append(f"on line {line_filter}")
+            suffix = " " + " ".join(error_parts) if error_parts else ""
+            return {"error": f"Symbol '{symbol_path}' not found{suffix}"}
         
         if len(matches) == 1:
             sym = matches[0]
@@ -1399,13 +1423,17 @@ class DaemonServer:
         containers = set(s.get("container") for s in matches if s.get("container"))
         if containers and len(containers) < len(matches):
             if len(parts) == 1:
-                hint_parts.append(f"Try '@Container.{target_name}' to narrow down")
+                hint_parts.append(f"Try 'Container.{target_name}' to narrow down")
             else:
                 hint_parts.append("Try a more specific container path")
         
         paths = set(s.get("path") for s in matches)
         if len(paths) > 1:
             hint_parts.append("Try 'path:Symbol' to filter by file")
+        elif len(paths) == 1:
+            lines = sorted(set(s.get("line") for s in matches))
+            if len(lines) > 1:
+                hint_parts.append(f"Try 'path:line:Symbol' (lines: {', '.join(map(str, lines[:5]))})")
         
         return {
             "error": f"Symbol '{symbol_path}' is ambiguous ({len(matches)} matches)",
@@ -1413,6 +1441,11 @@ class DaemonServer:
             "hint": ". ".join(hint_parts) if hint_parts else None,
             "total_matches": len(matches),
         }
+    
+    def _get_module_name(self, rel_path: str) -> str:
+        """Extract module name from relative path (e.g., 'src/user.py' -> 'user')."""
+        path = Path(rel_path)
+        return path.stem
 
 
 async def run_daemon() -> None:
