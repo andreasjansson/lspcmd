@@ -3064,8 +3064,8 @@ class TestLuaIntegration:
             "symbol_path": "User",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "User" in result["name"]
+        assert result["name"] == "User"
+        assert result["kind"] == "Variable"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
@@ -3075,8 +3075,8 @@ class TestLuaIntegration:
             "symbol_path": "main.lua:main",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "main.lua" in result["path"]
+        assert result["name"] == "main"
+        assert result["path"].endswith("main.lua")
 
 
 # =============================================================================
