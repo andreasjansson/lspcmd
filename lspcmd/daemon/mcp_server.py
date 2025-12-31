@@ -1843,8 +1843,9 @@ class MCPDaemonServer:
                     matches.append(sym)
                 elif full_container.endswith(f".{container_str}"):
                     matches.append(sym)
-                elif len(container_parts) == 1 and container_parts[0] == module_name:
-                    matches.append(sym)
+                # NOTE: We intentionally do NOT match module name alone.
+                # "main.f" means "f in container main", not "f in any file named main.py"
+                # If user wants to filter by file, they should use "main.py:f"
 
         if not matches:
             error_parts = []
