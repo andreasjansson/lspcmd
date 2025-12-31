@@ -3546,3 +3546,57 @@ class TestPhpIntegration:
         # Verify file was NOT moved
         assert (base_path / "User.php").exists()
         assert not (base_path / "Person.php").exists()
+
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_name(self, workspace):
+        """Test resolving a unique symbol name."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "UserRepository",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "UserRepository" in result["name"]
+
+    def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
+        """Test that ambiguous PHP symbols show Class::method format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "save",
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "ambiguous" in result["error"]
+        matches = result.get("matches", [])
+        refs = [m.get("ref", "") for m in matches]
+        for ref in refs:
+            parts = ref.split(":")
+            if len(parts) > 1:
+                assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
+
+    def test_resolve_symbol_class_method(self, workspace):
+        """Test resolving Class.method format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "MemoryStorage.save",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "save" in result["name"]
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "Main.php:main",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "Main.php" in result["path"]
