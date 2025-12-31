@@ -1034,6 +1034,10 @@ class DaemonServer:
                     workspace_root, sym["path"], sym["line"], sym.get("column", 0)
                 )
         
+        # Warn about common regex mistakes when no results
+        if not symbols and r"\|" in pattern:
+            return {"warning": f"No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')"}
+        
         return symbols
 
     async def _handle_tree(self, params: dict) -> dict:
