@@ -1530,52 +1530,51 @@ Represents a user in the system."""
     # rename tests
     # =========================================================================
 
-    def test_rename(self, workspace):
-        os.chdir(workspace)
-        
-        # Verify User class exists before rename
-        original_user_ts = (workspace / "src" / "user.ts").read_text()
-        original_main_ts = (workspace / "src" / "main.ts").read_text()
-        assert "export class User {" in original_user_ts
-        assert "import { User," in original_main_ts
-        
-        response = run_request("rename", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-            "new_name": "Person",
-        })
-        output = format_output(response["result"], "plain")
-        # TypeScript renames in both user.ts and main.ts (order may vary)
-        lines = output.strip().split("\n")
-        assert lines[0] == "Renamed in 2 file(s):"
-        files_renamed = {line.strip() for line in lines[1:]}
-        assert files_renamed == {"src/main.ts", "src/user.ts"}
+    def test_rename(self, project, class_daemon, class_isolated_config):
+        # Use fresh copy of project to avoid state corruption
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace = Path(tmpdir) / "ts_rename_test"
+            shutil.copytree(project, workspace)
+            config = load_config()
+            add_workspace_root(workspace, config)
+            os.chdir(workspace)
+            
+            # Warm up the server
+            run_request("grep", {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            })
+            time.sleep(0.5)
+            
+            # Verify User class exists before rename
+            original_user_ts = (workspace / "src" / "user.ts").read_text()
+            original_main_ts = (workspace / "src" / "main.ts").read_text()
+            assert "export class User {" in original_user_ts
+            assert "import { User," in original_main_ts
+            
+            response = run_request("rename", {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 4,
+                "column": 13,
+                "new_name": "Person",
+            })
+            output = format_output(response["result"], "plain")
+            # TypeScript renames in both user.ts and main.ts (order may vary)
+            lines = output.strip().split("\n")
+            assert lines[0] == "Renamed in 2 file(s):"
+            files_renamed = {line.strip() for line in lines[1:]}
+            assert files_renamed == {"src/main.ts", "src/user.ts"}
 
-        # Verify rename actually happened in the files
-        renamed_user_ts = (workspace / "src" / "user.ts").read_text()
-        renamed_main_ts = (workspace / "src" / "main.ts").read_text()
-        assert "export class Person {" in renamed_user_ts
-        assert "export class User {" not in renamed_user_ts
-        assert "import { Person," in renamed_main_ts
-        assert "import { User," not in renamed_main_ts
-
-        # Revert the rename
-        run_request("rename", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-            "new_name": "User",
-        })
-        
-        # Verify revert worked
-        reverted_user_ts = (workspace / "src" / "user.ts").read_text()
-        reverted_main_ts = (workspace / "src" / "main.ts").read_text()
-        assert "export class User {" in reverted_user_ts
-        assert "export class Person {" not in reverted_user_ts
-        assert "import { User," in reverted_main_ts
+            # Verify rename actually happened in the files
+            renamed_user_ts = (workspace / "src" / "user.ts").read_text()
+            renamed_main_ts = (workspace / "src" / "main.ts").read_text()
+            assert "export class Person {" in renamed_user_ts
+            assert "export class User {" not in renamed_user_ts
+            assert "import { Person," in renamed_main_ts
+            assert "import { User," not in renamed_main_ts
 
     # =========================================================================
     # diagnostics tests
