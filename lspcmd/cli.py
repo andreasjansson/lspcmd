@@ -251,8 +251,8 @@ for all matching symbols.
 
 `lspcmd tree` is a good starting point when starting work on a project.
 
-Use `lspcmd definition SYMBOL` to print the full body of a symbol. Use
-`lspcmd references SYMBOL` to find all uses of a symbol. These two (and other)
+Use `lspcmd def SYMBOL` to print the full body of a symbol. Use
+`lspcmd ref SYMBOL` to find all uses of a symbol. These two (and other)
 commands accept `--context N` for surrounding lines.
 
 See `lspcmd COMMAND --help` for more documentation and command-specific options.
@@ -264,13 +264,12 @@ See `lspcmd COMMAND --help` for more documentation and command-specific options.
     commands_order=[
         "grep",
         "tree",
-        "definition",
-        "references",
+        "def",
+        "ref",
         "implementations",
         "supertypes",
         "subtypes",
         "declaration",
-        "describe",
         "diagnostics",
         "rename",
         "move-file",
