@@ -40,6 +40,21 @@ def get_log_dir() -> Path:
     return get_cache_dir() / "log"
 
 
+def get_mcp_port_path() -> Path:
+    return get_cache_dir() / "mcp.port"
+
+
+def get_mcp_url() -> str | None:
+    port_path = get_mcp_port_path()
+    if not port_path.exists():
+        return None
+    try:
+        port = int(port_path.read_text().strip())
+        return f"http://127.0.0.1:{port}/mcp"
+    except (ValueError, OSError):
+        return None
+
+
 DEFAULT_CONFIG: dict[str, Any] = {
     "daemon": {
         "log_level": "info",
