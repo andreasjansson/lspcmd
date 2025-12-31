@@ -2174,7 +2174,7 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     def test_resolve_symbol_unique_class(self, workspace):
         """Test resolving a unique class name."""
         os.chdir(workspace)
-        response = self._run_request_with_retry("resolve-symbol", {
+        response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
             "symbol_path": "UserRepository",
         })
@@ -2185,7 +2185,7 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous Java symbols show Class.method format."""
         os.chdir(workspace)
-        response = self._run_request_with_retry("resolve-symbol", {
+        response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
             "symbol_path": "save",
         })
@@ -2203,7 +2203,7 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
         os.chdir(workspace)
-        response = self._run_request_with_retry("resolve-symbol", {
+        response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
             "symbol_path": "MemoryStorage.save",
         })
@@ -2214,7 +2214,7 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
         os.chdir(workspace)
-        response = self._run_request_with_retry("resolve-symbol", {
+        response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
             "symbol_path": "Main.java:main",
         })
