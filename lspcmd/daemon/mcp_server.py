@@ -1845,9 +1845,12 @@ class MCPDaemonServer:
         temp_path = workspace_root / temp_name
 
         try:
-            temp_path.write_text(new_contents)
+            wrapped_contents = self._wrap_contents_for_language(new_contents, suffix)
+            temp_path.write_text(wrapped_contents)
 
             doc = await workspace.ensure_document_open(temp_path)
+
+            await asyncio.sleep(0.3)
 
             result = await workspace.client.send_request(
                 "textDocument/documentSymbol",
