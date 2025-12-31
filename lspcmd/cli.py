@@ -654,10 +654,9 @@ def organize_imports(ctx, path):
 @click.argument("symbol")
 @click.argument("new_name")
 @click.pass_context
+@with_symbol_help
 def rename(ctx, symbol, new_name):
-    f"""Rename a symbol across the workspace.
-    
-    {SYMBOL_HELP}
+    """Rename a symbol across the workspace.
     
     \b
     Examples:
