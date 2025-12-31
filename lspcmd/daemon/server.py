@@ -1454,6 +1454,18 @@ class DaemonServer:
         """Extract module name from relative path (e.g., 'src/user.py' -> 'user')."""
         path = Path(rel_path)
         return path.stem
+    
+    def _normalize_container(self, container: str) -> str:
+        """Normalize container names for consistent matching.
+        
+        Handles Go receiver types like '(*MemoryStorage)' -> 'MemoryStorage'
+        """
+        import re
+        # Go method receivers: (*Type) or (Type) -> Type
+        match = re.match(r'^\(\*?(\w+)\)$', container)
+        if match:
+            return match.group(1)
+        return container
 
 
 async def run_daemon() -> None:
