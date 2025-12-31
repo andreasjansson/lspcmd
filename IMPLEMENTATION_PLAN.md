@@ -147,13 +147,13 @@ Error: Symbol 'PredictionPayload' is ambiguous (3 matches)
 Examples:
 ```bash
 # Find definition by symbol name (shows full body)
-lspcmd def UserRepository
+lspcmd show UserRepository
 
 # Find definition of a method within a class
-lspcmd def UserRepository.add_user
+lspcmd show UserRepository.add_user
 
 # Filter by file pattern
-lspcmd def "*.py:User"
+lspcmd show "*.py:User"
 
 # Find references to a symbol
 lspcmd ref Counter.increment
