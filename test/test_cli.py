@@ -19,7 +19,7 @@ class TestCliCommands:
         result = runner.invoke(cli, ["--help"])
         assert result.exit_code == 0
         assert "Commands:" in result.output
-        assert "def" in result.output
+        assert "show" in result.output
         assert "ref" in result.output
         assert "workspace" in result.output
         assert "daemon" in result.output
@@ -30,9 +30,9 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "Config file:" in result.output
 
-    def test_def_help(self):
+    def test_show_help(self):
         runner = CliRunner()
-        result = runner.invoke(cli, ["def", "--help"])
+        result = runner.invoke(cli, ["show", "--help"])
         assert result.exit_code == 0
         assert "SYMBOL" in result.output
         assert "--head" in result.output
