@@ -299,12 +299,41 @@ The CLI communicates with the daemon via JSON over Unix socket. Each CLI command
 | Path | Description |
 |------|-------------|
 | `~/.config/lspcmd/config.toml` | Configuration file |
-| `~/.cache/lspcmd/lspcmd.sock` | Unix socket for CLI-daemon communication |
+| `~/.cache/lspcmd/mcp.port` | MCP server port file |
 | `~/.cache/lspcmd/lspcmd.pid` | Daemon PID file |
 | `~/.cache/lspcmd/log/daemon.log` | Daemon log file |
 | `~/.cache/lspcmd/log/{server}.log` | Per-server log files |
 
 Respects `XDG_CONFIG_HOME` and `XDG_CACHE_HOME` environment variables.
+
+### MCP Server
+
+The daemon exposes an MCP server on `http://127.0.0.1:<port>/mcp`. The port is
+written to `~/.cache/lspcmd/mcp.port` when the daemon starts.
+
+**Available MCP Tools:**
+
+| Tool | Description |
+|------|-------------|
+| `grep` | Search for symbols matching a regex pattern |
+| `show` | Print the definition of a symbol (full body) |
+| `ref` | Find all references to a symbol |
+| `implementations` | Find implementations of an interface |
+| `subtypes` | Find direct subtypes of a type |
+| `supertypes` | Find direct supertypes of a type |
+| `declaration` | Find declaration of a symbol |
+| `diagnostics` | Show diagnostics for a file or workspace |
+| `rename` | Rename a symbol across the workspace |
+| `move_file` | Move/rename a file and update imports |
+| `format_file` | Format a file |
+| `organize_imports` | Organize imports in a file |
+| `tree` | Show source file tree with sizes |
+| `daemon_info` | Show daemon state |
+| `daemon_shutdown` | Shutdown the daemon |
+| `workspace_restart` | Restart language servers |
+| `raw_lsp_request` | Send raw LSP request (debugging) |
+
+All tools accept an `output_format` parameter (`"plain"` or `"json"`).
 
 ### Configuration Options
 
