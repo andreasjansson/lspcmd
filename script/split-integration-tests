@@ -21,13 +21,14 @@ get_class_lines() {
     fi
     
     # Find the next class or end of file
-    local total_lines=$(wc -l < "$SRC_FILE")
-    local end_line=$(tail -n +$((start_line + 1)) "$SRC_FILE" | grep -n "^class \|^# =====" | head -1 | cut -d: -f1)
+    local total_lines=$(wc -l < "$SRC_FILE" | tr -d ' ')
+    local relative_end=$(tail -n +$((start_line + 1)) "$SRC_FILE" | grep -n "^class \|^# =====" | head -1 | cut -d: -f1)
     
-    if [ -z "$end_line" ]; then
+    local end_line
+    if [ -z "$relative_end" ]; then
         end_line=$total_lines
     else
-        end_line=$((start_line + end_line - 1))
+        end_line=$((start_line + relative_end - 1))
     fi
     
     echo "$start_line $end_line"
