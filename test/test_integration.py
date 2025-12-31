@@ -2167,6 +2167,61 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
         assert "new Person(" in updated_main
         assert "new User(" not in updated_main
 
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_class(self, workspace):
+        """Test resolving a unique class name."""
+        os.chdir(workspace)
+        response = self._run_request_with_retry("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "UserRepository",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "UserRepository" in result["name"]
+
+    def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
+        """Test that ambiguous Java symbols show Class.method format."""
+        os.chdir(workspace)
+        response = self._run_request_with_retry("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "save",
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "ambiguous" in result["error"]
+        matches = result.get("matches", [])
+        refs = [m.get("ref", "") for m in matches]
+        # Should use Container.name format where possible
+        for ref in refs:
+            parts = ref.split(":")
+            if len(parts) > 1:
+                assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
+
+    def test_resolve_symbol_class_method(self, workspace):
+        """Test resolving Class.method format."""
+        os.chdir(workspace)
+        response = self._run_request_with_retry("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "MemoryStorage.save",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "save" in result["name"]
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = self._run_request_with_retry("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "Main.java:main",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "Main.java" in result["path"]
+
 
 # =============================================================================
 # Multi-Language Project Tests
