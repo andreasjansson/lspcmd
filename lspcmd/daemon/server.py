@@ -1059,16 +1059,21 @@ class DaemonServer:
                     "container": item.get("containerName"),
                 })
             else:
-                # Use selectionRange for the symbol name position (for hover)
+                # Use selectionRange for the symbol name position
+                # This is important for decorated classes/functions where range includes
+                # decorators but selectionRange points to the actual symbol name
                 sel_range = item.get("selectionRange", item["range"])
+                full_range = item["range"]
                 output.append({
                     "name": item["name"],
                     "kind": SymbolKind(item["kind"]).name,
                     "path": file_path,
-                    "line": item["range"]["start"]["line"] + 1,
+                    "line": sel_range["start"]["line"] + 1,
                     "column": sel_range["start"]["character"],
                     "container": container,
                     "detail": item.get("detail"),
+                    "range_start_line": full_range["start"]["line"] + 1,
+                    "range_end_line": full_range["end"]["line"] + 1,
                 })
                 if item.get("children"):
                     self._flatten_symbols(item["children"], file_path, output, item["name"])
