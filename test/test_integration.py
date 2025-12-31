@@ -326,6 +326,19 @@ def _call_resolve_symbol_request(params: dict) -> dict:
     }))
 
 
+def _call_move_file_request(params: dict) -> dict:
+    """Call move-file request."""
+    import asyncio
+    
+    mcp_url = ensure_daemon_running()
+    return asyncio.run(_mcp_call_tool(mcp_url, "move_file", {
+        "workspace_root": params.get("workspace_root", ""),
+        "old_path": params.get("old_path", ""),
+        "new_path": params.get("new_path", ""),
+        "output_format": "json",
+    }, raise_on_error=True))
+
+
 def format_output(data, output_format: str = "plain") -> str:
     """Format output for tests - with MCP we receive pre-formatted output."""
     from lspcmd.output.formatters import format_output as _format_output
