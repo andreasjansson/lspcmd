@@ -451,19 +451,35 @@ def config(ctx):
 
 
 @cli.command("describe")
-@click.argument("path", type=click.Path(exists=True))
-@click.argument("position")
+@click.argument("path_or_symbol")
+@click.argument("position", required=False)
 @click.pass_context
-def describe(ctx, path, position):
-    """Show hover information at position.
+def describe(ctx, path_or_symbol, position):
+    f"""Show hover information at position.
     
-    POSITION can be LINE,COLUMN (e.g. 42,10), LINE:REGEX (e.g. 42:def foo),
-    or just REGEX (e.g. def foo) to search the whole file.
+    \b
+    Usage:
+      lspcmd describe PATH POSITION         # traditional file+position
+      lspcmd describe @Symbol               # symbol lookup
+    
+    {POSITION_HELP}
     """
-    path = Path(path).resolve()
-    line, column = parse_position(position, path)
     config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
+    
+    if is_symbol_path(path_or_symbol):
+        workspace_root = get_workspace_root_for_cwd(config)
+        path, line, column = resolve_symbol_path(path_or_symbol, workspace_root)
+    else:
+        path = Path(path_or_symbol).resolve()
+        if not path.exists():
+            raise click.ClickException(f"File not found: {path_or_symbol}")
+        if position is None:
+            raise click.ClickException(
+                "POSITION is required when using PATH.\n"
+                "Use @Symbol syntax for symbol lookup (e.g., @ClassName.method)"
+            )
+        line, column = parse_position(position, path)
+        workspace_root = get_workspace_root_for_path(path, config)
 
     response = run_request("describe", {
         "path": str(path),
