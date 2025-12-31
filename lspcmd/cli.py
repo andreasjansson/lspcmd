@@ -396,45 +396,29 @@ def config(ctx):
 
 
 @cli.command("describe")
-@click.argument("path_or_symbol")
-@click.argument("position", required=False)
+@click.argument("symbol")
 @click.pass_context
-def describe(ctx, path_or_symbol, position):
-    """Show hover information at position.
+def describe(ctx, symbol):
+    """Show hover information (type signature, documentation) for a symbol.
     
     \b
-    Usage:
-      lspcmd describe PATH POSITION         # traditional file+position
-      lspcmd describe @Symbol               # symbol lookup
+    SYMBOL formats:
+      SymbolName            find symbol by name
+      Parent.Symbol         find symbol in parent (Class.method, module.function)
+      path:Symbol           filter by file path pattern
+      path:Parent.Symbol    combine path filter with qualified name
+      path:line:Symbol      exact file + line number + symbol (for edge cases)
     
     \b
-    POSITION formats:
-      LINE,COLUMN    e.g. 42,10
-      LINE:REGEX     e.g. 42:def foo
-      REGEX          search whole file for unique match
-    
-    \b
-    @Symbol formats:
-      @SymbolName          find a symbol by name
-      @Class.method        find method in Class
-      @path:Symbol         find Symbol in files matching path
+    Examples:
+      lspcmd describe UserRepository
+      lspcmd describe UserRepository.add_user
+      lspcmd describe user:User
+      lspcmd describe "*.py:validate_email"
     """
     config = load_config()
-    
-    if is_symbol_path(path_or_symbol):
-        workspace_root = get_workspace_root_for_cwd(config)
-        path, line, column = resolve_symbol_path(path_or_symbol, workspace_root)
-    else:
-        path = Path(path_or_symbol).resolve()
-        if not path.exists():
-            raise click.ClickException(f"File not found: {path_or_symbol}")
-        if position is None:
-            raise click.ClickException(
-                "POSITION is required when using PATH.\n"
-                "Use @Symbol syntax for symbol lookup (e.g., @ClassName.method)"
-            )
-        line, column = parse_position(position, path)
-        workspace_root = get_workspace_root_for_path(path, config)
+    workspace_root = get_workspace_root_for_cwd(config)
+    path, line, column = resolve_symbol(symbol, workspace_root)
 
     response = run_request("describe", {
         "path": str(path),
