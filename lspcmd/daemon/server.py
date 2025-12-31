@@ -1452,7 +1452,15 @@ class DaemonServer:
         target_name = parts[-1]
         
         if len(parts) == 1:
-            matches = [s for s in all_symbols if s.get("name") == target_name]
+            matches = []
+            for s in all_symbols:
+                sym_name = s.get("name", "")
+                if sym_name == target_name:
+                    matches.append(s)
+                # Also match Go-style method names like "(*Scheduler).updateAllWeights"
+                # when searching for just "updateAllWeights"
+                elif sym_name.endswith(f").{target_name}"):
+                    matches.append(s)
         else:
             container_parts = parts[:-1]
             matches = []
