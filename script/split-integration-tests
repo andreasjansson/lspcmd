@@ -1,82 +1,92 @@
-#!/bin/bash
-# Split integration tests into per-language files
+#!/usr/bin/env python3
+"""Split integration tests into per-language files."""
 
-set -e
+import re
+import sys
+from pathlib import Path
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-SRC_FILE="$PROJECT_DIR/test/test_integration.py"
-DEST_DIR="$PROJECT_DIR/test/integration"
+SCRIPT_DIR = Path(__file__).parent
+PROJECT_DIR = SCRIPT_DIR.parent
+SRC_FILE = PROJECT_DIR / "test" / "test_integration.py"
+DEST_DIR = PROJECT_DIR / "test" / "integration"
 
-# Create destination directory
-mkdir -p "$DEST_DIR"
-
-# Extract line numbers for each class
-get_class_lines() {
-    local class_name="$1"
-    local start_line=$(grep -n "^class $class_name:" "$SRC_FILE" | cut -d: -f1)
-    if [ -z "$start_line" ]; then
-        echo "Class $class_name not found" >&2
-        return 1
-    fi
-    
-    # Find the next class or end of file
-    local total_lines=$(wc -l < "$SRC_FILE" | tr -d ' ')
-    local relative_end=$(tail -n +$((start_line + 1)) "$SRC_FILE" | grep -n "^class \|^# =====" | head -1 | cut -d: -f1)
-    
-    local end_line
-    if [ -z "$relative_end" ]; then
-        end_line=$total_lines
-    else
-        end_line=$((start_line + relative_end - 1))
-    fi
-    
-    echo "$start_line $end_line"
+CLASS_MAP = {
+    "TestPythonIntegration": "test_python.py",
+    "TestGoIntegration": "test_go.py",
+    "TestRustIntegration": "test_rust.py",
+    "TestTypeScriptIntegration": "test_typescript.py",
+    "TestJavaIntegration": "test_java.py",
+    "TestMultiLanguageIntegration": "test_multi_language.py",
+    "TestCppIntegration": "test_cpp.py",
+    "TestZigIntegration": "test_zig.py",
+    "TestLuaIntegration": "test_lua.py",
+    "TestRubyIntegration": "test_ruby.py",
+    "TestPhpIntegration": "test_php.py",
 }
 
-# Extract a class to a file
-extract_class() {
-    local class_name="$1"
-    local output_file="$2"
+def find_class_boundaries(lines: list[str]) -> dict[str, tuple[int, int]]:
+    """Find start and end lines for each test class."""
+    boundaries = {}
+    class_pattern = re.compile(r'^class (Test\w+):')
     
-    local lines=$(get_class_lines "$class_name")
-    local start_line=$(echo "$lines" | cut -d' ' -f1)
-    local end_line=$(echo "$lines" | cut -d' ' -f2)
+    class_starts = []
+    for i, line in enumerate(lines):
+        match = class_pattern.match(line)
+        if match:
+            class_starts.append((i, match.group(1)))
     
-    echo "Extracting $class_name (lines $start_line-$end_line) to $output_file"
-    sed -n "${start_line},${end_line}p" "$SRC_FILE" > "$output_file"
-}
-
-# Extract common code (everything before first test class)
-extract_common() {
-    local first_class_line=$(grep -n "^class Test" "$SRC_FILE" | head -1 | cut -d: -f1)
-    local end_line=$((first_class_line - 1))
+    for idx, (start, name) in enumerate(class_starts):
+        if idx + 1 < len(class_starts):
+            end = class_starts[idx + 1][0] - 1
+            # Walk back to skip blank lines and comment separators
+            while end > start and (lines[end].strip() == '' or lines[end].startswith('# =')):
+                end -= 1
+            end += 1  # Include the last non-blank line
+        else:
+            end = len(lines)
+        boundaries[name] = (start, end)
     
-    echo "Extracting common code (lines 1-$end_line) to conftest.py"
-    sed -n "1,${end_line}p" "$SRC_FILE" > "$DEST_DIR/conftest.py"
-}
+    return boundaries
 
-# Main extraction
-echo "Splitting $SRC_FILE into $DEST_DIR/"
-echo
+def find_common_end(lines: list[str], boundaries: dict) -> int:
+    """Find where common code ends (before first test class)."""
+    first_class_line = min(start for start, _ in boundaries.values())
+    # Walk back to skip blank lines and separators
+    end = first_class_line - 1
+    while end > 0 and (lines[end].strip() == '' or lines[end].startswith('# =')):
+        end -= 1
+    return end + 1
 
-extract_common
+def main():
+    DEST_DIR.mkdir(exist_ok=True)
+    
+    content = SRC_FILE.read_text()
+    lines = content.splitlines()
+    
+    boundaries = find_class_boundaries(lines)
+    common_end = find_common_end(lines, boundaries)
+    
+    # Extract common code to conftest.py
+    common_code = '\n'.join(lines[:common_end])
+    (DEST_DIR / "conftest.py").write_text(common_code + '\n')
+    print(f"Extracted common code (lines 1-{common_end}) to conftest.py")
+    
+    # Extract each class
+    for class_name, filename in CLASS_MAP.items():
+        if class_name not in boundaries:
+            print(f"Warning: {class_name} not found in source file")
+            continue
+        
+        start, end = boundaries[class_name]
+        class_code = '\n'.join(lines[start:end])
+        (DEST_DIR / filename).write_text(class_code + '\n')
+        print(f"Extracted {class_name} (lines {start+1}-{end}) to {filename}")
+    
+    # Create __init__.py
+    (DEST_DIR / "__init__.py").write_text("")
+    
+    print(f"\nDone! Files created in {DEST_DIR}/")
+    print("Now manually add imports to each test file.")
 
-extract_class "TestPythonIntegration" "$DEST_DIR/test_python.py"
-extract_class "TestGoIntegration" "$DEST_DIR/test_go.py"
-extract_class "TestRustIntegration" "$DEST_DIR/test_rust.py"
-extract_class "TestTypeScriptIntegration" "$DEST_DIR/test_typescript.py"
-extract_class "TestJavaIntegration" "$DEST_DIR/test_java.py"
-extract_class "TestMultiLanguageIntegration" "$DEST_DIR/test_multi_language.py"
-extract_class "TestCppIntegration" "$DEST_DIR/test_cpp.py"
-extract_class "TestZigIntegration" "$DEST_DIR/test_zig.py"
-extract_class "TestLuaIntegration" "$DEST_DIR/test_lua.py"
-extract_class "TestRubyIntegration" "$DEST_DIR/test_ruby.py"
-extract_class "TestPhpIntegration" "$DEST_DIR/test_php.py"
-
-# Create __init__.py
-touch "$DEST_DIR/__init__.py"
-
-echo
-echo "Done! Files created in $DEST_DIR/"
-echo "Now manually add imports to each test file."
+if __name__ == "__main__":
+    main()
