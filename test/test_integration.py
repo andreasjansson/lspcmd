@@ -1146,6 +1146,65 @@ Moved file and updated imports in 4 file(s):
         assert "error" in result
         assert "not a Function or Method" in result["error"]
 
+    def test_replace_function_bogus_content_reverts(self, workspace):
+        """Test that bogus content that fails signature check reverts the file."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "create_sample_user",
+            "new_contents": "this is not valid python code @#$%^&*()",
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        
+        # Verify file was reverted
+        current = main_path.read_text()
+        assert current == original
+        
+        # Verify no backup file left behind
+        backup_path = main_path.with_suffix(".py.lspcmd.bkup")
+        assert not backup_path.exists()
+
+    def test_replace_function_symbol_not_found(self, workspace):
+        """Test error when symbol doesn't exist."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "nonexistent_function",
+            "new_contents": "def nonexistent_function(): pass",
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "not found" in result["error"]
+
+    def test_replace_function_empty_content(self, workspace):
+        """Test that empty content fails gracefully."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "create_sample_user",
+            "new_contents": "",
+            "check_signature": True,
+        })
+        result = response["result"]
+        # Empty content should cause a signature mismatch or other error
+        assert "error" in result
+        
+        # Verify file was reverted
+        current = main_path.read_text()
+        assert current == original
+
     # =========================================================================
     # resolve-symbol disambiguation tests
     # =========================================================================
