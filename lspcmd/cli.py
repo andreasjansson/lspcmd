@@ -120,6 +120,65 @@ def get_workspace_root_for_cwd(config: dict) -> Path:
     )
 
 
+def is_symbol_path(position: str) -> bool:
+    """Check if position is a @Symbol path (starts with @)."""
+    return position.startswith("@")
+
+
+def resolve_symbol_path(symbol_path: str, workspace_root: Path) -> tuple[Path, int, int]:
+    """Resolve a @Symbol.path to (file_path, line, column).
+    
+    Args:
+        symbol_path: Symbol path like '@ClassName.method' or '@path:Symbol'
+        workspace_root: Workspace root for symbol lookup
+        
+    Returns:
+        Tuple of (file_path, line, column) where line is 1-based, column is 0-based
+        
+    Raises:
+        click.ClickException if symbol not found or ambiguous
+    """
+    path_without_at = symbol_path[1:]
+    
+    response = run_request("resolve-symbol", {
+        "workspace_root": str(workspace_root),
+        "symbol_path": path_without_at,
+    })
+    
+    result = response.get("result", response)
+    
+    if "error" in result:
+        error_msg = result["error"]
+        matches = result.get("matches", [])
+        hint = result.get("hint")
+        
+        if matches:
+            lines = [error_msg + ":"]
+            for m in matches:
+                container = f" in {m['container']}" if m.get("container") else ""
+                kind = f" [{m['kind']}]" if m.get("kind") else ""
+                detail = f" ({m['detail']})" if m.get("detail") else ""
+                lines.append(f"  {m['path']}:{m['line']}{kind} {m['name']}{detail}{container}")
+            
+            total = result.get("total_matches", len(matches))
+            if total > len(matches):
+                lines.append(f"  ... and {total - len(matches)} more")
+            
+            if hint:
+                lines.append("")
+                lines.append(hint)
+            
+            raise click.ClickException("\n".join(lines))
+        else:
+            raise click.ClickException(error_msg)
+    
+    return (
+        Path(result["path"]),
+        result["line"],
+        result.get("column", 0),
+    )
+
+
 def parse_position(position: str, file_path: Path | None = None) -> tuple[int, int]:
     """Parse a position string into (line, column).
     
@@ -131,6 +190,8 @@ def parse_position(position: str, file_path: Path | None = None) -> tuple[int, i
     LINE is 1-based, COLUMN is 0-based.
     When using REGEX, the column is the start of the first match.
     REGEX must be unique (on the line if LINE given, in the file otherwise).
+    
+    Note: @Symbol paths should be handled separately with resolve_symbol_path().
     """
     # Check for LINE:REGEX format first (colon separator)
     if ":" in position:
@@ -241,6 +302,8 @@ declared in its workspace, so use (rip)grep or other search tools when you're
 looking for specific multi-symbol strings, puncuation, or library functions.
 `lspcmd grep PATTERN [PATH] --docs` prints function and method documentation
 for all matching symbols.
+
+`lspcmd tree` is a good starting point when starting work on a project.
 
 Use `lspcmd definition POSITION` to jump to the definition of a symbol that is
 used at `POSITION`, and use `lspcmd references POSITION` to find all the uses
