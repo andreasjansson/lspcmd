@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 
+import click
 import pytest
 
 from lspcmd.utils.config import add_workspace_root, load_config
