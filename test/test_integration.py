@@ -2347,6 +2347,91 @@ Moved file and updated imports in 2 file(s):
             main_ts_path.write_text(original_main_ts)
 
     # =========================================================================
+    # replace-function tests
+    # =========================================================================
+
+    def test_replace_function_basic(self, workspace):
+        """Test basic function replacement with matching signature."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "src" / "main.ts"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "createSampleUser",
+                "new_contents": '''function createSampleUser(): User {
+    return new User("Jane Doe", "jane@example.com", 25);
+}''',
+                "check_signature": True,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            assert "main.ts" in result["path"]
+            
+            updated = main_path.read_text()
+            assert 'Jane Doe' in updated
+            assert 'jane@example.com' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_signature_mismatch(self, workspace):
+        """Test that signature mismatch is detected."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "createSampleUser",
+            "new_contents": '''function createSampleUser(extra: string): User {
+    return new User("Jane Doe", "jane@example.com", 25);
+}''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "Signature mismatch" in result["error"]
+
+    def test_replace_function_no_check_signature(self, workspace):
+        """Test that check_signature=False allows signature changes."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "src" / "main.ts"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "createSampleUser",
+                "new_contents": '''function createSampleUser(name: string = "Default"): User {
+    return new User(name, "default@example.com", 30);
+}''',
+                "check_signature": False,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            
+            updated = main_path.read_text()
+            assert 'name: string = "Default"' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_non_function_error(self, workspace):
+        """Test that replacing a non-function symbol gives an error."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "User",
+            "new_contents": '''class User {
+}''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "not a Function or Method" in result["error"]
+
+    # =========================================================================
     # resolve-symbol disambiguation tests
     # =========================================================================
 
