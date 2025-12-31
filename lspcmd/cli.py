@@ -141,23 +141,20 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> tuple[Path, int, i
     if "error" in result:
         error_msg = result["error"]
         matches = result.get("matches", [])
-        hint = result.get("hint")
         
         if matches:
-            lines = [error_msg + ":"]
+            lines = [error_msg]
             for m in matches:
                 container = f" in {m['container']}" if m.get("container") else ""
-                kind = f" [{m['kind']}]" if m.get("kind") else ""
+                kind = f"[{m['kind']}] " if m.get("kind") else ""
                 detail = f" ({m['detail']})" if m.get("detail") else ""
-                lines.append(f"  {m['path']}:{m['line']}{kind} {m['name']}{detail}{container}")
+                ref = m.get("ref", "")
+                lines.append(f"  {ref}")
+                lines.append(f"    {m['path']}:{m['line']} {kind}{m['name']}{detail}{container}")
             
             total = result.get("total_matches", len(matches))
             if total > len(matches):
                 lines.append(f"  ... and {total - len(matches)} more")
-            
-            if hint:
-                lines.append("")
-                lines.append(hint)
             
             raise click.ClickException("\n".join(lines))
         else:
