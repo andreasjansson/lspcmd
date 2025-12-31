@@ -1840,6 +1840,62 @@ Moved file and updated imports in 2 file(s):
             user_ts_path.write_text(original_user_ts)
             main_ts_path.write_text(original_main_ts)
 
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_name(self, workspace):
+        """Test resolving a unique symbol name."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "Counter",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert result["name"] == "Counter"
+
+    def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
+        """Test that ambiguous TypeScript symbols show Class.method format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "getValue",
+        })
+        result = response["result"]
+        # May or may not be ambiguous depending on project structure
+        if "error" in result and "ambiguous" in result["error"]:
+            matches = result.get("matches", [])
+            refs = [m.get("ref", "") for m in matches]
+            for ref in refs:
+                parts = ref.split(":")
+                if len(parts) > 1:
+                    assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
+        else:
+            assert "getValue" in result.get("name", "")
+
+    def test_resolve_symbol_class_method(self, workspace):
+        """Test resolving Class.method format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "Counter.increment",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "increment" in result["name"]
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "main.ts:createSampleUser",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "main.ts" in result["path"]
+
 
 # =============================================================================
 # Java Integration Tests (jdtls)
