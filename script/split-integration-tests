@@ -1,0 +1,81 @@
+#!/bin/bash
+# Split integration tests into per-language files
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+SRC_FILE="$PROJECT_DIR/test/test_integration.py"
+DEST_DIR="$PROJECT_DIR/test/integration"
+
+# Create destination directory
+mkdir -p "$DEST_DIR"
+
+# Extract line numbers for each class
+get_class_lines() {
+    local class_name="$1"
+    local start_line=$(grep -n "^class $class_name:" "$SRC_FILE" | cut -d: -f1)
+    if [ -z "$start_line" ]; then
+        echo "Class $class_name not found" >&2
+        return 1
+    fi
+    
+    # Find the next class or end of file
+    local total_lines=$(wc -l < "$SRC_FILE")
+    local end_line=$(tail -n +$((start_line + 1)) "$SRC_FILE" | grep -n "^class \|^# =====" | head -1 | cut -d: -f1)
+    
+    if [ -z "$end_line" ]; then
+        end_line=$total_lines
+    else
+        end_line=$((start_line + end_line - 1))
+    fi
+    
+    echo "$start_line $end_line"
+}
+
+# Extract a class to a file
+extract_class() {
+    local class_name="$1"
+    local output_file="$2"
+    
+    local lines=$(get_class_lines "$class_name")
+    local start_line=$(echo "$lines" | cut -d' ' -f1)
+    local end_line=$(echo "$lines" | cut -d' ' -f2)
+    
+    echo "Extracting $class_name (lines $start_line-$end_line) to $output_file"
+    sed -n "${start_line},${end_line}p" "$SRC_FILE" > "$output_file"
+}
+
+# Extract common code (everything before first test class)
+extract_common() {
+    local first_class_line=$(grep -n "^class Test" "$SRC_FILE" | head -1 | cut -d: -f1)
+    local end_line=$((first_class_line - 1))
+    
+    echo "Extracting common code (lines 1-$end_line) to conftest.py"
+    sed -n "1,${end_line}p" "$SRC_FILE" > "$DEST_DIR/conftest.py"
+}
+
+# Main extraction
+echo "Splitting $SRC_FILE into $DEST_DIR/"
+echo
+
+extract_common
+
+extract_class "TestPythonIntegration" "$DEST_DIR/test_python.py"
+extract_class "TestGoIntegration" "$DEST_DIR/test_go.py"
+extract_class "TestRustIntegration" "$DEST_DIR/test_rust.py"
+extract_class "TestTypeScriptIntegration" "$DEST_DIR/test_typescript.py"
+extract_class "TestJavaIntegration" "$DEST_DIR/test_java.py"
+extract_class "TestMultiLanguageIntegration" "$DEST_DIR/test_multi_language.py"
+extract_class "TestCppIntegration" "$DEST_DIR/test_cpp.py"
+extract_class "TestZigIntegration" "$DEST_DIR/test_zig.py"
+extract_class "TestLuaIntegration" "$DEST_DIR/test_lua.py"
+extract_class "TestRubyIntegration" "$DEST_DIR/test_ruby.py"
+extract_class "TestPhpIntegration" "$DEST_DIR/test_php.py"
+
+# Create __init__.py
+touch "$DEST_DIR/__init__.py"
+
+echo
+echo "Done! Files created in $DEST_DIR/"
+echo "Now manually add imports to each test file."
