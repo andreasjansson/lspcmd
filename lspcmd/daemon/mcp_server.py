@@ -1772,26 +1772,38 @@ class MCPDaemonServer:
                     workspace, file_path, range_start, column
                 )
 
-                if old_signature and new_signature:
-                    if not self._signatures_match(old_signature, new_signature):
-                        file_path.write_text(original_content)
-                        backup_path.unlink(missing_ok=True)
-                        if doc:
-                            doc.version += 1
-                            doc.content = original_content
-                            await workspace.client.send_notification(
-                                "textDocument/didChange",
-                                {
-                                    "textDocument": {"uri": doc.uri, "version": doc.version},
-                                    "contentChanges": [{"text": original_content}],
-                                },
-                            )
-                        return {
-                            "error": "Signature mismatch",
-                            "old_signature": old_signature,
-                            "new_signature": new_signature,
-                            "hint": "Use --no-check-signature to replace anyway",
-                        }
+                should_revert = False
+                error_result = None
+
+                if new_signature is None:
+                    should_revert = True
+                    error_result = {
+                        "error": "Could not extract signature from new content - the content may be invalid",
+                        "hint": "Use --no-check-signature to replace anyway",
+                    }
+                elif old_signature and not self._signatures_match(old_signature, new_signature):
+                    should_revert = True
+                    error_result = {
+                        "error": "Signature mismatch",
+                        "old_signature": old_signature,
+                        "new_signature": new_signature,
+                        "hint": "Use --no-check-signature to replace anyway",
+                    }
+
+                if should_revert:
+                    file_path.write_text(original_content)
+                    backup_path.unlink(missing_ok=True)
+                    if doc:
+                        doc.version += 1
+                        doc.content = original_content
+                        await workspace.client.send_notification(
+                            "textDocument/didChange",
+                            {
+                                "textDocument": {"uri": doc.uri, "version": doc.version},
+                                "contentChanges": [{"text": original_content}],
+                            },
+                        )
+                    return error_result
 
             backup_path.unlink(missing_ok=True)
 
