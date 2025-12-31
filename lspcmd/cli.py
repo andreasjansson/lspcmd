@@ -109,8 +109,19 @@ def get_workspace_root_for_cwd(config: dict) -> Path:
     )
 
 
-def resolve_symbol(symbol_path: str, workspace_root: Path) -> tuple[Path, int, int]:
-    """Resolve a symbol path to (file_path, line, column).
+class ResolvedSymbol:
+    """Result of resolving a symbol path."""
+    def __init__(self, path: Path, line: int, column: int, 
+                 range_start_line: int | None = None, range_end_line: int | None = None):
+        self.path = path
+        self.line = line
+        self.column = column
+        self.range_start_line = range_start_line
+        self.range_end_line = range_end_line
+
+
+def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
+    """Resolve a symbol path to a ResolvedSymbol with location info.
     
     Symbol path formats:
       - SymbolName              find symbol by name
@@ -126,7 +137,7 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> tuple[Path, int, i
     Where 'module' is derived from the file name (e.g., user.py -> user).
     
     Returns:
-        Tuple of (file_path, line, column) where line is 1-based, column is 0-based
+        ResolvedSymbol with path, line, column, and optionally range info
         
     Raises:
         click.ClickException if symbol not found or ambiguous
@@ -160,10 +171,12 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> tuple[Path, int, i
         else:
             raise click.ClickException(error_msg)
     
-    return (
-        Path(result["path"]),
-        result["line"],
-        result.get("column", 0),
+    return ResolvedSymbol(
+        path=Path(result["path"]),
+        line=result["line"],
+        column=result.get("column", 0),
+        range_start_line=result.get("range_start_line"),
+        range_end_line=result.get("range_end_line"),
     )
 
 
