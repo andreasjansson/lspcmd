@@ -1834,27 +1834,21 @@ Moved file and updated imports in 2 file(s):
             "symbol_path": "Counter",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
         assert result["name"] == "Counter"
+        assert result["kind"] == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous TypeScript symbols show Class.method format."""
         os.chdir(workspace)
         response = run_request("resolve-symbol", {
             "workspace_root": str(workspace),
-            "symbol_path": "getValue",
+            "symbol_path": "save",
         })
         result = response["result"]
-        # May or may not be ambiguous depending on project structure
-        if "error" in result and "ambiguous" in result["error"]:
-            matches = result.get("matches", [])
-            refs = [m.get("ref", "") for m in matches]
-            for ref in refs:
-                parts = ref.split(":")
-                if len(parts) > 1:
-                    assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
-        else:
-            assert "getValue" in result.get("name", "")
+        assert result["error"] == "Symbol 'save' is ambiguous (3 matches)"
+        assert result["total_matches"] == 3
+        refs = [m["ref"] for m in result["matches"]]
+        assert refs == ["FileStorage.save", "MemoryStorage.save", "Storage.save"]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
@@ -1864,8 +1858,8 @@ Moved file and updated imports in 2 file(s):
             "symbol_path": "Counter.increment",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "increment" in result["name"]
+        assert result["name"] == "increment"
+        assert result["kind"] == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
@@ -1875,8 +1869,8 @@ Moved file and updated imports in 2 file(s):
             "symbol_path": "main.ts:createSampleUser",
         })
         result = response["result"]
-        assert "error" not in result, f"Unexpected error: {result.get('error')}"
-        assert "main.ts" in result["path"]
+        assert result["name"] == "createSampleUser"
+        assert result["path"].endswith("main.ts")
 
 
 # =============================================================================
