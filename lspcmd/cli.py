@@ -20,7 +20,6 @@ from .utils.config import (
     get_known_workspace_root,
     add_workspace_root,
 )
-from .utils.text import resolve_regex_position
 
 
 class OrderedGroup(click.Group):
@@ -120,29 +119,30 @@ def get_workspace_root_for_cwd(config: dict) -> Path:
     )
 
 
-def is_symbol_path(position: str) -> bool:
-    """Check if position is a @Symbol path (starts with @)."""
-    return position.startswith("@")
-
-
-def resolve_symbol_path(symbol_path: str, workspace_root: Path) -> tuple[Path, int, int]:
-    """Resolve a @Symbol.path to (file_path, line, column).
+def resolve_symbol(symbol_path: str, workspace_root: Path) -> tuple[Path, int, int]:
+    """Resolve a symbol path to (file_path, line, column).
     
-    Args:
-        symbol_path: Symbol path like '@ClassName.method' or '@path:Symbol'
-        workspace_root: Workspace root for symbol lookup
-        
+    Symbol path formats:
+      - SymbolName              find symbol by name
+      - Parent.Symbol           find symbol with parent (class.method, module.class, etc.)
+      - path:Symbol             filter by file path pattern
+      - path:Parent.Symbol      combine path filter with qualified name
+    
+    The hierarchy follows LSP document symbol containers:
+      - module.Class.method.variable
+      - module.function.variable
+    
+    Where 'module' is derived from the file name (e.g., user.py -> user).
+    
     Returns:
         Tuple of (file_path, line, column) where line is 1-based, column is 0-based
         
     Raises:
         click.ClickException if symbol not found or ambiguous
     """
-    path_without_at = symbol_path[1:]
-    
     response = run_request("resolve-symbol", {
         "workspace_root": str(workspace_root),
-        "symbol_path": path_without_at,
+        "symbol_path": symbol_path,
     })
     
     result = response.get("result", response)
@@ -177,62 +177,6 @@ def resolve_symbol_path(symbol_path: str, workspace_root: Path) -> tuple[Path, i
         result["line"],
         result.get("column", 0),
     )
-
-
-def parse_position(position: str, file_path: Path | None = None) -> tuple[int, int]:
-    """Parse a position string into (line, column).
-    
-    Supports formats:
-      - LINE,COLUMN: e.g., "42,10" -> line 42, column 10
-      - LINE:REGEX: e.g., "42:def foo" -> line 42, column at first match of "def foo"
-      - REGEX: e.g., "def foo" -> search whole file for unique match
-      
-    LINE is 1-based, COLUMN is 0-based.
-    When using REGEX, the column is the start of the first match.
-    REGEX must be unique (on the line if LINE given, in the file otherwise).
-    
-    Note: @Symbol paths should be handled separately with resolve_symbol_path().
-    """
-    # Check for LINE:REGEX format first (colon separator)
-    if ":" in position:
-        colon_idx = position.index(":")
-        line_part = position[:colon_idx]
-        regex = position[colon_idx + 1:]
-        try:
-            line = int(line_part)
-            if file_path is None:
-                raise click.BadParameter(
-                    "Cannot use REGEX position format without a file path"
-                )
-            content = file_path.read_text()
-            try:
-                return resolve_regex_position(content, regex, line)
-            except ValueError as e:
-                raise click.BadParameter(str(e))
-        except ValueError:
-            pass
-    
-    # Check for LINE,COLUMN format (comma separator, both integers)
-    if "," in position:
-        parts = position.split(",", 1)
-        try:
-            line = int(parts[0])
-            column = int(parts[1])
-            return line, column
-        except ValueError:
-            pass
-    
-    # Fall back to whole-file REGEX search
-    regex = position
-    if file_path is None:
-        raise click.BadParameter(
-            "Cannot use REGEX position format without a file path"
-        )
-    content = file_path.read_text()
-    try:
-        return resolve_regex_position(content, regex, line=None)
-    except ValueError as e:
-        raise click.BadParameter(str(e))
 
 
 def expand_path_pattern(pattern: str) -> list[Path]:
