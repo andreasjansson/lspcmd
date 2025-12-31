@@ -322,8 +322,13 @@ def _call_location_request(method: str, params: dict) -> dict:
     mcp_url = ensure_daemon_running()
     tool_name = f"_internal_{method}"
     
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+    }
+    
     async def do_request():
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=120.0, headers=headers) as client:
             await client.post(
                 mcp_url,
                 json={
