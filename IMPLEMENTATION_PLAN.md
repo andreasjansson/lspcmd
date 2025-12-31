@@ -108,7 +108,7 @@ All navigation commands use symbol-based lookup:
 
 | Command | Description |
 |---------|-------------|
-| `lspcmd definition SYMBOL [-n CONTEXT] [-b]` | Show symbol definition (-b for full body) |
+| `lspcmd definition SYMBOL [-n CONTEXT]` | Show symbol definition (full body) |
 | `lspcmd references SYMBOL [-n CONTEXT]` | Find all references to a symbol |
 | `lspcmd implementations SYMBOL [-n CONTEXT]` | Find implementations of interface/method |
 | `lspcmd subtypes SYMBOL [-n CONTEXT]` | Find direct subtypes of a type |
