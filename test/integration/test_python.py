@@ -1,0 +1,869 @@
+import os
+import shutil
+import time
+
+import pytest
+
+from lspcmd.utils.config import add_workspace_root, load_config
+
+from .conftest import (
+    FIXTURES_DIR,
+    _call_replace_function_request,
+    format_output,
+    requires_basedpyright,
+    run_request,
+)
+
+
+class TestPythonIntegration:
+    """Integration tests for Python using basedpyright."""
+
+    @pytest.fixture(autouse=True)
+    def check_basedpyright(self):
+        requires_basedpyright()
+
+    @pytest.fixture(scope="class")
+    def project(self, class_temp_dir):
+        src = FIXTURES_DIR / "python_project"
+        dst = class_temp_dir / "python_project"
+        shutil.copytree(src, dst)
+        return dst
+
+    @pytest.fixture(scope="class")
+    def workspace(self, project, class_daemon, class_isolated_config):
+        config = load_config()
+        add_workspace_root(project, config)
+        # Warm up the server
+        run_request("grep", {
+            "paths": [str(project / "main.py")],
+            "workspace_root": str(project),
+            "pattern": ".*",
+        })
+        time.sleep(1.0)
+        return project
+
+    # =========================================================================
+    # grep tests
+    # =========================================================================
+
+    def test_grep_single_file(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:14 [Class] StorageProtocol
+main.py:17 [Method] save in StorageProtocol
+main.py:17 [Variable] key in save
+main.py:17 [Variable] value in save
+main.py:21 [Method] load in StorageProtocol
+main.py:21 [Variable] key in load
+main.py:27 [Class] User
+main.py:35 [Variable] name in User
+main.py:36 [Variable] email in User
+main.py:37 [Variable] age in User
+main.py:39 [Method] is_adult in User
+main.py:43 [Method] display_name in User
+main.py:48 [Class] MemoryStorage
+main.py:51 [Method] __init__ in MemoryStorage
+main.py:54 [Method] save in MemoryStorage
+main.py:54 [Variable] key in save
+main.py:54 [Variable] value in save
+main.py:57 [Method] load in MemoryStorage
+main.py:57 [Variable] key in load
+main.py:52 [Variable] _data in MemoryStorage
+main.py:61 [Class] FileStorage
+main.py:64 [Method] __init__ in FileStorage
+main.py:64 [Variable] base_path in __init__
+main.py:67 [Method] save in FileStorage
+main.py:67 [Variable] key in save
+main.py:67 [Variable] value in save
+main.py:68 [Variable] path in save
+main.py:69 [Variable] f in save
+main.py:72 [Method] load in FileStorage
+main.py:72 [Variable] key in load
+main.py:73 [Variable] path in load
+main.py:75 [Variable] f in load
+main.py:65 [Variable] _base_path in FileStorage
+main.py:80 [Class] UserRepository
+main.py:86 [Method] __init__ in UserRepository
+main.py:89 [Method] add_user in UserRepository
+main.py:89 [Variable] user in add_user
+main.py:93 [Method] get_user in UserRepository
+main.py:93 [Variable] email in get_user
+main.py:97 [Method] delete_user in UserRepository
+main.py:97 [Variable] email in delete_user
+main.py:104 [Method] list_users in UserRepository
+main.py:108 [Method] count_users in UserRepository
+main.py:87 [Variable] _users in UserRepository
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:118 [Variable] repo in process_users
+main.py:127 [Function] main
+main.py:129 [Variable] repo in main
+main.py:130 [Variable] user in main
+main.py:138 [Variable] found in main"""
+
+    def test_grep_pattern_filter(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": "^User",
+            "case_sensitive": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:27 [Class] User
+main.py:80 [Class] UserRepository"""
+
+    def test_grep_kind_filter(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:14 [Class] StorageProtocol
+main.py:27 [Class] User
+main.py:48 [Class] MemoryStorage
+main.py:61 [Class] FileStorage
+main.py:80 [Class] UserRepository"""
+
+    def test_grep_function_kind(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main"""
+
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": "user",
+            "case_sensitive": False,
+        })
+        insensitive_output = format_output(response["result"], "plain")
+        
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": "user",
+            "case_sensitive": True,
+        })
+        sensitive_output = format_output(response["result"], "plain")
+        
+        assert insensitive_output == """\
+main.py:27 [Class] User
+main.py:80 [Class] UserRepository
+main.py:89 [Method] add_user in UserRepository
+main.py:89 [Variable] user in add_user
+main.py:93 [Method] get_user in UserRepository
+main.py:97 [Method] delete_user in UserRepository
+main.py:104 [Method] list_users in UserRepository
+main.py:108 [Method] count_users in UserRepository
+main.py:87 [Variable] _users in UserRepository
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:130 [Variable] user in main"""
+        
+        assert sensitive_output == """\
+main.py:89 [Method] add_user in UserRepository
+main.py:89 [Variable] user in add_user
+main.py:93 [Method] get_user in UserRepository
+main.py:97 [Method] delete_user in UserRepository
+main.py:104 [Method] list_users in UserRepository
+main.py:108 [Method] count_users in UserRepository
+main.py:87 [Variable] _users in UserRepository
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:130 [Variable] user in main"""
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:14 [Class] StorageProtocol
+main.py:48 [Class] MemoryStorage
+main.py:61 [Class] FileStorage"""
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py"), str(workspace / "utils.py")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main
+utils.py:9 [Function] validate_email
+utils.py:22 [Function] validate_age
+utils.py:27 [Function] memoize
+utils.py:38 [Function] wrapper in memoize
+utils.py:48 [Function] fibonacci
+utils.py:125 [Function] format_name"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "validate",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+utils.py:9 [Function] validate_email
+utils.py:22 [Function] validate_age"""
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        all_output = format_output(response["result"], "plain")
+        
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+            "exclude_patterns": ["utils.py"],
+        })
+        filtered_output = format_output(response["result"], "plain")
+        
+        assert all_output == """\
+utils.py:9 [Function] validate_email
+utils.py:22 [Function] validate_age
+utils.py:27 [Function] memoize
+utils.py:38 [Function] wrapper in memoize
+utils.py:48 [Function] fibonacci
+utils.py:125 [Function] format_name
+errors.py:4 [Function] undefined_variable
+errors.py:9 [Function] type_error
+errors.py:15 [Function] missing_return
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main"""
+        
+        assert filtered_output == """\
+errors.py:4 [Function] undefined_variable
+errors.py:9 [Function] type_error
+errors.py:15 [Function] missing_return
+main.py:113 [Function] create_sample_user
+main.py:118 [Function] process_users
+main.py:127 [Function] main"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.py")],
+            "workspace_root": str(workspace),
+            "pattern": "^create_sample_user$",
+            "kinds": ["function"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:113 [Function] create_sample_user
+    ```python
+    (function) def create_sample_user() -> User
+    ```
+    ---
+    Create a sample user for testing.
+"""
+
+    # =========================================================================
+    # definition tests
+    # =========================================================================
+
+    def test_definition_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 130,
+            "column": 11,
+            "context": 0,
+            "body": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "main.py:113 def create_sample_user() -> User:"
+
+    def test_definition_with_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 130,
+            "column": 11,
+            "context": 2,
+            "body": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:111-115
+
+
+def create_sample_user() -> User:
+    \"\"\"Create a sample user for testing.\"\"\"
+    return User(name="John Doe", email="john@example.com", age=30)
+"""
+
+    def test_definition_with_body(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 130,
+            "column": 11,
+            "context": 0,
+            "body": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:113-115
+
+def create_sample_user() -> User:
+    \"\"\"Create a sample user for testing.\"\"\"
+    return User(name="John Doe", email="john@example.com", age=30)"""
+
+    def test_definition_with_body_and_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 130,
+            "column": 11,
+            "context": 2,
+            "body": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:111-117
+
+
+
+def create_sample_user() -> User:
+    \"\"\"Create a sample user for testing.\"\"\"
+    return User(name="John Doe", email="john@example.com", age=30)
+
+"""
+
+    # =========================================================================
+    # references tests
+    # =========================================================================
+
+    def test_references_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("references", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:27 class User:
+main.py:87         self._users: dict[str, User] = {}
+main.py:89     def add_user(self, user: User) -> None:
+main.py:93     def get_user(self, email: str) -> Optional[User]:
+main.py:104     def list_users(self) -> list[User]:
+main.py:113 def create_sample_user() -> User:
+main.py:115     return User(name="John Doe", email="john@example.com", age=30)"""
+
+    def test_references_with_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("references", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+            "context": 1,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:26-28
+@dataclass
+class User:
+    \"\"\"Represents a user in the system.
+
+main.py:86-88
+    def __init__(self) -> None:
+        self._users: dict[str, User] = {}
+
+
+main.py:88-90
+
+    def add_user(self, user: User) -> None:
+        \"\"\"Add a user to the repository.\"\"\"
+
+main.py:92-94
+
+    def get_user(self, email: str) -> Optional[User]:
+        \"\"\"Retrieve a user by email address.\"\"\"
+
+main.py:103-105
+
+    def list_users(self) -> list[User]:
+        \"\"\"List all users in the repository.\"\"\"
+
+main.py:112-114
+
+def create_sample_user() -> User:
+    \"\"\"Create a sample user for testing.\"\"\"
+
+main.py:114-116
+    \"\"\"Create a sample user for testing.\"\"\"
+    return User(name="John Doe", email="john@example.com", age=30)
+
+"""
+
+    # =========================================================================
+    # describe (hover) tests
+    # =========================================================================
+
+    def test_describe_hover(self, workspace):
+        os.chdir(workspace)
+        response = run_request("describe", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+```python
+(class) User
+```
+---
+Represents a user in the system.
+
+Attributes:  
+&nbsp;&nbsp;&nbsp;&nbsp;name: The user's full name.  
+&nbsp;&nbsp;&nbsp;&nbsp;email: The user's email address (used as unique identifier).  
+&nbsp;&nbsp;&nbsp;&nbsp;age: The user's age in years."""
+
+    # =========================================================================
+    # rename tests
+    # =========================================================================
+
+    def test_rename(self, workspace):
+        os.chdir(workspace)
+        
+        # Verify User class exists before rename
+        original_content = (workspace / "main.py").read_text()
+        assert "class User:" in original_content
+        
+        response = run_request("rename", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+            "new_name": "Person",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+Renamed in 1 file(s):
+  main.py"""
+
+        # Verify rename actually happened in the file
+        renamed_content = (workspace / "main.py").read_text()
+        assert "class Person:" in renamed_content
+        assert "class User:" not in renamed_content
+
+        # Revert the rename
+        run_request("rename", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+            "new_name": "User",
+        })
+        
+        # Verify revert worked
+        reverted_content = (workspace / "main.py").read_text()
+        assert "class User:" in reverted_content
+        assert "class Person:" not in reverted_content
+
+    # =========================================================================
+    # declaration tests
+    # =========================================================================
+
+    def test_declaration_basic(self, workspace):
+        os.chdir(workspace)
+        response = run_request("declaration", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 27,
+            "column": 6,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "main.py:27 class User:"
+
+    # =========================================================================
+    # implementations tests
+    # =========================================================================
+
+    def test_implementations(self, workspace):
+        os.chdir(workspace)
+        response = run_request("implementations", {
+            "path": str(workspace / "main.py"),
+            "workspace_root": str(workspace),
+            "line": 14,
+            "column": 6,
+            "context": 0,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.py:14 class StorageProtocol(Protocol):
+main.py:48 class MemoryStorage:
+main.py:61 class FileStorage:"""
+
+    # =========================================================================
+    # subtypes/supertypes tests (not supported by pyright)
+    # =========================================================================
+
+    def test_subtypes_not_supported(self, workspace):
+        import click
+        os.chdir(workspace)
+        with pytest.raises(click.ClickException) as exc_info:
+            run_request("subtypes", {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 14,
+                "column": 6,
+                "context": 0,
+            })
+        assert "prepareTypeHierarchy" in str(exc_info.value)
+
+    def test_supertypes_not_supported(self, workspace):
+        import click
+        os.chdir(workspace)
+        with pytest.raises(click.ClickException) as exc_info:
+            run_request("supertypes", {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 48,
+                "column": 6,
+                "context": 0,
+            })
+        assert "prepareTypeHierarchy" in str(exc_info.value)
+
+    # =========================================================================
+    # diagnostics tests
+    # =========================================================================
+
+    def test_diagnostics_single_file(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "errors.py"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        assert "errors.py" in output
+        assert "error" in output.lower()
+        assert "undefined_var" in output or "undefined" in output.lower()
+
+    def test_diagnostics_type_error(self, workspace):
+        os.chdir(workspace)
+        response = run_request("diagnostics", {
+            "path": str(workspace / "errors.py"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        lines = output.split("\n")
+        type_error_found = any("int" in line and "str" in line for line in lines) or \
+                          any("type" in line.lower() for line in lines)
+        assert type_error_found, f"Expected type error in output: {output}"
+
+    # =========================================================================
+    # move-file tests
+    # =========================================================================
+
+    def test_move_file_updates_imports(self, workspace):
+        os.chdir(workspace)
+        
+        # Verify utils.py exists
+        assert (workspace / "utils.py").exists()
+        
+        # Check initial import in main.py
+        original_main = (workspace / "main.py").read_text()
+        assert "from utils import validate_email" in original_main
+        
+        # Rename utils.py to helpers.py (basedpyright only updates imports when
+        # the filename changes, not when the file moves to a different directory)
+        response = run_request("move-file", {
+            "old_path": str(workspace / "utils.py"),
+            "new_path": str(workspace / "helpers.py"),
+            "workspace_root": str(workspace),
+        })
+        output = format_output(response["result"], "plain")
+        
+        # Verify the file was renamed
+        assert not (workspace / "utils.py").exists()
+        assert (workspace / "helpers.py").exists()
+        
+        # basedpyright updates the import when the filename changes
+        assert output == """\
+Moved file and updated imports in 4 file(s):
+  main.py
+  utils.py
+  errors.py
+  helpers.py"""
+        
+        # Verify the import was updated
+        updated_main = (workspace / "main.py").read_text()
+        assert "from helpers import validate_email" in updated_main
+        assert "from utils import validate_email" not in updated_main
+
+    # =========================================================================
+    # replace-function tests
+    # =========================================================================
+
+    def test_replace_function_basic(self, workspace):
+        """Test basic function replacement with matching signature."""
+        os.chdir(workspace)
+        
+        # Get original content for later restoration
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "create_sample_user",
+                "new_contents": '''def create_sample_user() -> User:
+    """Create a sample user for testing."""
+    return User(name="Jane Doe", email="jane@example.com", age=25)''',
+                "check_signature": True,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            assert result["path"] == "main.py"
+            
+            # Verify file was modified
+            updated = main_path.read_text()
+            assert 'Jane Doe' in updated
+            assert 'jane@example.com' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_signature_mismatch(self, workspace):
+        """Test that signature mismatch is detected."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "create_sample_user",
+            "new_contents": '''def create_sample_user(extra_param: str) -> User:
+    """Create a sample user for testing."""
+    return User(name="Jane Doe", email="jane@example.com", age=25)''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "Signature mismatch" in result["error"]
+
+    def test_replace_function_no_check_signature(self, workspace):
+        """Test that --no-check-signature allows signature changes."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "create_sample_user",
+                "new_contents": '''def create_sample_user(name: str = "Default") -> User:
+    """Create a sample user for testing."""
+    return User(name=name, email="default@example.com", age=30)''',
+                "check_signature": False,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            
+            updated = main_path.read_text()
+            assert 'name: str = "Default"' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_method_basic(self, workspace):
+        """Test replacing a method within a class."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        try:
+            response = _call_replace_function_request({
+                "workspace_root": str(workspace),
+                "symbol": "MemoryStorage.save",
+                "new_contents": '''    def save(self, key: str, value: str) -> None:
+        """Save with logging."""
+        print(f"Saving {key}")
+        self._data[key] = value''',
+                "check_signature": True,
+            })
+            result = response["result"]
+            assert result["replaced"] == True
+            
+            updated = main_path.read_text()
+            assert 'print(f"Saving {key}")' in updated
+        finally:
+            main_path.write_text(original)
+
+    def test_replace_function_non_function_error(self, workspace):
+        """Test that replacing a non-function symbol gives an error."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "User",
+            "new_contents": '''class User:
+    pass''',
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "not a Function or Method" in result["error"]
+
+    def test_replace_function_bogus_content_reverts(self, workspace):
+        """Test that bogus content that fails signature check reverts the file."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "create_sample_user",
+            "new_contents": "this is not valid python code @#$%^&*()",
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        
+        # Verify file was reverted
+        current = main_path.read_text()
+        assert current == original
+        
+        # Verify no backup file left behind
+        backup_path = main_path.with_suffix(".py.lspcmd.bkup")
+        assert not backup_path.exists()
+
+    def test_replace_function_symbol_not_found(self, workspace):
+        """Test error when symbol doesn't exist."""
+        os.chdir(workspace)
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "nonexistent_function",
+            "new_contents": "def nonexistent_function(): pass",
+            "check_signature": True,
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "not found" in result["error"]
+
+    def test_replace_function_empty_content(self, workspace):
+        """Test that empty content fails gracefully."""
+        os.chdir(workspace)
+        
+        main_path = workspace / "main.py"
+        original = main_path.read_text()
+        
+        response = _call_replace_function_request({
+            "workspace_root": str(workspace),
+            "symbol": "create_sample_user",
+            "new_contents": "",
+            "check_signature": True,
+        })
+        result = response["result"]
+        # Empty content should cause a signature mismatch or other error
+        assert "error" in result
+        
+        # Verify file was reverted
+        current = main_path.read_text()
+        assert current == original
+
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_name(self, workspace):
+        """Test resolving a unique symbol name."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "User",
+        })
+        result = response["result"]
+        assert result["name"] == "User"
+        assert result["line"] == 27
+        assert result["kind"] == "Class"
+
+    def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
+        """Test that ambiguous symbols show Container.name format in refs."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "save",
+        })
+        result = response["result"]
+        assert result["error"] == "Symbol 'save' is ambiguous (3 matches)"
+        assert result["total_matches"] == 3
+        refs = [m["ref"] for m in result["matches"]]
+        assert refs == ["StorageProtocol.save", "MemoryStorage.save", "FileStorage.save"]
+
+    def test_resolve_symbol_qualified_name(self, workspace):
+        """Test resolving Container.name format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "MemoryStorage.save",
+        })
+        result = response["result"]
+        assert result["name"] == "save"
+        assert result["line"] == 54
+        assert result["kind"] == "Method"
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "main.py:User",
+        })
+        result = response["result"]
+        assert result["name"] == "User"
+        assert result["line"] == 27
+        assert result["path"].endswith("main.py")
