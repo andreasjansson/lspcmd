@@ -679,13 +679,13 @@ def rename(ctx, symbol, new_name):
     """
     config = load_config()
     workspace_root = get_workspace_root_for_cwd(config)
-    path, line, column = resolve_symbol(symbol, workspace_root)
+    resolved = resolve_symbol(symbol, workspace_root)
 
     response = run_request("rename", {
-        "path": str(path),
+        "path": str(resolved.path),
         "workspace_root": str(workspace_root),
-        "line": line,
-        "column": column,
+        "line": resolved.line,
+        "column": resolved.column,
         "new_name": new_name,
     })
 
