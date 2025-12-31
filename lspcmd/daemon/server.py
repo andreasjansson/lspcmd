@@ -1390,7 +1390,7 @@ class DaemonServer:
                 
                 full_container = f"{module_name}.{sym_container_normalized}" if sym_container_normalized else module_name
                 
-                logger.debug(f"resolve-symbol: checking {sym_name} container={sym_container!r} normalized={sym_container_normalized!r} module={module_name!r} full={full_container!r} want={container_str!r}")
+                logger.info(f"resolve-symbol: checking {sym_name} container={sym_container!r} normalized={sym_container_normalized!r} module={module_name!r} full={full_container!r} want={container_str!r}")
                 
                 if sym_container_normalized == container_str:
                     logger.debug(f"  -> matched via container_normalized")
