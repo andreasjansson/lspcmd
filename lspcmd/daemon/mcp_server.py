@@ -401,6 +401,31 @@ class MCPDaemonServer:
             return format_output(result, output_format)
 
         @self._mcp.tool()
+        async def replace_function(
+            workspace_root: str,
+            symbol: str,
+            new_contents: str,
+            check_signature: bool = True,
+            output_format: str = "plain",
+        ) -> str:
+            """Replace a function or method body with new contents.
+
+            Args:
+                workspace_root: The workspace root directory
+                symbol: Symbol to replace (e.g., 'User', 'User.save', 'file.py:User')
+                new_contents: The new function/method definition
+                check_signature: Whether to verify signature matches (default: True)
+                output_format: Output format ('plain' or 'json')
+            """
+            result = await self._handle_replace_function({
+                "workspace_root": workspace_root,
+                "symbol": symbol,
+                "new_contents": new_contents,
+                "check_signature": check_signature,
+            })
+            return format_output(result, output_format)
+
+        @self._mcp.tool()
         async def format_file(
             workspace_root: str,
             path: str,
