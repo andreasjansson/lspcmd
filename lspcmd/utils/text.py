@@ -124,8 +124,6 @@ def resolve_regex_position(content: str, pattern: str, line: int | None = None) 
     Raises:
         ValueError with descriptive message if pattern not found or ambiguous
     """
-    import re
-    
     lines = content.splitlines()
     
     if line is not None:
