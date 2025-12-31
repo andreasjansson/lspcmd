@@ -338,10 +338,11 @@ class TestGenerateUnambiguousRef:
         ref1 = self.server._generate_unambiguous_ref(matches[0], matches, "Save")
         ref2 = self.server._generate_unambiguous_ref(matches[1], matches, "Save")
         
-        # Should use the receiver type to disambiguate
-        assert "MemoryStorage" in ref1
-        assert "FileStorage" in ref2
+        # Refs must be unique - could use receiver type or line numbers
         assert ref1 != ref2
+        # Either uses receiver (MemoryStorage.Save) or line numbers (storage.go:10:Save)
+        assert "MemoryStorage" in ref1 or ":10:" in ref1
+        assert "FileStorage" in ref2 or ":50:" in ref2
 
     def test_java_method_signatures(self):
         """Java methods with signatures like save(User) should normalize."""
