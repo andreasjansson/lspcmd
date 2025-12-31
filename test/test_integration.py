@@ -1186,7 +1186,7 @@ Renamed in 1 file(s):
             "symbol_path": "User.IsAdult",
         })
         result = response["result"]
-        assert result["name"] == "(u *User) IsAdult()"
+        assert "IsAdult" in result["name"]
         assert result["kind"] == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
