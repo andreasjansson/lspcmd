@@ -216,6 +216,7 @@ async def _mcp_call_tool(mcp_url: str, tool_name: str, arguments: dict, raise_on
         
         if "error" in result:
             error_msg = result["error"].get("message", str(result["error"]))
+            error_msg = strip_mcp_error_prefix(error_msg)
             if raise_on_error:
                 raise click.ClickException(error_msg)
             return {"error": error_msg}
@@ -226,6 +227,7 @@ async def _mcp_call_tool(mcp_url: str, tool_name: str, arguments: dict, raise_on
             content = mcp_result.get("content", [])
             if content and isinstance(content, list):
                 error_msg = content[0].get("text", "Unknown error")
+                error_msg = strip_mcp_error_prefix(error_msg)
                 if raise_on_error:
                     raise click.ClickException(error_msg)
                 return {"error": error_msg}
