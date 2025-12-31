@@ -76,11 +76,34 @@ async def send_request(method: str, params: dict) -> dict:
     return json.loads(data.decode())
 
 
+def get_daemon_log_tail(num_lines: int = 10) -> str | None:
+    log_path = get_log_dir() / "daemon.log"
+    if not log_path.exists():
+        return None
+    try:
+        lines = log_path.read_text().splitlines()
+        tail = lines[-num_lines:] if len(lines) > num_lines else lines
+        return "\n".join(tail)
+    except Exception:
+        return None
+
+
 def run_request(method: str, params: dict) -> dict:
     ensure_daemon_running()
     response = asyncio.run(send_request(method, params))
     if "error" in response:
-        raise click.ClickException(response["error"])
+        error_msg = response["error"]
+        if "Internal error" in error_msg or "internal error" in error_msg.lower():
+            log_dir = get_log_dir()
+            tail = get_daemon_log_tail(15)
+            msg_parts = [error_msg, ""]
+            if tail:
+                msg_parts.append("Recent daemon log:")
+                msg_parts.append(tail)
+                msg_parts.append("")
+            msg_parts.append(f"Full logs: {log_dir / 'daemon.log'}")
+            raise click.ClickException("\n".join(msg_parts))
+        raise click.ClickException(error_msg)
     return response
 
 
