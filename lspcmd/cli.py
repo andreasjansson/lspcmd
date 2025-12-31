@@ -15,6 +15,7 @@ from .utils.config import (
     get_socket_path,
     get_pid_path,
     get_config_path,
+    get_log_dir,
     load_config,
     detect_workspace_root,
     get_known_workspace_root,
