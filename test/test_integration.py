@@ -1960,7 +1960,7 @@ class TestMultiLanguageIntegration:
         output = format_output(response["result"], "plain")
         assert output == """\
 app.py:10 [Class] ServiceProtocol
-app.py:18 [Class] PythonUser
+app.py:19 [Class] PythonUser
 app.py:25 [Class] PythonService"""
 
     def test_go_grep(self, workspace):
