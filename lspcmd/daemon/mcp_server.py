@@ -1972,6 +1972,12 @@ class MCPDaemonServer:
         sig = re.sub(r"^func\s+", "func ", sig)
         sig = re.sub(r"^def\s+", "def ", sig)
         sig = re.sub(r"^fn\s+", "fn ", sig)
+
+        sig = re.sub(r"\bself:\s*Self@\w+", "self", sig)
+        sig = re.sub(r"\bself:\s*Unknown", "self", sig)
+        sig = re.sub(r"\bcls:\s*type\[Self@\w+\]", "cls", sig)
+        sig = re.sub(r"\bcls:\s*Unknown", "cls", sig)
+
         sig = re.sub(r"\s*,\s*", ", ", sig)
         sig = re.sub(r"\(\s+", "(", sig)
         sig = re.sub(r"\s+\)", ")", sig)
