@@ -317,6 +317,7 @@ The CLI communicates with the daemon via JSON over Unix socket. Each CLI command
 | `organize-imports` | `organize-imports` |
 | `rename` | `rename` |
 | `move-file` | `move-file` |
+| `replace-function` | `replace-function` |
 | `daemon info` | `describe-session` |
 | `daemon shutdown` | `shutdown` |
 | `workspace restart` | `restart-workspace` |
