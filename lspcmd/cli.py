@@ -513,17 +513,9 @@ def with_symbol_help(func):
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
+@with_symbol_help
 def declaration(ctx, symbol, context):
-    """Find declaration of a symbol.
-    
-    \b
-    SYMBOL formats:
-      SymbolName            find symbol by name
-      Parent.Symbol         find symbol in parent (Class.method, module.function)
-      path:Symbol           filter by file path pattern
-      path:Parent.Symbol    combine path filter with qualified name
-      path:line:Symbol      exact file + line number + symbol (for edge cases)
-    """
+    """Find declaration of a symbol."""
     _run_location_command(ctx, symbol, context, "declaration")
 
 
@@ -531,16 +523,9 @@ def declaration(ctx, symbol, context):
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
+@with_symbol_help
 def references(ctx, symbol, context):
     """Find all references to a symbol.
-    
-    \b
-    SYMBOL formats:
-      SymbolName            find symbol by name
-      Parent.Symbol         find symbol in parent (Class.method, module.function)
-      path:Symbol           filter by file path pattern
-      path:Parent.Symbol    combine path filter with qualified name
-      path:line:Symbol      exact file + line number + symbol (for edge cases)
     
     \b
     Examples:
@@ -555,16 +540,9 @@ def references(ctx, symbol, context):
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
+@with_symbol_help
 def implementations(ctx, symbol, context):
     """Find implementations of an interface or abstract method.
-    
-    \b
-    SYMBOL formats:
-      SymbolName            find symbol by name
-      Parent.Symbol         find symbol in parent (Class.method, module.function)
-      path:Symbol           filter by file path pattern
-      path:Parent.Symbol    combine path filter with qualified name
-      path:line:Symbol      exact file + line number + symbol (for edge cases)
     
     \b
     Examples:
@@ -578,19 +556,12 @@ def implementations(ctx, symbol, context):
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
+@with_symbol_help
 def subtypes(ctx, symbol, context):
     """Find direct subtypes of a type.
     
     Returns types that directly extend/implement the given type.
     Use 'implementations' to find all implementations transitively.
-    
-    \b
-    SYMBOL formats:
-      SymbolName            find symbol by name
-      Parent.Symbol         find symbol in parent (Class.method, module.function)
-      path:Symbol           filter by file path pattern
-      path:Parent.Symbol    combine path filter with qualified name
-      path:line:Symbol      exact file + line number + symbol (for edge cases)
     """
     _run_location_command(ctx, symbol, context, "subtypes")
 
@@ -599,18 +570,11 @@ def subtypes(ctx, symbol, context):
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
+@with_symbol_help
 def supertypes(ctx, symbol, context):
     """Find direct supertypes of a type.
     
     Returns types that the given type directly extends/implements.
-    
-    \b
-    SYMBOL formats:
-      SymbolName            find symbol by name
-      Parent.Symbol         find symbol in parent (Class.method, module.function)
-      path:Symbol           filter by file path pattern
-      path:Parent.Symbol    combine path filter with qualified name
-      path:line:Symbol      exact file + line number + symbol (for edge cases)
     """
     _run_location_command(ctx, symbol, context, "supertypes")
 
