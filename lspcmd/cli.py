@@ -395,6 +395,22 @@ def config(ctx):
         click.echo("(file does not exist, using defaults)")
 
 
+SYMBOL_FORMATS = """
+SYMBOL formats:
+  SymbolName            find symbol by name
+  Parent.Symbol         find symbol in parent (Class.method, module.function)
+  path:Symbol           filter by file path pattern
+  path:Parent.Symbol    combine path filter with qualified name
+  path:line:Symbol      exact file + line number + symbol (for edge cases)"""
+
+
+def with_symbol_help(func):
+    """Decorator that appends SYMBOL format help to a command's docstring."""
+    if func.__doc__:
+        func.__doc__ = func.__doc__.rstrip() + "\n\n\\b" + SYMBOL_FORMATS
+    return func
+
+
 @cli.command("describe")
 @click.argument("symbol")
 @click.pass_context
