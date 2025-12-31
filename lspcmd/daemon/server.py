@@ -1540,6 +1540,18 @@ class DaemonServer:
             "total_matches": len(matches),
         }
     
+    def _normalize_symbol_name(self, name: str) -> str:
+        """Normalize symbol names for consistent matching.
+        
+        Handles Java method names with parameters like 'save(User)' -> 'save'
+        """
+        import re
+        # Java methods: name(params) -> name
+        match = re.match(r'^(\w+)\([^)]*\)$', name)
+        if match:
+            return match.group(1)
+        return name
+
     def _get_effective_container(self, sym: dict) -> str:
         """Get the effective container for a symbol.
         
