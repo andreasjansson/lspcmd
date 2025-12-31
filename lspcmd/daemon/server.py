@@ -1139,23 +1139,44 @@ class DaemonServer:
         opened_files = []
 
         for file_path in files:
-            try:
-                doc = await workspace.ensure_document_open(file_path)
+            file_symbols = await self._get_file_symbols_cached(workspace, workspace_root, file_path)
+            symbols.extend(file_symbols)
+            if str(file_path) in workspace.open_documents:
                 opened_files.append(file_path)
-                result = await workspace.client.send_request(
-                    "textDocument/documentSymbol",
-                    {"textDocument": {"uri": doc.uri}},
-                )
-                if result:
-                    rel_path = self._relative_path(file_path, workspace_root)
-                    self._flatten_symbols(result, rel_path, symbols)
-            except Exception as e:
-                logger.warning(f"Failed to get symbols for {file_path}: {e}")
 
         if close_after:
             for file_path in opened_files:
                 await workspace.close_document(file_path)
 
+        return symbols
+
+    async def _get_file_symbols_cached(
+        self, workspace: Workspace, workspace_root: Path, file_path: Path
+    ) -> list[dict]:
+        """Get symbols for a file, using SHA-based cache for performance."""
+        file_sha = self._get_file_sha(file_path)
+        cache_key = (str(file_path), file_sha)
+        
+        cached = self._symbol_cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        symbols = []
+        try:
+            doc = await workspace.ensure_document_open(file_path)
+            result = await workspace.client.send_request(
+                "textDocument/documentSymbol",
+                {"textDocument": {"uri": doc.uri}},
+            )
+            if result:
+                rel_path = self._relative_path(file_path, workspace_root)
+                self._flatten_symbols(result, rel_path, symbols)
+            
+            self._symbol_cache[cache_key] = symbols
+        except Exception as e:
+            logger.warning(f"Failed to get symbols for {file_path}: {e}")
+            self._symbol_cache[cache_key] = []
+        
         return symbols
 
     async def _get_symbol_documentation(self, workspace_root: Path, rel_path: str, line: int, column: int) -> str | None:
