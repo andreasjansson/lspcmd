@@ -433,10 +433,9 @@ def describe(ctx, symbol):
 @cli.command("definition")
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context around definition")
-@click.option("-b", "--body", is_flag=True, help="Print full definition body")
 @click.pass_context
-def definition(ctx, symbol, context, body):
-    """Jump to the definition of a symbol.
+def definition(ctx, symbol, context):
+    """Jump to the definition of a symbol. Shows the full body.
     
     \b
     SYMBOL formats:
@@ -450,10 +449,9 @@ def definition(ctx, symbol, context, body):
     Examples:
       lspcmd definition UserRepository
       lspcmd definition UserRepository.add_user
-      lspcmd definition "*.py:User" --body
+      lspcmd definition "*.py:User"
       lspcmd definition storage:MemoryStorage -n 2
     
-    Use -b/--body to print the full function/class body.
     Use -n/--context to show surrounding lines.
     """
     config = load_config()
@@ -466,7 +464,7 @@ def definition(ctx, symbol, context, body):
         "line": resolved.line,
         "column": resolved.column,
         "context": context,
-        "body": body,
+        "body": True,
         "direct_location": True,
         "range_start_line": resolved.range_start_line,
         "range_end_line": resolved.range_end_line,
