@@ -288,7 +288,7 @@ See `lspcmd COMMAND --help` for more documentation and command-specific options.
     commands_order=[
         "grep",
         "tree",
-        "def",
+        "show",
         "ref",
         "implementations",
         "supertypes",
