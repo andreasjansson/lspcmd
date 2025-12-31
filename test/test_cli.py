@@ -49,9 +49,15 @@ class TestCliCommands:
         assert result.exit_code == 0
         assert "already initialized" in result.output
 
-    def test_grep_no_workspace(self, isolated_config):
+    def test_grep_no_workspace(self, isolated_config, temp_dir):
         runner = CliRunner()
-        result = runner.invoke(cli, ["grep", ".*"])
+        import os
+        # Run from an empty temp dir with no workspace markers
+        empty_dir = temp_dir / "empty"
+        empty_dir.mkdir()
+        with runner.isolated_filesystem():
+            os.chdir(empty_dir)
+            result = runner.invoke(cli, ["grep", ".*"])
         assert result.exit_code == 1
         assert "No workspace initialized" in result.output
         assert "workspace init" in result.output
