@@ -289,9 +289,77 @@ class DaemonServer:
 
     async def _handle_definition(self, params: dict) -> list[dict] | dict:
         body = params.get("body", False)
+        
+        # If symbol was already resolved (direct_location=True), just return that location
+        # without asking LSP again. This is important for cases like Go embedded structs
+        # where LSP definition would return the type definition, not the field.
+        if params.get("direct_location"):
+            return await self._handle_direct_definition(params, body)
+        
         if body:
             return await self._handle_definition_body(params)
         return await self._handle_location_request(params, "textDocument/definition")
+    
+    async def _handle_direct_definition(self, params: dict, body: bool) -> list[dict] | dict:
+        """Return definition at exact location without LSP lookup."""
+        path = Path(params["path"]).resolve()
+        workspace_root = Path(params["workspace_root"]).resolve()
+        line = params["line"]
+        context = params.get("context", 0)
+        
+        rel_path = self._relative_path(path, workspace_root)
+        content = read_file_content(path)
+        lines = content.splitlines()
+        
+        if body:
+            # Use provided range if available, otherwise get from documentSymbol
+            range_start = params.get("range_start_line")
+            range_end = params.get("range_end_line")
+            
+            if range_start is not None and range_end is not None:
+                start = range_start - 1
+                end = range_end - 1
+            else:
+                # Fall back to documentSymbol lookup
+                workspace = await self.session.get_or_create_workspace(path, workspace_root)
+                doc = await workspace.ensure_document_open(path)
+                result = await workspace.client.send_request(
+                    "textDocument/documentSymbol",
+                    {"textDocument": {"uri": doc.uri}},
+                )
+                if result:
+                    symbol = self._find_symbol_at_line(result, line - 1)
+                    if symbol and "range" in symbol:
+                        start = symbol["range"]["start"]["line"]
+                        end = symbol["range"]["end"]["line"]
+                    else:
+                        start = end = line - 1
+                else:
+                    start = end = line - 1
+            
+            if context > 0:
+                start = max(0, start - context)
+                end = min(len(lines) - 1, end + context)
+            
+            return {
+                "path": rel_path,
+                "start_line": start + 1,
+                "end_line": end + 1,
+                "content": "\n".join(lines[start:end + 1]),
+            }
+        else:
+            location = {
+                "path": rel_path,
+                "line": line,
+                "column": params.get("column", 0),
+            }
+            
+            if context > 0 and path.exists():
+                ctx_lines, start, end = get_lines_around(content, line - 1, context)
+                location["context_lines"] = ctx_lines
+                location["context_start"] = start + 1
+            
+            return [location]
 
     async def _handle_definition_body(self, params: dict) -> dict:
         locations = await self._handle_location_request(params, "textDocument/definition")
