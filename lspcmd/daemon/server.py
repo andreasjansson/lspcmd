@@ -1367,9 +1367,20 @@ class DaemonServer:
         else:
             container_parts = parts[:-1]
             matches = []
+            container_str = ".".join(container_parts)
             
             for sym in all_symbols:
-                if sym.get("name") != target_name:
+                sym_name = sym.get("name", "")
+                
+                # Handle Go-style method names like "(*MemoryStorage).Save"
+                # Match "MemoryStorage.Save" against "(*MemoryStorage).Save"
+                go_style_name = f"(*{container_str}).{target_name}"
+                go_style_name_val = f"({container_str}).{target_name}"
+                if sym_name == go_style_name or sym_name == go_style_name_val:
+                    matches.append(sym)
+                    continue
+                
+                if sym_name != target_name:
                     continue
                 
                 sym_container = sym.get("container", "") or ""
@@ -1378,8 +1389,6 @@ class DaemonServer:
                 module_name = self._get_module_name(sym_path)
                 
                 full_container = f"{module_name}.{sym_container_normalized}" if sym_container_normalized else module_name
-                
-                container_str = ".".join(container_parts)
                 
                 if sym_container_normalized == container_str:
                     matches.append(sym)
