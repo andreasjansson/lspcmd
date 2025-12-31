@@ -455,14 +455,24 @@ def config(ctx):
 @click.argument("position", required=False)
 @click.pass_context
 def describe(ctx, path_or_symbol, position):
-    f"""Show hover information at position.
+    """Show hover information at position.
     
     \b
     Usage:
       lspcmd describe PATH POSITION         # traditional file+position
       lspcmd describe @Symbol               # symbol lookup
     
-    {POSITION_HELP}
+    \b
+    POSITION formats:
+      LINE,COLUMN    e.g. 42,10
+      LINE:REGEX     e.g. 42:def foo
+      REGEX          search whole file for unique match
+    
+    \b
+    @Symbol formats:
+      @SymbolName          find a symbol by name
+      @Class.method        find method in Class
+      @path:Symbol         find Symbol in files matching path
     """
     config = load_config()
     
