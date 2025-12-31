@@ -1879,17 +1879,6 @@ class MCPDaemonServer:
             return f"fn {name}{detail[2:]}"
         return f"{name} {detail}"
 
-    def _find_first_function_symbol(self, symbols: list) -> dict | None:
-        for sym in symbols:
-            kind = sym.get("kind")
-            if kind in (SymbolKind.Function, SymbolKind.Method):
-                return sym
-            if sym.get("children"):
-                child = self._find_first_function_symbol(sym["children"])
-                if child:
-                    return child
-        return None
-
     def _parse_signature_from_hover(self, hover_result: dict) -> str | None:
         contents = hover_result.get("contents")
         if not contents:
