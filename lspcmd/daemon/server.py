@@ -1540,27 +1540,46 @@ class DaemonServer:
             "total_matches": len(matches),
         }
     
+    def _get_effective_container(self, sym: dict) -> str:
+        """Get the effective container for a symbol.
+        
+        For most symbols, this is the 'container' field.
+        For Go-style methods like '(*Type).method', extract 'Type' from the name.
+        """
+        import re
+        
+        container = sym.get("container", "") or ""
+        if container:
+            return self._normalize_container(container)
+        
+        # For Go methods, the container is embedded in the name: (*Type).method or (Type).method
+        sym_name = sym.get("name", "")
+        match = re.match(r'^\(\*?(\w+)\)\.', sym_name)
+        if match:
+            return match.group(1)
+        
+        return ""
+
     def _generate_unambiguous_ref(self, sym: dict, all_matches: list[dict], target_name: str) -> str:
         """Generate an unambiguous reference string for a symbol.
         
         Tries in order of preference:
         1. Container.Symbol (if container is unique among matches)
         2. filename:Symbol (if filename is unique)
-        3. filename:Container.Symbol (if combination is unique)
+        3. filename:Container.Symbol (if combination is unique)  
         4. path:line:Symbol (always unique)
         """
         sym_path = sym.get("path", "")
         sym_line = sym.get("line", 0)
-        sym_container = sym.get("container", "")
-        sym_container_normalized = self._normalize_container(sym_container) if sym_container else ""
+        sym_container = self._get_effective_container(sym)
         filename = Path(sym_path).name
         
         # Try Container.Symbol
-        if sym_container_normalized:
-            ref = f"{sym_container_normalized}.{target_name}"
+        if sym_container:
+            ref = f"{sym_container}.{target_name}"
             matches_with_ref = [
                 s for s in all_matches
-                if self._normalize_container(s.get("container", "") or "") == sym_container_normalized
+                if self._get_effective_container(s) == sym_container
             ]
             if len(matches_with_ref) == 1:
                 return ref
@@ -1575,12 +1594,12 @@ class DaemonServer:
             return ref
         
         # Try filename:Container.Symbol
-        if sym_container_normalized:
-            ref = f"{filename}:{sym_container_normalized}.{target_name}"
+        if sym_container:
+            ref = f"{filename}:{sym_container}.{target_name}"
             matches_with_ref = [
                 s for s in all_matches
                 if Path(s.get("path", "")).name == filename
-                and self._normalize_container(s.get("container", "") or "") == sym_container_normalized
+                and self._get_effective_container(s) == sym_container
             ]
             if len(matches_with_ref) == 1:
                 return ref
