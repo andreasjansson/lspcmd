@@ -1451,11 +1451,20 @@ class DaemonServer:
         
         target_name = parts[-1]
         
+        def name_matches(sym_name: str, target: str) -> bool:
+            """Check if symbol name matches target, handling Java method signatures."""
+            if sym_name == target:
+                return True
+            # Match normalized names: 'save(User)' matches 'save'
+            if self._normalize_symbol_name(sym_name) == target:
+                return True
+            return False
+        
         if len(parts) == 1:
             matches = []
             for s in all_symbols:
                 sym_name = s.get("name", "")
-                if sym_name == target_name:
+                if name_matches(sym_name, target_name):
                     matches.append(s)
                 # Also match Go-style method names like "(*Scheduler).updateAllWeights"
                 # when searching for just "updateAllWeights"
@@ -1477,7 +1486,7 @@ class DaemonServer:
                     matches.append(sym)
                     continue
                 
-                if sym_name != target_name:
+                if not name_matches(sym_name, target_name):
                     continue
                 
                 sym_container = sym.get("container", "") or ""
