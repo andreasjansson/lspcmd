@@ -708,6 +708,63 @@ Moved file and updated imports in 4 file(s):
         assert "from helpers import validate_email" in updated_main
         assert "from utils import validate_email" not in updated_main
 
+    # =========================================================================
+    # resolve-symbol disambiguation tests
+    # =========================================================================
+
+    def test_resolve_symbol_unique_name(self, workspace):
+        """Test resolving a unique symbol name."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "User",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert result["name"] == "User"
+        assert result["line"] == 27
+
+    def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
+        """Test that ambiguous symbols show Container.name format in refs."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "save",
+        })
+        result = response["result"]
+        assert "error" in result
+        assert "ambiguous" in result["error"]
+        matches = result.get("matches", [])
+        refs = [m.get("ref", "") for m in matches]
+        assert "StorageProtocol.save" in refs
+        assert "MemoryStorage.save" in refs
+        assert "FileStorage.save" in refs
+        for ref in refs:
+            assert ":" not in ref, f"Should use Container.name format, not path: {ref}"
+
+    def test_resolve_symbol_qualified_name(self, workspace):
+        """Test resolving Container.name format."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "MemoryStorage.save",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert result["name"] == "save"
+        assert result["line"] == 54
+
+    def test_resolve_symbol_file_filter(self, workspace):
+        """Test resolving with file filter."""
+        os.chdir(workspace)
+        response = run_request("resolve-symbol", {
+            "workspace_root": str(workspace),
+            "symbol_path": "utils.py:validate_email",
+        })
+        result = response["result"]
+        assert "error" not in result, f"Unexpected error: {result.get('error')}"
+        assert "utils.py" in result["path"] or "helpers.py" in result["path"]
+
 
 # =============================================================================
 # Go Integration Tests (gopls)
