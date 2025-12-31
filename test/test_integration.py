@@ -1465,11 +1465,11 @@ Moved file and updated imports in 3 file(s):
                 assert not parts[1].isdigit(), f"Should not use line numbers in refs: {ref}"
 
     def test_resolve_symbol_impl_method(self, workspace):
-        """Test resolving impl method with 'impl Type.method' format."""
+        """Test resolving impl method with Type.method format."""
         os.chdir(workspace)
         response = self._run_request_with_retry("resolve-symbol", {
             "workspace_root": str(workspace),
-            "symbol_path": "impl MemoryStorage.new",
+            "symbol_path": "MemoryStorage.new",
         })
         result = response["result"]
         assert "error" not in result, f"Unexpected error: {result.get('error')}"
