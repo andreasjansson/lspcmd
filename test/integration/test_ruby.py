@@ -211,8 +211,8 @@ user.rb:144 [Class] UserRepository"""
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.rb:8
-main.rb:8"""
+main.rb:8 def create_sample_user
+main.rb:8 def create_sample_user"""
 
     def test_definition_with_body_not_supported(self, workspace):
         os.chdir(workspace)
