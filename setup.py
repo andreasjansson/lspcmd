@@ -11,10 +11,6 @@ setup(
         "pydantic>=2.0",
         "tomli>=2.0",
         "tomli-w>=1.0",
-        "mcp>=1.0",
-        "httpx>=0.27",
-        "uvicorn>=0.30",
-        "starlette>=0.38",
     ],
     extras_require={
         "test": [
