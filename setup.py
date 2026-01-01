@@ -8,6 +8,7 @@ setup(
     python_requires=">=3.11",
     install_requires=[
         "click>=8.0",
+        "lmdb>=1.4",
         "pydantic>=2.0",
         "tomli>=2.0",
         "tomli-w>=1.0",
