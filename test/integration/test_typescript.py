@@ -85,6 +85,123 @@ src/user.ts:92 [Class] UserRepository"""
         output = format_output(response["result"], "plain")
         assert output == "src/user.ts:29 [Interface] Storage"
 
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.ts")],
+            "workspace_root": str(workspace),
+            "pattern": "^User$",
+            "case_sensitive": False,
+        })
+        insensitive_output = format_output(response["result"], "plain")
+        assert insensitive_output == "src/user.ts:4 [Class] User"
+        
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.ts")],
+            "workspace_root": str(workspace),
+            "pattern": "^user$",
+            "case_sensitive": True,
+        })
+        lowercase_output = format_output(response["result"], "plain")
+        assert lowercase_output == "No results"
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.ts")],
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.ts:62 [Class] FileStorage
+src/user.ts:39 [Class] MemoryStorage"""
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "main.ts"), str(workspace / "src" / "user.ts")],
+            "workspace_root": str(workspace),
+            "pattern": "^validate",
+            "case_sensitive": False,
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.ts:20 [Function] validateEmail
+src/user.ts:119 [Function] validateUser"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "validate",
+            "case_sensitive": False,
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.ts:20 [Function] validateEmail
+src/user.ts:119 [Function] validateUser"""
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        all_output = format_output(response["result"], "plain")
+        assert all_output == """\
+src/main.ts:6 [Function] createSampleUser
+src/main.ts:55 [Function] main
+src/main.ts:75 [Function] names.forEach() callback in main
+src/main.ts:13 [Function] processUsers
+src/main.ts:14 [Function] map() callback in processUsers
+src/main.ts:20 [Function] validateEmail
+src/errors.ts:36 [Function] callError
+src/errors.ts:17 [Function] missingReturn
+src/errors.ts:27 [Function] propertyError
+src/errors.ts:32 [Function] twoArgs
+src/errors.ts:11 [Function] typeError
+src/errors.ts:6 [Function] undefinedVariable
+src/user.ts:119 [Function] validateUser"""
+        
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+            "exclude_patterns": ["errors.ts"],
+        })
+        filtered_output = format_output(response["result"], "plain")
+        assert filtered_output == """\
+src/main.ts:6 [Function] createSampleUser
+src/main.ts:55 [Function] main
+src/main.ts:75 [Function] names.forEach() callback in main
+src/main.ts:13 [Function] processUsers
+src/main.ts:14 [Function] map() callback in processUsers
+src/main.ts:20 [Function] validateEmail
+src/user.ts:119 [Function] validateUser"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "main.ts")],
+            "workspace_root": str(workspace),
+            "pattern": "^createSampleUser$",
+            "kinds": ["function"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.ts:6 [Function] createSampleUser
+    ```typescript
+    function createSampleUser(): User
+    ```
+    Creates a sample user for testing.
+"""
+
     # =========================================================================
     # definition tests
     # =========================================================================
