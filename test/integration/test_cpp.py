@@ -229,7 +229,7 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
             "body": False,
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
+        assert output == "user.hpp:135 inline User createSampleUser() {"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
@@ -242,8 +242,12 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
             "body": True,
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
-        assert 'John Doe' in output
+        assert output == """\
+user.hpp:135-137
+
+inline User createSampleUser() {
+    return User("John Doe", "john@example.com", 30);
+}"""
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
@@ -256,7 +260,32 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
             "body": False,
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
+        assert output == """\
+user.hpp:134-136
+/// Creates a sample user for testing.
+inline User createSampleUser() {
+    return User("John Doe", "john@example.com", 30);
+"""
+
+    def test_definition_with_body_and_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "main.cpp"),
+            "workspace_root": str(workspace),
+            "line": 11,
+            "column": 25,
+            "context": 1,
+            "body": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+user.hpp:134-138
+
+/// Creates a sample user for testing.
+inline User createSampleUser() {
+    return User("John Doe", "john@example.com", 30);
+}
+"""
 
     # =========================================================================
     # references tests
