@@ -249,35 +249,55 @@ src/main/java/com/example/UserRepository.java:55     public List<User> listUsers
         os.chdir(workspace)
         
         base_path = workspace / "src" / "main" / "java" / "com" / "example"
+        user_path = base_path / "User.java"
+        person_path = base_path / "Person.java"
         
-        # Verify User.java exists and check initial class usage
-        assert (base_path / "User.java").exists()
+        # Save original state for restoration
+        original_user = user_path.read_text()
         original_main = (base_path / "Main.java").read_text()
-        assert "User createSampleUser()" in original_main
-        assert "new User(" in original_main
+        original_storage = (base_path / "Storage.java").read_text()
+        original_memory_storage = (base_path / "MemoryStorage.java").read_text()
+        original_file_storage = (base_path / "FileStorage.java").read_text()
+        original_user_repository = (base_path / "UserRepository.java").read_text()
         
-        # Rename User.java to Person.java
-        response = run_request("move-file", {
-            "old_path": str(base_path / "User.java"),
-            "new_path": str(base_path / "Person.java"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        
-        # Verify the file was moved
-        assert not (base_path / "User.java").exists()
-        assert (base_path / "Person.java").exists()
-        
-        # jdtls updates class references across multiple files
-        assert "Moved file and updated imports in" in output
-        assert "src/main/java/com/example/Main.java" in output
-        assert "src/main/java/com/example/Person.java" in output
-        
-        # Check that class references were updated in Main.java
-        updated_main = (base_path / "Main.java").read_text()
-        assert "Person createSampleUser()" in updated_main
-        assert "new Person(" in updated_main
-        assert "new User(" not in updated_main
+        try:
+            # Verify User.java exists and check initial class usage
+            assert user_path.exists()
+            assert "User createSampleUser()" in original_main
+            assert "new User(" in original_main
+            
+            # Rename User.java to Person.java
+            response = run_request("move-file", {
+                "old_path": str(user_path),
+                "new_path": str(person_path),
+                "workspace_root": str(workspace),
+            })
+            output = format_output(response["result"], "plain")
+            
+            # Verify the file was moved
+            assert not user_path.exists()
+            assert person_path.exists()
+            
+            # jdtls updates class references across multiple files
+            assert "Moved file and updated imports in" in output
+            assert "src/main/java/com/example/Main.java" in output
+            assert "src/main/java/com/example/Person.java" in output
+            
+            # Check that class references were updated in Main.java
+            updated_main = (base_path / "Main.java").read_text()
+            assert "Person createSampleUser()" in updated_main
+            assert "new Person(" in updated_main
+            assert "new User(" not in updated_main
+        finally:
+            # Restore original state
+            if person_path.exists():
+                person_path.unlink()
+            user_path.write_text(original_user)
+            (base_path / "Main.java").write_text(original_main)
+            (base_path / "Storage.java").write_text(original_storage)
+            (base_path / "MemoryStorage.java").write_text(original_memory_storage)
+            (base_path / "FileStorage.java").write_text(original_file_storage)
+            (base_path / "UserRepository.java").write_text(original_user_repository)
 
     # =========================================================================
     # resolve-symbol disambiguation tests
