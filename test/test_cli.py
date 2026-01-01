@@ -37,6 +37,16 @@ class TestCliCommands:
         assert "SYMBOL" in result.output
         assert "--head" in result.output
 
+    def test_help_all(self):
+        runner = CliRunner()
+        result = runner.invoke(cli, ["help-all"])
+        assert result.exit_code == 0
+        assert "LSPCMD - Command Line LSP Client" in result.output
+        assert "COMMAND DETAILS" in result.output
+        assert "lspcmd grep" in result.output
+        assert "lspcmd daemon info" in result.output
+        assert "COOKBOOK EXAMPLES" in result.output
+
     def test_workspace_init(self, python_project, isolated_config):
         runner = CliRunner()
         result = runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
