@@ -871,53 +871,53 @@ WHY USE lspcmd grep INSTEAD OF ripgrep?
 
 \b
 COOKBOOK EXAMPLES:
-
+\b
   Find all test functions across the project:
     lspcmd grep "^Test" -k function
     lspcmd grep "^test_" "*.py" -k function
-
+\b
   Find a class and all its methods:
     lspcmd grep "UserRepository" -k class
     lspcmd grep ".*" -k method | grep UserRepository
-
+\b
   Find all implementations of an interface pattern:
     lspcmd grep "Storage$" -k class,struct
     lspcmd grep "Handler$" -k class -d  # with docs
-
+\b
   Explore unfamiliar code - what's in this file?
     lspcmd grep "." src/server.py
     lspcmd grep "." src/server.py -k function,method
-
+\b
   Find all public functions (Go convention):
     lspcmd grep "^[A-Z]" "*.go" -k function
-
+\b
   Find all private methods (Python convention):
     lspcmd grep "^_[^_]" "*.py" -k method
-
+\b
   Find constants and configuration:
     lspcmd grep ".*" -k constant
     lspcmd grep "^(CONFIG|DEFAULT|MAX|MIN)" -k variable
-
+\b
   Search with documentation to understand purpose:
     lspcmd grep "parse" -k function -d
     lspcmd grep "validate" -d
-
+\b
   Exclude test files and vendor directories:
     lspcmd grep "Handler" -x test -x vendor -x mock
-
+\b
   Find symbols in a specific package/module:
     lspcmd grep ".*" internal/auth -k function
     lspcmd grep ".*" "src/models/*.py" -k class
 
 \b
 COMPARISON WITH ripgrep:
-
+\b
   ripgrep: finds TEXT anywhere in files
     rg "UserRepository"  →  matches comments, strings, imports, usages
-
+\b
   lspcmd grep: finds SYMBOL DEFINITIONS only
     lspcmd grep "UserRepository"  →  matches only where it's defined
-
+\b
   Use ripgrep for: "find all files mentioning 'deprecated'"
   Use lspcmd grep for: "find the deprecated functions"
 """
