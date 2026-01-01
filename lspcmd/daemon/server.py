@@ -151,8 +151,16 @@ class DaemonServer:
         self._shutdown_event = asyncio.Event()
         self._hover_cache_bytes = hover_cache_bytes or DEFAULT_CACHE_SIZE_BYTES
         self._symbol_cache_bytes = symbol_cache_bytes or DEFAULT_CACHE_SIZE_BYTES
-        self._hover_cache = LRUCache(self._hover_cache_bytes)
-        self._symbol_cache = LRUCache(self._symbol_cache_bytes)
+        
+        cache_dir = get_cache_dir()
+        self._hover_cache = LMDBCache(
+            cache_dir / "hover_cache.lmdb",
+            self._hover_cache_bytes,
+        )
+        self._symbol_cache = LMDBCache(
+            cache_dir / "symbol_cache.lmdb",
+            self._symbol_cache_bytes,
+        )
 
     async def start(self) -> None:
         self.session.config = load_config()
