@@ -804,6 +804,85 @@ KIND_HELP = (
 )
 
 
+GREP_HELP = """\
+Search for symbols matching a regex pattern.
+
+PATTERN is a regex matched against symbol names (case-insensitive by default).
+
+PATH supports wildcards. Simple patterns like '*.go' search recursively.
+Directories are automatically expanded to include all files recursively.
+
+\b
+IMPORTANT: lspcmd grep searches SYMBOL NAMES only (functions, classes,
+methods, variables, etc.). It does NOT search file contents like ripgrep.
+Use ripgrep/grep when searching for:
+  - String literals, comments, or documentation
+  - Multi-word phrases or sentences
+  - Symbols from external libraries (not defined in your code)
+  - Punctuation or operators
+
+\b
+WHY USE lspcmd grep INSTEAD OF ripgrep?
+  - Semantic search: finds symbol definitions, not just text matches
+  - No false positives: "User" won't match "UserError" or "getUser"
+  - Filter by kind: find only classes, only functions, etc.
+  - Get documentation: -d flag shows docstrings/comments
+  - Understands scope: MyClass.method vs OtherClass.method
+
+\b
+COOKBOOK EXAMPLES:
+
+  Find all test functions across the project:
+    lspcmd grep "^Test" -k function
+    lspcmd grep "^test_" "*.py" -k function
+
+  Find a class and all its methods:
+    lspcmd grep "UserRepository" -k class
+    lspcmd grep ".*" -k method | grep UserRepository
+
+  Find all implementations of an interface pattern:
+    lspcmd grep "Storage$" -k class,struct
+    lspcmd grep "Handler$" -k class -d  # with docs
+
+  Explore unfamiliar code - what's in this file?
+    lspcmd grep "." src/server.py
+    lspcmd grep "." src/server.py -k function,method
+
+  Find all public functions (Go convention):
+    lspcmd grep "^[A-Z]" "*.go" -k function
+
+  Find all private methods (Python convention):
+    lspcmd grep "^_[^_]" "*.py" -k method
+
+  Find constants and configuration:
+    lspcmd grep ".*" -k constant
+    lspcmd grep "^(CONFIG|DEFAULT|MAX|MIN)" -k variable
+
+  Search with documentation to understand purpose:
+    lspcmd grep "parse" -k function -d
+    lspcmd grep "validate" -d
+
+  Exclude test files and vendor directories:
+    lspcmd grep "Handler" -x test -x vendor -x mock
+
+  Find symbols in a specific package/module:
+    lspcmd grep ".*" internal/auth -k function
+    lspcmd grep ".*" "src/models/*.py" -k class
+
+\b
+COMPARISON WITH ripgrep:
+
+  ripgrep: finds TEXT anywhere in files
+    rg "UserRepository"  →  matches comments, strings, imports, usages
+
+  lspcmd grep: finds SYMBOL DEFINITIONS only
+    lspcmd grep "UserRepository"  →  matches only where it's defined
+
+  Use ripgrep for: "find all files mentioning 'deprecated'"
+  Use lspcmd grep for: "find the deprecated functions"
+"""
+
+
 @cli.command("grep")
 @click.argument("pattern")
 @click.argument("path", required=False)
@@ -818,31 +897,7 @@ KIND_HELP = (
 @click.option("-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching")
 @click.pass_context
 def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
-    """Search for symbols matching a regex pattern.
-
-    PATTERN is a regex matched against symbol names (case-insensitive by default).
-
-    PATH supports wildcards. Simple patterns like '*.go' search recursively.
-    Directories are automatically expanded to include all files recursively.
-
-    Examples:
-
-      # Find all Go test functions
-      lspcmd grep "Test.*" "*.go" -k function
-
-      # Find any classes or structs that start with
-      lspcmd grep "^User" -k class,struct
-
-      # Find all symbols that end with Handler in the internal/ directory,
-      # and return documentation
-      lspcmd grep "Handler$" internal -d
-
-      # Find all symbols that contain (URL case-sensitive)
-      lspcmd grep "URL" -C  # case-sensitive
-
-      # Find all symbols in Go files excluding tests/ and vendor/
-      lspcmd grep ".*" "*.go" -x tests -x vendor  # exclude multiple directories
-    """
+    __doc__ = GREP_HELP
     if " " in pattern:
         click.echo(
             f"Warning: Pattern contains a space. lspcmd grep searches symbol names, "
