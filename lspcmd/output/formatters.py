@@ -218,9 +218,25 @@ def format_session(data: dict) -> str:
     if daemon_pid:
         lines.append(f"Daemon PID: {daemon_pid}")
     
+    caches = data.get("caches", {})
+    if caches:
+        lines.append("\nCaches:")
+        hover = caches.get("hover_cache", {})
+        symbol = caches.get("symbol_cache", {})
+        if hover:
+            lines.append(
+                f"  Hover:  {format_size(hover['current_bytes'])} / {format_size(hover['max_bytes'])} "
+                f"({hover['entries']} entries)"
+            )
+        if symbol:
+            lines.append(
+                f"  Symbol: {format_size(symbol['current_bytes'])} / {format_size(symbol['max_bytes'])} "
+                f"({symbol['entries']} entries)"
+            )
+    
     workspaces = data.get("workspaces", [])
     if not workspaces:
-        lines.append("No active workspaces")
+        lines.append("\nNo active workspaces")
         return "\n".join(lines)
 
     lines.append("\nActive workspaces:")
