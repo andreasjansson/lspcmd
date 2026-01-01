@@ -87,9 +87,113 @@ class TestPhpIntegration:
             "kinds": ["method"],
         })
         output = format_output(response["result"], "plain")
-        assert "getName" in output
-        assert "getEmail" in output
-        assert "getAge" in output
+        assert output == """\
+src/User.php:30 [Method] getName in User
+src/User.php:40 [Method] getEmail in User
+src/User.php:50 [Method] getAge in User"""
+
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "User.php")],
+            "workspace_root": str(workspace),
+            "pattern": "^User$",
+            "case_sensitive": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/User.php:10 [Class] User"
+        
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "User.php")],
+            "workspace_root": str(workspace),
+            "pattern": "^user$",
+            "case_sensitive": True,
+        })
+        lowercase_output = format_output(response["result"], "plain")
+        assert lowercase_output == "No results"
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/MemoryStorage.php:10 [Class] MemoryStorage
+src/FileStorage.php:10 [Class] FileStorage"""
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "Main.php"), str(workspace / "src" / "User.php")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["method"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/Main.php:17 [Method] createSampleUser (static) in Main
+src/Main.php:28 [Method] validateUser (static) in Main
+src/Main.php:47 [Method] processUsers (static) in Main
+src/Main.php:58 [Method] run (static) in Main
+src/User.php:30 [Method] getName in User
+src/User.php:40 [Method] getEmail in User
+src/User.php:50 [Method] getAge in User
+src/User.php:60 [Method] isAdult in User
+src/User.php:70 [Method] displayName in User"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "validate",
+            "case_sensitive": False,
+            "kinds": ["method"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/Main.php:28 [Method] validateUser (static) in Main"
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["class"],
+            "exclude_patterns": ["Errors.php"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/Main.php:10 [Class] Main
+src/User.php:10 [Class] User
+src/MemoryStorage.php:10 [Class] MemoryStorage
+src/FileStorage.php:10 [Class] FileStorage
+src/UserRepository.php:10 [Class] UserRepository"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "Main.php")],
+            "workspace_root": str(workspace),
+            "pattern": "createSampleUser",
+            "kinds": ["method"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/Main.php:17 [Method] createSampleUser (static) in Main
+    __LspcmdFixture\\\\Main::createSampleUser__
+    
+    Creates a sample user for testing.
+    
+    ```php
+    <?php
+    public static function createSampleUser(): User { }
+    ```
+    
+    _@return_ `User` A sample user instance
+"""
 
     # =========================================================================
     # definition tests
