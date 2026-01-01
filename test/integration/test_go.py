@@ -89,6 +89,102 @@ main.go:119 [Struct] UserRepository (struct{...})"""
 main.go:31 [Interface] Storage (interface{...})
 main.go:154 [Interface] Validator (interface{...})"""
 
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.go")],
+            "workspace_root": str(workspace),
+            "pattern": "user",
+            "case_sensitive": False,
+        })
+        insensitive_output = format_output(response["result"], "plain")
+        
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.go")],
+            "workspace_root": str(workspace),
+            "pattern": "user",
+            "case_sensitive": True,
+        })
+        sensitive_output = format_output(response["result"], "plain")
+        
+        assert "User" in insensitive_output
+        assert "NewUser" in insensitive_output
+        assert "User" not in sensitive_output
+        assert "user" in sensitive_output.lower()
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.go")],
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["struct"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.go:39 [Struct] MemoryStorage (struct{...})
+main.go:85 [Struct] FileStorage (struct{...})"""
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.go"), str(workspace / "utils.go")],
+            "workspace_root": str(workspace),
+            "pattern": "^New",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "main.go" in output
+        assert "utils.go" in output
+        assert "NewUser" in output
+        assert "NewCounter" in output
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "Validate",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert "ValidateEmail" in output
+        assert "ValidateAge" in output
+        assert "ValidateUser" in output
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+        })
+        all_output = format_output(response["result"], "plain")
+        
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["function"],
+            "exclude_patterns": ["utils.go"],
+        })
+        filtered_output = format_output(response["result"], "plain")
+        
+        assert "utils.go" in all_output
+        assert "utils.go" not in filtered_output
+        assert "main.go" in filtered_output
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.go")],
+            "workspace_root": str(workspace),
+            "pattern": "^NewUser$",
+            "kinds": ["function"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert "NewUser" in output
+        assert "creates a new User instance" in output.lower() or "func NewUser" in output
+
     # =========================================================================
     # definition tests
     # =========================================================================
