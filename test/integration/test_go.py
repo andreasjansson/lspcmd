@@ -319,17 +319,16 @@ Renamed in 1 file(s):
     # =========================================================================
 
     def test_declaration_not_supported(self, workspace):
-        import click
         os.chdir(workspace)
-        with pytest.raises(click.ClickException) as exc_info:
-            run_request("declaration", {
-                "path": str(workspace / "main.go"),
-                "workspace_root": str(workspace),
-                "line": 175,
-                "column": 2,
-                "context": 0,
-            })
-        assert "textDocument/declaration" in str(exc_info.value)
+        response = run_request("declaration", {
+            "path": str(workspace / "main.go"),
+            "workspace_root": str(workspace),
+            "line": 175,
+            "column": 2,
+            "context": 0,
+        })
+        assert "error" in response
+        assert "textDocument/declaration" in response["error"]
 
     # =========================================================================
     # diagnostics tests
