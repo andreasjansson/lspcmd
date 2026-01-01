@@ -409,7 +409,7 @@ def help_all(ctx):
     click.echo("=" * 70)
     click.echo()
     
-    with click.Context(cli) as main_ctx:
+    with click.Context(cli, info_name="lspcmd") as main_ctx:
         click.echo(cli.get_help(main_ctx))
     
     click.echo()
@@ -425,12 +425,12 @@ def help_all(ctx):
         click.echo("-" * 70)
         click.echo()
         
-        with click.Context(cmd, info_name=full_name, parent=ctx) as cmd_ctx:
+        with click.Context(cmd, info_name=f"lspcmd {full_name}") as cmd_ctx:
             click.echo(cmd.get_help(cmd_ctx))
         
         if isinstance(cmd, click.Group):
-            for subname in cmd.list_commands(ctx):
-                subcmd = cmd.get_command(ctx, subname)
+            for subname in cmd.list_commands(cmd_ctx):
+                subcmd = cmd.get_command(cmd_ctx, subname)
                 print_command_help(subcmd, subname, prefix=f"{full_name} ")
     
     for name in cli.list_commands(ctx):
