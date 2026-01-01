@@ -213,13 +213,13 @@ class TestPhpIntegration:
         
         base_path = workspace / "src"
         
-        with pytest.raises(click.ClickException) as exc_info:
-            run_request("move-file", {
-                "old_path": str(base_path / "User.php"),
-                "new_path": str(base_path / "Person.php"),
-                "workspace_root": str(workspace),
-            })
-        assert str(exc_info.value) == "move-file is not supported by intelephense"
+        response = run_request("move-file", {
+            "old_path": str(base_path / "User.php"),
+            "new_path": str(base_path / "Person.php"),
+            "workspace_root": str(workspace),
+        })
+        assert "error" in response
+        assert response["error"] == "move-file is not supported by intelephense"
         
         # Verify file was NOT moved
         assert (base_path / "User.php").exists()
