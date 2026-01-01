@@ -5,6 +5,7 @@ import logging
 import os
 import re
 import signal
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -18,15 +19,19 @@ from ..utils.text import read_file_content, get_lines_around, get_language_id
 
 logger = logging.getLogger(__name__)
 
-HOVER_CACHE_SIZE = 50000
-SYMBOL_CACHE_SIZE = 10000
+DEFAULT_CACHE_SIZE_BYTES = 256 * 1024 * 1024  # 256MB
 
 
 class LRUCache:
-    def __init__(self, maxsize: int):
-        self.maxsize = maxsize
+    def __init__(self, max_bytes: int):
+        self.max_bytes = max_bytes
         self.cache: dict[tuple, Any] = {}
+        self.sizes: dict[tuple, int] = {}
         self.order: list[tuple] = []
+        self.current_bytes = 0
+
+    def __len__(self) -> int:
+        return len(self.cache)
 
     def __contains__(self, key: tuple) -> bool:
         return key in self.cache
@@ -44,13 +49,39 @@ class LRUCache:
         return self.cache[key]
 
     def __setitem__(self, key: tuple, value: Any) -> None:
+        value_size = self._estimate_size(value)
+
         if key in self.cache:
+            old_size = self.sizes[key]
+            self.current_bytes -= old_size
             self.order.remove(key)
-        elif len(self.cache) >= self.maxsize:
+
+        while self.order and (self.current_bytes + value_size) > self.max_bytes:
             oldest = self.order.pop(0)
+            self.current_bytes -= self.sizes[oldest]
             del self.cache[oldest]
+            del self.sizes[oldest]
+
         self.cache[key] = value
+        self.sizes[key] = value_size
+        self.current_bytes += value_size
         self.order.append(key)
+
+    def _estimate_size(self, value: Any) -> int:
+        if value is None:
+            return 8
+        if isinstance(value, str):
+            return sys.getsizeof(value)
+        if isinstance(value, (list, tuple)):
+            base = sys.getsizeof(value)
+            return base + sum(self._estimate_size(item) for item in value)
+        if isinstance(value, dict):
+            base = sys.getsizeof(value)
+            return base + sum(
+                self._estimate_size(k) + self._estimate_size(v)
+                for k, v in value.items()
+            )
+        return sys.getsizeof(value)
 
 
 class DaemonServer:
