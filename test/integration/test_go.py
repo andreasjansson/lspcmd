@@ -371,16 +371,15 @@ Renamed in 1 file(s):
     # =========================================================================
 
     def test_move_file_not_supported(self, workspace):
-        import click
         os.chdir(workspace)
         
-        with pytest.raises(click.ClickException) as exc_info:
-            run_request("move-file", {
-                "old_path": str(workspace / "utils.go"),
-                "new_path": str(workspace / "helpers.go"),
-                "workspace_root": str(workspace),
-            })
-        assert str(exc_info.value) == "move-file is not supported by gopls"
+        response = run_request("move-file", {
+            "old_path": str(workspace / "utils.go"),
+            "new_path": str(workspace / "helpers.go"),
+            "workspace_root": str(workspace),
+        })
+        assert "error" in response
+        assert response["error"] == "move-file is not supported by gopls"
         
         # Verify file was NOT moved
         assert (workspace / "utils.go").exists()
