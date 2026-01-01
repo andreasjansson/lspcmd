@@ -296,6 +296,19 @@ main.go:144 func (r *UserRepository) ListUsers() ([]*User, error) {
 main.go:149 func createSampleUser() *User {
 main.go:159 func ValidateUser(user *User) error {"""
 
+    def test_references_with_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("references", {
+            "path": str(workspace / "main.go"),
+            "workspace_root": str(workspace),
+            "line": 124,
+            "column": 5,
+            "context": 1,
+        })
+        output = format_output(response["result"], "plain")
+        assert "NewUserRepository" in output
+        assert "// NewUserRepository creates a new repository" in output
+
     # =========================================================================
     # implementations tests
     # =========================================================================
