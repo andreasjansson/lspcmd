@@ -156,11 +156,11 @@ class TestCliWithDaemon:
         assert result.exit_code == 0
         assert "User" in result.output or "Class" in result.output
 
-    def test_daemon_shutdown(self, isolated_config):
+    def test_daemon_stop(self, isolated_config):
         runner = CliRunner()
         runner.invoke(cli, ["daemon", "info"])
 
-        result = runner.invoke(cli, ["daemon", "shutdown"])
+        result = runner.invoke(cli, ["daemon", "stop"])
         assert result.exit_code == 0
 
         time.sleep(0.5)
