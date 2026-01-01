@@ -53,9 +53,9 @@ class TestLuaIntegration:
             "pattern": "Storage",
         })
         output = format_output(response["result"], "plain")
-        assert "Storage" in output
-        assert "MemoryStorage" in output
-        assert "FileStorage" in output
+        assert "[Object] Storage" in output
+        assert "[Object] MemoryStorage" in output
+        assert "[Object] FileStorage" in output
 
     def test_grep_kind_filter_function(self, workspace):
         os.chdir(workspace)
@@ -66,14 +66,14 @@ class TestLuaIntegration:
             "kinds": ["function"],
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
-        assert "validateUser" in output
-        assert "processUsers" in output
-        assert "main" in output
+        assert output == """\
+main.lua:8 [Function] createSampleUser (function ())
+main.lua:14 [Function] validateUser (function (u))
+main.lua:28 [Function] processUsers (function (repo))
+main.lua:36 [Function] main (function ())"""
 
     def test_grep_kind_filter_object(self, workspace):
         os.chdir(workspace)
-        # In Lua, classes/tables are reported as objects by lua-language-server
         response = run_request("grep", {
             "paths": [str(workspace / "user.lua")],
             "workspace_root": str(workspace),
@@ -81,7 +81,109 @@ class TestLuaIntegration:
             "kinds": ["object"],
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
+        assert output == "user.lua:11 [Object] User"
+
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        # Case-insensitive should find Storage classes and storage variables
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.lua")],
+            "workspace_root": str(workspace),
+            "pattern": "storage",
+            "kinds": ["object"],
+            "case_sensitive": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert "[Object] Storage" in output
+        assert "[Object] MemoryStorage" in output
+        assert "[Object] FileStorage" in output
+        
+        # Case-sensitive should find only lowercase storage (none for objects)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.lua")],
+            "workspace_root": str(workspace),
+            "pattern": "storage",
+            "kinds": ["object"],
+            "case_sensitive": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "No results"
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.lua")],
+            "workspace_root": str(workspace),
+            "pattern": "^Memory",
+            "kinds": ["object"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "user.lua:72 [Object] MemoryStorage"
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "user.lua"), str(workspace / "main.lua")],
+            "workspace_root": str(workspace),
+            "pattern": "User",
+            "kinds": ["object"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+user.lua:11 [Object] User
+user.lua:79 [Object] self.users in MemoryStorage.new
+user.lua:158 [Object] UserRepository"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        all_files = [str(p) for p in workspace.glob("*.lua")]
+        response = run_request("grep", {
+            "paths": all_files,
+            "workspace_root": str(workspace),
+            "pattern": "main",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "main.lua:36 [Function] main (function ())"
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        all_files = [str(p) for p in workspace.glob("*.lua")]
+        response = run_request("grep", {
+            "paths": all_files,
+            "workspace_root": str(workspace),
+            "pattern": "User",
+            "kinds": ["object"],
+            "exclude_patterns": ["errors.lua"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+user.lua:11 [Object] User
+user.lua:79 [Object] self.users in MemoryStorage.new
+user.lua:158 [Object] UserRepository"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "main.lua")],
+            "workspace_root": str(workspace),
+            "pattern": "^createSampleUser$",
+            "kinds": ["function"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+main.lua:8 [Function] createSampleUser (function ())
+    ```lua
+    function createSampleUser()
+      -> table
+    ```
+    
+    ---
+    
+     Creates a sample user for testing.
+     @return User A sample user instance
+"""
 
     # =========================================================================
     # definition tests
