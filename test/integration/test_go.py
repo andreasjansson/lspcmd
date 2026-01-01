@@ -347,8 +347,17 @@ main.go:159 func ValidateUser(user *User) error {"""
             "context": 1,
         })
         output = format_output(response["result"], "plain")
-        assert "NewUserRepository" in output
-        assert "// NewUserRepository creates a new repository" in output
+        assert output == """\
+main.go:123-125
+// NewUserRepository creates a new repository with the given storage.
+func NewUserRepository(storage Storage) *UserRepository {
+\treturn &UserRepository{storage: storage}
+
+main.go:173-175
+\tstorage := NewMemoryStorage()
+\trepo := NewUserRepository(storage)
+\tuser := createSampleUser()
+"""
 
     # =========================================================================
     # implementations tests
