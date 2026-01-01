@@ -38,15 +38,22 @@ from ..conftest import (
 os.environ["LSPCMD_REQUEST_TIMEOUT"] = "60"
 
 
-def run_request(method: str, params: dict) -> dict:
+def run_request(method: str, params: dict, raise_on_error: bool = False) -> dict:
     """Run a request against the daemon and return the result.
     
     Wraps the CLI run_request to handle click exceptions and return
     a dict with either 'result' or 'error'.
+    
+    Args:
+        method: The daemon method to call
+        params: Parameters for the method
+        raise_on_error: If True, re-raise click.ClickException instead of returning error dict
     """
     try:
         return cli_run_request(method, params)
     except click.ClickException as e:
+        if raise_on_error:
+            raise
         return {"error": str(e.message)}
 
 
