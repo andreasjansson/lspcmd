@@ -400,6 +400,46 @@ def config(ctx):
         click.echo("(file does not exist, using defaults)")
 
 
+@cli.command("help-all")
+@click.pass_context
+def help_all(ctx):
+    """Print help for all commands."""
+    click.echo("=" * 70)
+    click.echo("LSPCMD - Command Line LSP Client")
+    click.echo("=" * 70)
+    click.echo()
+    
+    with click.Context(cli) as main_ctx:
+        click.echo(cli.get_help(main_ctx))
+    
+    click.echo()
+    click.echo("=" * 70)
+    click.echo("COMMAND DETAILS")
+    click.echo("=" * 70)
+    
+    def print_command_help(cmd, name, prefix=""):
+        full_name = f"{prefix}{name}" if prefix else name
+        click.echo()
+        click.echo("-" * 70)
+        click.echo(f"lspcmd {full_name}")
+        click.echo("-" * 70)
+        click.echo()
+        
+        with click.Context(cmd, info_name=full_name, parent=ctx) as cmd_ctx:
+            click.echo(cmd.get_help(cmd_ctx))
+        
+        if isinstance(cmd, click.Group):
+            for subname in cmd.list_commands(ctx):
+                subcmd = cmd.get_command(ctx, subname)
+                print_command_help(subcmd, subname, prefix=f"{full_name} ")
+    
+    for name in cli.list_commands(ctx):
+        if name == "help-all":
+            continue
+        cmd = cli.get_command(ctx, name)
+        print_command_help(cmd, name)
+
+
 SYMBOL_FORMATS = """\b
 SYMBOL formats:
   SymbolName            find symbol by name
