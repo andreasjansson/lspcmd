@@ -883,7 +883,7 @@ COMPARISON WITH ripgrep:
 """
 
 
-@cli.command("grep")
+@cli.command("grep", help=GREP_HELP)
 @click.argument("pattern")
 @click.argument("path", required=False)
 @click.option("-k", "--kind", default="", help=KIND_HELP)
@@ -897,7 +897,6 @@ COMPARISON WITH ripgrep:
 @click.option("-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching")
 @click.pass_context
 def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
-    __doc__ = GREP_HELP
     if " " in pattern:
         click.echo(
             f"Warning: Pattern contains a space. lspcmd grep searches symbol names, "
