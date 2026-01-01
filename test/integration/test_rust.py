@@ -267,6 +267,24 @@ fn create_sample_user() -> User {
 }
 """
 
+    def test_definition_with_context(self, workspace):
+        os.chdir(workspace)
+        response = self._run_request_with_retry("definition", {
+            "path": str(workspace / "src" / "main.rs"),
+            "workspace_root": str(workspace),
+            "line": 25,
+            "column": 16,
+            "context": 1,
+            "body": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.rs:9-11
+/// Creates a sample user for testing.
+fn create_sample_user() -> User {
+    User::new("John Doe".to_string(), "john@example.com".to_string(), 30)
+"""
+
     # =========================================================================
     # references tests
     # =========================================================================
