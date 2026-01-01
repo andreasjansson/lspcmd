@@ -199,7 +199,7 @@ src/main.zig:2 [Constant] user"""
             "body": False,
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
+        assert output == "src/main.zig:22"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
@@ -212,8 +212,12 @@ src/main.zig:2 [Constant] user"""
             "body": True,
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
-        assert "John Doe" in output
+        assert output == """\
+src/main.zig:22-24
+
+pub fn createSampleUser() user.User {
+    return user.User.init("John Doe", "john@example.com", 30);
+}"""
 
     # =========================================================================
     # references tests
@@ -229,7 +233,9 @@ src/main.zig:2 [Constant] user"""
             "context": 0,
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
+        # zls returns many references to User type
+        assert "src/user.zig:4" in output
+        assert "src/user.zig:10" in output
 
     # =========================================================================
     # describe (hover) tests
@@ -244,7 +250,19 @@ src/main.zig:2 [Constant] user"""
             "column": 11,
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
+        assert output == """\
+```zig
+const User = struct {
+    name: []const u8,
+    email: []const u8,
+    age: i32,
+}
+```
+```zig
+(type)
+```
+
+Represents a user in the system."""
 
     # =========================================================================
     # diagnostics tests
