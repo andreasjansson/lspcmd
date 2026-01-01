@@ -210,7 +210,9 @@ user.rb:144 [Class] UserRepository"""
             "body": False,
         })
         output = format_output(response["result"], "plain")
-        assert "create_sample_user" in output
+        assert output == """\
+main.rb:8
+main.rb:8"""
 
     def test_definition_with_body_not_supported(self, workspace):
         os.chdir(workspace)
@@ -223,7 +225,7 @@ user.rb:144 [Class] UserRepository"""
             "body": True,
         })
         output = format_output(response["result"], "plain")
-        assert "does not provide symbol ranges" in output
+        assert output == "Error: Language server does not provide symbol ranges"
 
     # =========================================================================
     # references tests
@@ -239,7 +241,9 @@ user.rb:144 [Class] UserRepository"""
             "context": 0,
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
+        assert output == """\
+main.rb:9
+user.rb:8"""
 
     # =========================================================================
     # describe (hover) tests
@@ -254,7 +258,10 @@ user.rb:144 [Class] UserRepository"""
             "column": 6,
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
+        assert output == """\
+User
+
+Represents a user in the system."""
 
     # =========================================================================
     # diagnostics tests
