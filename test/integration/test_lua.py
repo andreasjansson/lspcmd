@@ -200,7 +200,7 @@ main.lua:8 [Function] createSampleUser (function ())
             "body": False,
         })
         output = format_output(response["result"], "plain")
-        assert output == "main.lua:8"
+        assert output == "main.lua:8 local function createSampleUser()"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
