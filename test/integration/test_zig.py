@@ -53,13 +53,14 @@ class TestZigIntegration:
             "pattern": "Storage",
         })
         output = format_output(response["result"], "plain")
-        assert "Storage" in output
-        assert "MemoryStorage" in output
-        assert "FileStorage" in output
+        assert output == """\
+src/user.zig:31 [Constant] Storage
+src/user.zig:51 [Constant] MemoryStorage
+src/user.zig:85 [Constant] FileStorage
+src/user.zig:114 [Field] storage (UserRepository) in UserRepository"""
 
     def test_grep_kind_filter_constant(self, workspace):
         os.chdir(workspace)
-        # In Zig, structs are reported as constants by zls
         response = run_request("grep", {
             "paths": [str(workspace / "src" / "user.zig")],
             "workspace_root": str(workspace),
@@ -67,10 +68,13 @@ class TestZigIntegration:
             "kinds": ["constant"],
         })
         output = format_output(response["result"], "plain")
-        assert "User" in output
-        assert "MemoryStorage" in output
-        assert "FileStorage" in output
-        assert "UserRepository" in output
+        assert output == """\
+src/user.zig:1 [Constant] std
+src/user.zig:4 [Constant] User
+src/user.zig:31 [Constant] Storage
+src/user.zig:51 [Constant] MemoryStorage
+src/user.zig:85 [Constant] FileStorage
+src/user.zig:113 [Constant] UserRepository"""
 
     def test_grep_kind_filter_function(self, workspace):
         os.chdir(workspace)
@@ -81,9 +85,104 @@ class TestZigIntegration:
             "kinds": ["function"],
         })
         output = format_output(response["result"], "plain")
-        assert "createSampleUser" in output
-        assert "validateUser" in output
-        assert "main" in output
+        assert output == """\
+src/main.zig:4 [Function] main (fn main() !void)
+src/main.zig:22 [Function] createSampleUser (fn createSampleUser() user.User)
+src/main.zig:27 [Function] validateUser (fn validateUser(u: user.User) !void)"""
+
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        # Case-insensitive should find Storage classes
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.zig")],
+            "workspace_root": str(workspace),
+            "pattern": "storage",
+            "kinds": ["constant"],
+            "case_sensitive": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.zig:31 [Constant] Storage
+src/user.zig:51 [Constant] MemoryStorage
+src/user.zig:85 [Constant] FileStorage"""
+        
+        # Case-sensitive should find nothing
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.zig")],
+            "workspace_root": str(workspace),
+            "pattern": "storage",
+            "kinds": ["constant"],
+            "case_sensitive": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "No results"
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.zig")],
+            "workspace_root": str(workspace),
+            "pattern": "^Memory",
+            "kinds": ["constant"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/user.zig:51 [Constant] MemoryStorage"
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "user.zig"), str(workspace / "src" / "main.zig")],
+            "workspace_root": str(workspace),
+            "pattern": "User",
+            "kinds": ["constant"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.zig:4 [Constant] User
+src/user.zig:113 [Constant] UserRepository
+src/main.zig:2 [Constant] user"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        all_files = [str(p) for p in (workspace / "src").glob("*.zig")]
+        response = run_request("grep", {
+            "paths": all_files,
+            "workspace_root": str(workspace),
+            "pattern": "main",
+            "kinds": ["function"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/main.zig:4 [Function] main (fn main() !void)"
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        all_files = [str(p) for p in (workspace / "src").glob("*.zig")]
+        response = run_request("grep", {
+            "paths": all_files,
+            "workspace_root": str(workspace),
+            "pattern": "User",
+            "kinds": ["constant"],
+            "exclude_patterns": ["errors.zig"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.zig:4 [Constant] User
+src/user.zig:113 [Constant] UserRepository
+src/main.zig:2 [Constant] user"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "main.zig")],
+            "workspace_root": str(workspace),
+            "pattern": "^createSampleUser$",
+            "kinds": ["function"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        # zls returns hover docs with markdown including code blocks
+        assert "src/main.zig:22 [Function] createSampleUser (fn createSampleUser() user.User)" in output
+        assert "Creates a sample user for testing." in output
 
     # =========================================================================
     # definition tests
