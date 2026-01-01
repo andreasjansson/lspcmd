@@ -229,6 +229,18 @@ class DaemonServer:
     async def _handle_describe_session(self, params: dict) -> dict:
         result = self.session.to_dict()
         result["daemon_pid"] = os.getpid()
+        result["caches"] = {
+            "hover_cache": {
+                "current_bytes": self._hover_cache.current_bytes,
+                "max_bytes": self._hover_cache.max_bytes,
+                "entries": len(self._hover_cache),
+            },
+            "symbol_cache": {
+                "current_bytes": self._symbol_cache.current_bytes,
+                "max_bytes": self._symbol_cache.max_bytes,
+                "entries": len(self._symbol_cache),
+            },
+        }
         return result
 
     async def _handle_raw_lsp_request(self, params: dict) -> Any:
