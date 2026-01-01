@@ -40,8 +40,9 @@ class OrderedGroup(click.Group):
 
 def ensure_daemon_running() -> None:
     pid_path = get_pid_path()
+    socket_path = get_socket_path()
 
-    if is_daemon_running(pid_path):
+    if is_daemon_running(pid_path) and socket_path.exists():
         return
 
     subprocess.Popen(
@@ -50,7 +51,6 @@ def ensure_daemon_running() -> None:
         env=os.environ.copy(),
     )
 
-    socket_path = get_socket_path()
     for _ in range(50):
         if socket_path.exists():
             return
