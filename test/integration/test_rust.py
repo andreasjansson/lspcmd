@@ -326,6 +326,44 @@ fn create_sample_user() -> User {
 """
 
     # =========================================================================
+    # rename tests
+    # =========================================================================
+
+    def test_rename(self, workspace):
+        os.chdir(workspace)
+        
+        user_rs = workspace / "src" / "user.rs"
+        main_rs = workspace / "src" / "main.rs"
+        storage_rs = workspace / "src" / "storage.rs"
+        
+        original_user = user_rs.read_text()
+        original_main = main_rs.read_text()
+        original_storage = storage_rs.read_text()
+        
+        try:
+            response = self._run_request_with_retry("rename", {
+                "path": str(user_rs),
+                "workspace_root": str(workspace),
+                "line": 5,
+                "column": 11,
+                "new_name": "Person",
+            })
+            output = format_output(response["result"], "plain")
+            assert output == """\
+Renamed in 3 file(s):
+  src/main.rs
+  src/user.rs
+  src/storage.rs"""
+
+            # Verify rename happened
+            assert "pub struct Person" in user_rs.read_text()
+            assert "pub struct User" not in user_rs.read_text()
+        finally:
+            user_rs.write_text(original_user)
+            main_rs.write_text(original_main)
+            storage_rs.write_text(original_storage)
+
+    # =========================================================================
     # diagnostics tests
     # =========================================================================
 
