@@ -77,8 +77,117 @@ src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User"""
             "kinds": ["method"],
         })
         output = format_output(response["result"], "plain")
-        assert "getName()" in output
-        assert "isAdult()" in output
+        assert output == """\
+src/main/java/com/example/User.java:29 [Method] getName() ( : String) in User
+src/main/java/com/example/User.java:38 [Method] getEmail() ( : String) in User
+src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User
+src/main/java/com/example/User.java:56 [Method] isAdult() ( : boolean) in User
+src/main/java/com/example/User.java:65 [Method] displayName() ( : String) in User
+src/main/java/com/example/User.java:70 [Method] toString() ( : String) in User"""
+
+    def test_grep_case_sensitive(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java")],
+            "workspace_root": str(workspace),
+            "pattern": "^User$",
+            "case_sensitive": False,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/main/java/com/example/User.java:6 [Class] User"
+        
+        response = run_request("grep", {
+            "paths": [str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java")],
+            "workspace_root": str(workspace),
+            "pattern": "^user$",
+            "case_sensitive": True,
+        })
+        lowercase_output = format_output(response["result"], "plain")
+        assert lowercase_output == "No results"
+
+    def test_grep_combined_filters(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "Storage",
+            "kinds": ["class"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/AbstractStorage.java:7 [Class] AbstractStorage
+src/main/java/com/example/FileStorage.java:12 [Class] FileStorage
+src/main/java/com/example/MemoryStorage.java:12 [Class] MemoryStorage"""
+
+    def test_grep_multiple_files(self, workspace):
+        os.chdir(workspace)
+        src_dir = workspace / "src" / "main" / "java" / "com" / "example"
+        response = run_request("grep", {
+            "paths": [str(src_dir / "Main.java"), str(src_dir / "User.java")],
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["method"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in Main
+src/main/java/com/example/Main.java:25 [Method] processUsers(UserRepository) ( : List<String>) in Main
+src/main/java/com/example/Main.java:37 [Method] validateEmail(String) ( : boolean) in Main
+src/main/java/com/example/Main.java:47 [Method] main(String[]) ( : void) in Main
+src/main/java/com/example/User.java:29 [Method] getName() ( : String) in User
+src/main/java/com/example/User.java:38 [Method] getEmail() ( : String) in User
+src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User
+src/main/java/com/example/User.java:56 [Method] isAdult() ( : boolean) in User
+src/main/java/com/example/User.java:65 [Method] displayName() ( : String) in User
+src/main/java/com/example/User.java:70 [Method] toString() ( : String) in User"""
+
+    def test_grep_workspace_wide(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": "validate",
+            "case_sensitive": False,
+            "kinds": ["method"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == "src/main/java/com/example/Main.java:37 [Method] validateEmail(String) ( : boolean) in Main"
+
+    def test_grep_exclude_pattern(self, workspace):
+        os.chdir(workspace)
+        response = run_request("grep", {
+            "workspace_root": str(workspace),
+            "pattern": ".*",
+            "kinds": ["class"],
+            "exclude_patterns": ["Errors.java"],
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/AbstractStorage.java:7 [Class] AbstractStorage
+src/main/java/com/example/User.java:6 [Class] User
+src/main/java/com/example/Main.java:8 [Class] Main
+src/main/java/com/example/UserRepository.java:9 [Class] UserRepository
+src/main/java/com/example/FileStorage.java:12 [Class] FileStorage
+src/main/java/com/example/MemoryStorage.java:12 [Class] MemoryStorage"""
+
+    def test_grep_with_docs(self, workspace):
+        os.chdir(workspace)
+        src_dir = workspace / "src" / "main" / "java" / "com" / "example"
+        response = run_request("grep", {
+            "paths": [str(src_dir / "Main.java")],
+            "workspace_root": str(workspace),
+            "pattern": "createSampleUser",
+            "kinds": ["method"],
+            "include_docs": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in Main
+    User com.example.Main.createSampleUser()
+    Creates a sample user for testing.
+    
+     *  **Returns:**
+        
+         *  A sample user
+"""
 
     # =========================================================================
     # definition tests
