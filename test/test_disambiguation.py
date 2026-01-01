@@ -10,7 +10,7 @@ exactly the symbol we generated it for. This is tested in TestRoundTripConsisten
 """
 
 import pytest
-from lspcmd.daemon.mcp_server import MCPDaemonServer
+from lspcmd.daemon.server import DaemonServer
 
 
 class TestRoundTripConsistency:
