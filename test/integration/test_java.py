@@ -308,6 +308,118 @@ src/main/java/com/example/UserRepository.java:26     public void addUser(User us
 src/main/java/com/example/UserRepository.java:36     public User getUser(String email) {
 src/main/java/com/example/UserRepository.java:55     public List<User> listUsers() {"""
 
+    def test_references_with_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("references", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java"),
+            "workspace_root": str(workspace),
+            "line": 6,
+            "column": 13,
+            "context": 1,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/FileStorage.java:13-15
+    private String basePath;
+    private Map<String, User> cache = new HashMap<>();
+
+
+src/main/java/com/example/FileStorage.java:38-40
+    @Override
+    public void save(User user) {
+        // Stub: just cache in memory
+
+src/main/java/com/example/FileStorage.java:47-49
+    @Override
+    public User load(String email) {
+        return cache.get(email);
+
+src/main/java/com/example/FileStorage.java:63-65
+    @Override
+    public List<User> list() {
+        return new ArrayList<>(cache.values());
+
+src/main/java/com/example/Main.java:14-16
+     */
+    public static User createSampleUser() {
+        return new User("John Doe", "john@example.com", 30);
+
+src/main/java/com/example/Main.java:15-17
+    public static User createSampleUser() {
+        return new User("John Doe", "john@example.com", 30);
+    }
+
+src/main/java/com/example/Main.java:26-28
+        return repo.listUsers().stream()
+                .map(User::displayName)
+                .toList();
+
+src/main/java/com/example/Main.java:49-51
+        UserRepository repo = new UserRepository(storage);
+        User user = createSampleUser();
+
+
+src/main/java/com/example/Main.java:53-55
+
+        User found = repo.getUser("john@example.com");
+        if (found != null) {
+
+src/main/java/com/example/MemoryStorage.java:12-14
+public class MemoryStorage extends AbstractStorage {
+    private Map<String, User> users = new HashMap<>();
+
+
+src/main/java/com/example/MemoryStorage.java:25-27
+    @Override
+    public void save(User user) {
+        users.put(user.getEmail(), user);
+
+src/main/java/com/example/MemoryStorage.java:33-35
+    @Override
+    public User load(String email) {
+        return users.get(email);
+
+src/main/java/com/example/MemoryStorage.java:49-51
+    @Override
+    public List<User> list() {
+        return new ArrayList<>(users.values());
+
+src/main/java/com/example/Storage.java:13-15
+     */
+    void save(User user);
+
+
+src/main/java/com/example/Storage.java:21-23
+     */
+    User load(String email);
+
+
+src/main/java/com/example/Storage.java:36-38
+     */
+    List<User> list();
+}
+
+src/main/java/com/example/User.java:5-7
+ */
+public class User {
+    private String name;
+
+src/main/java/com/example/UserRepository.java:25-27
+     */
+    public void addUser(User user) {
+        storage.save(user);
+
+src/main/java/com/example/UserRepository.java:35-37
+     */
+    public User getUser(String email) {
+        return storage.load(email);
+
+src/main/java/com/example/UserRepository.java:54-56
+     */
+    public List<User> listUsers() {
+        return storage.list();
+"""
+
     # =========================================================================
     # implementations tests
     # =========================================================================
