@@ -247,6 +247,31 @@ src/main/java/com/example/Main.java:14-16
         return new User("John Doe", "john@example.com", 30);
 """
 
+    def test_definition_with_body_and_context(self, workspace):
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Main.java"),
+            "workspace_root": str(workspace),
+            "line": 50,
+            "column": 21,
+            "context": 1,
+            "body": True,
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main/java/com/example/Main.java:9-18
+
+
+    /**
+     * Creates a sample user for testing.
+     *
+     * @return A sample user
+     */
+    public static User createSampleUser() {
+        return new User("John Doe", "john@example.com", 30);
+    }
+"""
+
     # =========================================================================
     # references tests
     # =========================================================================
