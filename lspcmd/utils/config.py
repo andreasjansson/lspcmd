@@ -89,9 +89,9 @@ DEFAULT_CONFIG: Config = {
 }
 
 
-def load_config() -> dict[str, Any]:
+def load_config() -> Config:
     config_path = get_config_path()
-    config = dict(DEFAULT_CONFIG)
+    config: Config = dict(DEFAULT_CONFIG)  # type: ignore[assignment]
 
     if config_path.exists():
         with open(config_path, "rb") as f:
@@ -101,7 +101,7 @@ def load_config() -> dict[str, Any]:
     return config
 
 
-def save_config(config: dict[str, Any]) -> None:
+def save_config(config: Config) -> None:
     config_path = get_config_path()
     config_path.parent.mkdir(parents=True, exist_ok=True)
 
