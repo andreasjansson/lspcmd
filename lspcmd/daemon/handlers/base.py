@@ -492,13 +492,13 @@ def flatten_symbols(
                     "path": file_path,
                     "line": loc_range.start.line + 1,
                     "column": loc_range.start.character,
-                    "container": item.container_name,
+                    "container": item.containerName,
                     "range_start_line": loc_range.start.line + 1,
                     "range_end_line": loc_range.end.line + 1,
                 }
             )
         else:
-            sel_range = item.selection_range
+            sel_range = item.selectionRange
             full_range = item.range
             output.append(
                 {
