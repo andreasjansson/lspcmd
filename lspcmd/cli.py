@@ -267,7 +267,6 @@ See `lspcmd COMMAND --help` for more documentation and command-specific options.
         "declaration",
         "rename",
         "mv",
-        "replace-function",
         "raw-lsp-request",
         "workspace",
         "daemon",
