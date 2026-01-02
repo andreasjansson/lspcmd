@@ -18,7 +18,6 @@ async def handle_subtypes(
         "path": params.path,
         "workspace_root": params.workspace_root,
     })
-    assert workspace.client
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
@@ -28,7 +27,7 @@ async def handle_subtypes(
         prepare_result = await workspace.client.send_request(
             "textDocument/prepareTypeHierarchy",
             TextDocumentPositionParams(
-                text_document=TextDocumentIdentifier(uri=doc.uri),
+                textDocument=TextDocumentIdentifier(uri=doc.uri),
                 position=Position(line=line, character=column),
             ),
         )
