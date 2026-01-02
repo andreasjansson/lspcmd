@@ -1,13 +1,17 @@
 """Handler for show command."""
 
 from pathlib import Path
+from typing import Union
 
-from ..rpc import ShowParams, ShowResult
+from ..rpc import ShowParams
 from ...utils.text import read_file_content, get_lines_around
-from .base import HandlerContext, find_symbol_at_line, expand_variable_range
+from .base import HandlerContext, find_symbol_at_line, expand_variable_range, LocationDict
 
 
-async def handle_show(ctx: HandlerContext, params: ShowParams) -> ShowResult:
+async def handle_show(
+    ctx: HandlerContext, params: ShowParams
+) -> Union[list[LocationDict], dict]:
+    """Handle show command, returning either locations or definition content."""
     body = params.body
 
     if params.range_start_line is not None:
@@ -15,13 +19,13 @@ async def handle_show(ctx: HandlerContext, params: ShowParams) -> ShowResult:
 
     if body:
         return await _handle_definition_body(ctx, params)
-
-    return await _handle_location_only(ctx, params)
+    
+    return await _handle_location_request(ctx, params)
 
 
 async def _handle_direct_definition(
     ctx: HandlerContext, params: ShowParams, body: bool
-) -> ShowResult:
+) -> Union[list[LocationDict], dict]:
     path = Path(params.path).resolve()
     workspace_root = Path(params.workspace_root).resolve()
     line = params.line
@@ -70,78 +74,60 @@ async def _handle_direct_definition(
         if truncated:
             end = start + head - 1
 
-        return ShowResult(
-            path=rel_path,
-            start_line=start + 1,
-            end_line=end + 1,
-            content="\n".join(lines[start : end + 1]),
-            symbol=symbol_name,
-            truncated=truncated,
-            total_lines=total_lines,
-        )
+        return {
+            "path": rel_path,
+            "start_line": start + 1,
+            "end_line": end + 1,
+            "content": "\n".join(lines[start : end + 1]),
+            "truncated": truncated,
+            "total_lines": total_lines,
+            "head": head,
+            "symbol": symbol_name,
+        }
     else:
+        location: LocationDict = {
+            "path": rel_path,
+            "line": line,
+            "column": params.column,
+        }
+
         if context > 0 and path.exists():
-            ctx_lines, start, _ = get_lines_around(content, line - 1, context)
-            return ShowResult(
-                path=rel_path,
-                start_line=start + 1,
-                end_line=start + len(ctx_lines),
-                content="\n".join(ctx_lines),
-                symbol=symbol_name,
-            )
-        return ShowResult(
-            path=rel_path,
-            start_line=line,
-            end_line=line,
-            content=lines[line - 1] if line <= len(lines) else "",
-            symbol=symbol_name,
-        )
+            ctx_lines, start, end = get_lines_around(content, line - 1, context)
+            location["context_lines"] = ctx_lines
+            location["context_start"] = start + 1
+
+        return [location]
 
 
-async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> ShowResult:
-    workspace, doc, path = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
-    line, column = ctx.parse_position({"line": params.line, "column": params.column})
+async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> dict:
+    locations = await _handle_location_request(ctx, params)
+    if not locations:
+        return {"error": "Definition not found"}
+
+    loc = locations[0]
+    workspace_root = Path(params.workspace_root).resolve()
+    rel_path = loc["path"]
+    file_path = workspace_root / rel_path
+    target_line = loc["line"] - 1
     context = params.context
     head = params.head or 200
     symbol_name = params.symbol_name
 
-    workspace_root = Path(params.workspace_root).resolve()
-
-    result = await workspace.client.send_request(
-        "textDocument/definition",
-        {
-            "textDocument": {"uri": doc.uri},
-            "position": {"line": line, "character": column},
-        },
-    )
-
-    locations = ctx.format_locations(result, workspace.root, 0)
-    if not locations:
-        raise ValueError("Definition not found")
-
-    loc = locations[0]
-    rel_path = loc["path"]
-    file_path = workspace_root / rel_path
-    target_line = loc["line"] - 1
-
-    workspace2, doc2, _ = await ctx.get_workspace_and_document({
+    workspace, doc, _ = await ctx.get_workspace_and_document({
         "path": str(file_path),
         "workspace_root": params.workspace_root,
     })
 
-    symbols_result = await workspace2.client.send_request(
+    result = await workspace.client.send_request(
         "textDocument/documentSymbol",
-        {"textDocument": {"uri": doc2.uri}},
+        {"textDocument": {"uri": doc.uri}},
     )
 
     content = read_file_content(file_path)
     lines = content.splitlines()
 
-    if symbols_result:
-        symbol = find_symbol_at_line(symbols_result, target_line)
+    if result:
+        symbol = find_symbol_at_line(result, target_line)
         if symbol and "range" in symbol:
             start = symbol["range"]["start"]["line"]
             end = symbol["range"]["end"]["line"]
@@ -154,28 +140,30 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> Sh
             if truncated:
                 end = start + head - 1
 
-            return ShowResult(
-                path=rel_path,
-                start_line=start + 1,
-                end_line=end + 1,
-                content="\n".join(lines[start : end + 1]),
-                symbol=symbol_name,
-                truncated=truncated,
-                total_lines=total_lines,
-            )
+            return {
+                "path": rel_path,
+                "start_line": start + 1,
+                "end_line": end + 1,
+                "content": "\n".join(lines[start : end + 1]),
+                "truncated": truncated,
+                "total_lines": total_lines,
+                "head": head,
+                "symbol": symbol_name,
+            }
         else:
-            raise ValueError("Language server does not provide symbol ranges")
+            return {"error": "Language server does not provide symbol ranges"}
 
-    return ShowResult(
-        path=rel_path,
-        start_line=loc["line"],
-        end_line=loc["line"],
-        content=lines[target_line] if target_line < len(lines) else "",
-        symbol=symbol_name,
-    )
+    return {
+        "path": rel_path,
+        "start_line": loc["line"],
+        "end_line": loc["line"],
+        "content": lines[target_line] if target_line < len(lines) else "",
+    }
 
 
-async def _handle_location_only(ctx: HandlerContext, params: ShowParams) -> ShowResult:
+async def _handle_location_request(
+    ctx: HandlerContext, params: ShowParams
+) -> list[LocationDict]:
     workspace, doc, path = await ctx.get_workspace_and_document({
         "path": params.path,
         "workspace_root": params.workspace_root,
@@ -191,27 +179,4 @@ async def _handle_location_only(ctx: HandlerContext, params: ShowParams) -> Show
         },
     )
 
-    locations = ctx.format_locations(result, workspace.root, context)
-    if not locations:
-        raise ValueError("Definition not found")
-
-    loc = locations[0]
-    workspace_root = Path(params.workspace_root).resolve()
-    file_path = workspace_root / loc["path"]
-    content = read_file_content(file_path)
-    lines = content.splitlines()
-
-    if "context_lines" in loc:
-        return ShowResult(
-            path=loc["path"],
-            start_line=loc["context_start"],
-            end_line=loc["context_start"] + len(loc["context_lines"]) - 1,
-            content="\n".join(loc["context_lines"]),
-        )
-
-    return ShowResult(
-        path=loc["path"],
-        start_line=loc["line"],
-        end_line=loc["line"],
-        content=lines[loc["line"] - 1] if loc["line"] <= len(lines) else "",
-    )
+    return ctx.format_locations(result, workspace.root, context)
