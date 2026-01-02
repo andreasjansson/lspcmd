@@ -116,12 +116,19 @@ async def handle_replace_function(
         raise
 
 
-def _revert_file(file_path, original_content, backup_path, doc, workspace):
+async def _revert_file(file_path, original_content, backup_path, doc, workspace):
     file_path.write_text(original_content)
     backup_path.unlink(missing_ok=True)
     if doc:
         doc.version += 1
         doc.content = original_content
+        await workspace.client.send_notification(
+            "textDocument/didChange",
+            {
+                "textDocument": {"uri": doc.uri, "version": doc.version},
+                "contentChanges": [{"text": original_content}],
+            },
+        )
 
 
 def _apply_function_replacement(
