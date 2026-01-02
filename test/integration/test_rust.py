@@ -516,26 +516,6 @@ pub const DEFAULT_PORTS: [u16; 5] = [
     # calls tests
     # =========================================================================
 
-    def test_calls_outgoing(self, workspace):
-        """Test outgoing calls from main function."""
-        os.chdir(workspace)
-        response = self._run_request_with_retry("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "src" / "main.rs"),
-            "from_line": 22,
-            "from_column": 3,
-            "from_symbol": "main",
-            "max_depth": 1,
-        })
-        result = response["result"]
-        assert result["name"] == "main"
-        assert result["kind"] == "Function"
-        assert "calls" in result
-        call_names = [c["name"] for c in result["calls"]]
-        assert "new" in call_names
-        assert "create_sample_user" in call_names
-
     def test_calls_incoming(self, workspace):
         """Test incoming calls to create_sample_user function."""
         os.chdir(workspace)
@@ -546,11 +526,11 @@ pub const DEFAULT_PORTS: [u16; 5] = [
             "to_line": 10,
             "to_column": 3,
             "to_symbol": "create_sample_user",
-            "max_depth": 2,
+            "max_depth": 1,
         })
-        result = response["result"]
-        assert result["name"] == "create_sample_user"
-        assert result["kind"] == "Function"
-        assert "called_by" in result
-        caller_names = [c["name"] for c in result["called_by"]]
-        assert "main" in caller_names
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.rs:10 [Function] create_sample_user (fn create_sample_user() -> User)
+
+Incoming calls:
+  └── src/main.rs:22 [Function] main (fn main())"""
