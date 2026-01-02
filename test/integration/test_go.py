@@ -869,7 +869,7 @@ main.go:172 [Function] main (sample_project • main.go)
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.go:26 [Method] (*User).DisplayName (func() string)
+main.go:26 [Function] DisplayName (sample_project • main.go)
 
 Outgoing calls:
   └── [Function] Sprintf (fmt • print.go)"""
@@ -888,6 +888,6 @@ Outgoing calls:
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-main.go:26 [Method] (*User).DisplayName (func() string)
+main.go:26 [Function] DisplayName (sample_project • main.go)
 
 Outgoing calls:"""
