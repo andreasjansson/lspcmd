@@ -21,6 +21,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CACHE_SIZE_BYTES = 256 * 1024 * 1024  # 256MB
 
+DEFAULT_EXCLUDE_DIRS = {
+    ".git", "__pycache__", "node_modules", ".venv", "venv",
+    "target", "build", "dist", ".tox", ".mypy_cache", ".pytest_cache",
+    ".eggs", ".cache", ".coverage", ".hypothesis", ".nox", ".ruff_cache",
+    "__pypackages__", ".pants.d", ".pyre", ".pytype",
+    "vendor", "third_party", ".bundle",
+    ".next", ".nuxt", ".svelte-kit", ".turbo", ".parcel-cache",
+    "coverage", ".nyc_output",
+}
+
 
 class DaemonServer:
     def __init__(self, hover_cache_bytes: int | None = None, symbol_cache_bytes: int | None = None):
