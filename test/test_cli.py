@@ -78,11 +78,19 @@ class TestCliCommands:
         config = load_config()
         add_workspace_root(python_project, config)
 
-        runner = CliRunner(mix_stderr=False)
-        result = runner.invoke(cli, ["grep", "NonExistentSymbolXYZ123", str(python_project / "main.py")])
+        result = subprocess.run(
+            [sys.executable, "-m", "lspcmd.cli", "grep", "NonExistentSymbolXYZ123", str(python_project / "main.py")],
+            capture_output=True,
+            text=True,
+            env={
+                **os.environ,
+                "XDG_CONFIG_HOME": str(isolated_config["config"]),
+                "XDG_CACHE_HOME": str(isolated_config["cache"]),
+            },
+        )
         
-        assert result.exit_code == 0
-        assert result.output == ""
+        assert result.returncode == 0
+        assert result.stdout == ""
         assert "No results" in result.stderr
 
 
