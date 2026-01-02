@@ -388,6 +388,35 @@ def workspace_add(ctx, root):
     click.echo(f"Added workspace: {workspace_root}")
 
 
+@workspace.command("remove")
+@click.argument("path", type=click.Path(exists=True), required=False)
+@click.pass_context
+def workspace_remove(ctx, path):
+    """Remove a workspace and stop its language servers."""
+    config = load_config()
+
+    if path:
+        workspace_root = Path(path).resolve()
+    else:
+        workspace_root = get_workspace_root_for_cwd(config)
+
+    if not remove_workspace_root(workspace_root, config):
+        raise click.ClickException(f"Workspace not found: {workspace_root}")
+
+    if is_daemon_running(get_pid_path()):
+        response = run_request("remove-workspace", {
+            "workspace_root": str(workspace_root),
+        })
+        servers_stopped = response.get("result", {}).get("servers_stopped", [])
+        if servers_stopped:
+            click.echo(f"Removed workspace: {workspace_root}")
+            click.echo(f"Stopped servers: {', '.join(servers_stopped)}")
+        else:
+            click.echo(f"Removed workspace: {workspace_root}")
+    else:
+        click.echo(f"Removed workspace: {workspace_root}")
+
+
 @workspace.command("restart")
 @click.argument("path", type=click.Path(exists=True), required=False)
 @click.pass_context
