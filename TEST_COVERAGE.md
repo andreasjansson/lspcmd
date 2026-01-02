@@ -33,15 +33,6 @@
 | └ workspace-wide | | | ✅ | | | | | | | |
 | **rename** | ✅ | ✅ | ✅ | ✅ | | ✅ | | | | |
 | **move-file** | ✅ | ❌⁶ | ✅ | ✅ | ✅ | ❌⁶ | ❌⁶ | ❌⁶ | ❌⁶ | ❌⁶ |
-| **replace-function** | | | | | | | | | | |
-| └ basic | ✅ | ✅ | | ✅ | | | | | | |
-| └ sig mismatch | ✅ | ✅ | | ✅ | | | | | | |
-| └ no-check-sig | ✅ | ✅ | | ✅ | | | | | | |
-| └ method replace | ✅ | | | | | | | | | |
-| └ non-func error | ✅ | ✅ | | ✅ | | | | | | |
-| └ revert on error | ✅ | ✅ | | ✅ | | | | | | |
-| └ symbol not found | ✅ | ✅ | | ✅ | | | | | | |
-| └ empty content | ✅ | | | | | | | | | |
 | **resolve-symbol** | | | | | | | | | | |
 | └ unique name | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | └ ambiguous refs | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | | | | ✅ |
