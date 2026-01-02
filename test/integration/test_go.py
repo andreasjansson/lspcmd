@@ -729,3 +729,63 @@ Renamed in 1 file(s):
         result = response["result"]
         assert result["name"] == "NewUser"
         assert result["path"].endswith("main.go")
+
+    # =========================================================================
+    # show multi-line variable tests
+    # =========================================================================
+
+    def test_show_multiline_map_variable(self, workspace):
+        """Test that show displays multi-line map variables correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "utils.go"),
+            "workspace_root": str(workspace),
+            "line": 100,
+            "column": 4,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 100,
+            "range_end_line": 108,
+            "kind": "Variable",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+utils.go:100-108
+
+var CountryCodes = map[string]string{
+\t"US": "United States",
+\t"CA": "Canada",
+\t"GB": "United Kingdom",
+\t"DE": "Germany",
+\t"FR": "France",
+\t"JP": "Japan",
+\t"AU": "Australia",
+}"""
+
+    def test_show_multiline_slice_variable(self, workspace):
+        """Test that show displays multi-line slice variables correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "utils.go"),
+            "workspace_root": str(workspace),
+            "line": 111,
+            "column": 4,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 111,
+            "range_end_line": 117,
+            "kind": "Variable",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+utils.go:111-117
+
+var DefaultPorts = []int{
+\t80,
+\t443,
+\t8080,
+\t8443,
+\t3000,
+}"""
