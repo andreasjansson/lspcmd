@@ -176,7 +176,16 @@ def format_locations(locations: list[dict]) -> str:
         path = loc["path"]
         line = loc["line"]
 
-        if "context_lines" in loc:
+        # Check if this is a type hierarchy result with name/kind/detail
+        if "name" in loc and "kind" in loc:
+            name = loc["name"]
+            kind = loc["kind"]
+            detail = loc.get("detail", "")
+            parts = [f"{path}:{line}", f"[{kind}]" if kind else "", name]
+            if detail:
+                parts.append(f"({detail})")
+            lines.append(" ".join(filter(None, parts)))
+        elif "context_lines" in loc:
             context_start = loc.get("context_start", line)
             context_end = context_start + len(loc["context_lines"]) - 1
             lines.append(f"{path}:{context_start}-{context_end}")
