@@ -140,6 +140,25 @@ class FileStorage < Storage
   end
 end
 
+# Country codes mapped to their full names.
+COUNTRY_CODES = {
+  'US' => 'United States',
+  'CA' => 'Canada',
+  'GB' => 'United Kingdom',
+  'DE' => 'Germany',
+  'FR' => 'France',
+  'JP' => 'Japan',
+  'AU' => 'Australia'
+}.freeze
+
+# Default configuration values.
+DEFAULT_CONFIG = [
+  'debug=false',
+  'timeout=30',
+  'max_retries=3',
+  'log_level=INFO'
+].freeze
+
 # Provides high-level user management operations.
 class UserRepository
   # Creates a new UserRepository instance.
