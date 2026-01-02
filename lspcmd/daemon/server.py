@@ -629,7 +629,8 @@ class DaemonServer:
 
         item = await self._prepare_call_hierarchy(workspace, path, line, column)
         if not item:
-            return {"error": f"Could not prepare call hierarchy for '{symbol_name}'"}
+            rel_path = self._relative_path(path, workspace_root)
+            return {"error": f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. The symbol may not be a function/method, or the position may be incorrect."}
 
         root = self._format_call_hierarchy_item(item, workspace_root)
         root["called_by"] = await self._expand_incoming_calls(
