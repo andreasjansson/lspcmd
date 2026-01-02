@@ -348,6 +348,21 @@ def workspace(ctx):
     pass
 
 
+def _can_prompt_user() -> bool:
+    """Check if we can interactively prompt the user.
+    
+    We need both stdin to be a tty AND stdout to be a tty, since prompting
+    requires displaying the prompt and reading input. Also check that we're
+    not running in a subprocess with -c (which sets stdin to a tty but
+    doesn't actually allow interaction).
+    """
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return False
+    if os.environ.get("_GREGER_SHELL_COMMAND"):
+        return False
+    return True
+
+
 @workspace.command("add")
 @click.option("--root", type=click.Path(exists=True), help="Workspace root directory")
 @click.pass_context
@@ -366,7 +381,7 @@ def workspace_add(ctx, root):
         else:
             default_root = cwd
 
-        if sys.stdin.isatty():
+        if _can_prompt_user():
             workspace_root = click.prompt(
                 "Workspace root",
                 default=str(default_root),
