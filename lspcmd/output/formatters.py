@@ -338,13 +338,7 @@ def format_definition_content(data: dict) -> str:
     else:
         location = f"{data['path']}:{start}-{end}"
     
-    content = data["content"]
-    # If content starts with newlines (from context), use them as separator
-    # Otherwise add our own separator
-    if content.startswith("\n"):
-        lines = [location, content]
-    else:
-        lines = [location, "", content]
+    lines = [location, "", data["content"]]
     
     if data.get("truncated"):
         head = data.get("head", 200)
@@ -353,11 +347,7 @@ def format_definition_content(data: dict) -> str:
         lines.append("")
         lines.append(f"[truncated after {head} lines, use `lspcmd show \"{symbol}\" --head {total_lines}` to show the full {total_lines} lines]")
     
-    result = "\n".join(lines)
-    # Add trailing newline if content had context (started with newlines)
-    if content.startswith("\n") and not result.endswith("\n"):
-        result += "\n"
-    return result
+    return "\n".join(lines)
 
 
 def format_size(size: int) -> str:
