@@ -32,7 +32,6 @@ __all__ = [
     "handle_calls",
     "handle_rename",
     "handle_move_file",
-    "handle_replace_function",
     "handle_restart_workspace",
     "handle_remove_workspace",
     "handle_shutdown",
