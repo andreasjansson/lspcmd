@@ -122,7 +122,9 @@ async def handle_resolve_symbol(
             path=str(workspace_root / sym["path"]),
             line=sym["line"],
             column=sym.get("column", 0),
+            name=sym.get("name"),
             kind=sym.get("kind"),
+            container=sym.get("container"),
             range_start_line=sym.get("range_start_line"),
             range_end_line=sym.get("range_end_line"),
         )
