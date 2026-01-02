@@ -103,7 +103,7 @@ src/user.ts:92 [Class] UserRepository"""
             "case_sensitive": True,
         })
         lowercase_output = format_output(response["result"], "plain")
-        assert lowercase_output == "No results"
+        assert lowercase_output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)

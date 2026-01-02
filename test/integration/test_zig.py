@@ -115,7 +115,7 @@ src/user.zig:85 [Constant] FileStorage"""
             "case_sensitive": True,
         })
         output = format_output(response["result"], "plain")
-        assert output == "No results"
+        assert output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)

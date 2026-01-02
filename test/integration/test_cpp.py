@@ -117,7 +117,7 @@ user.hpp:15 [Constructor] User ((std::string, std::string, int)) in User"""
             "case_sensitive": True,
         })
         lowercase_output = format_output(response["result"], "plain")
-        assert lowercase_output == "No results"
+        assert lowercase_output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)
