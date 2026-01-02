@@ -545,7 +545,7 @@ def show_cmd(ctx, symbol, context, head):
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("definition", {
+    response = run_request("show", {
         "path": str(resolved.path),
         "workspace_root": str(workspace_root),
         "line": resolved.line,
