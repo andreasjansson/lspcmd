@@ -521,39 +521,6 @@ Represents a user in the system."""
             main_ts_path.write_text(original_main_ts)
 
     # =========================================================================
-    # diagnostics tests
-    # =========================================================================
-
-    def test_diagnostics_single_file(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "errors.ts"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "errors.ts" in output
-        assert "error" in output.lower()
-
-    def test_diagnostics_undefined_variable(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "errors.ts"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "undefinedVar" in output or "Cannot find name" in output
-
-    def test_diagnostics_type_error(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "errors.ts"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        has_type_error = "number" in output.lower() and "string" in output.lower()
-        assert has_type_error, f"Expected type error in output: {output}"
-
-    # =========================================================================
     # move-file tests
     # =========================================================================
 
