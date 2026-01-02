@@ -38,6 +38,22 @@ def format_plain(data: Any) -> str:
         if "contents" in data:
             return data["contents"] or "No information available"
 
+        # New format: files_changed (from pydantic models)
+        if "files_changed" in data and "imports_updated" not in data:
+            # RenameResult
+            files = data["files_changed"]
+            return f"Renamed in {len(files)} file(s):\n" + "\n".join(f"  {f}" for f in files)
+        
+        if "files_changed" in data and "imports_updated" in data:
+            # MoveFileResult
+            files = data["files_changed"]
+            imports_updated = data["imports_updated"]
+            if imports_updated:
+                return f"Moved file and updated imports in {len(files)} file(s):\n" + "\n".join(f"  {f}" for f in files)
+            else:
+                return f"Moved file (imports not updated):\n  {files[0]}" if files else "File moved"
+
+        # Old format: renamed/moved flags
         if "renamed" in data:
             if data["renamed"]:
                 files = data.get("files_modified", [])
