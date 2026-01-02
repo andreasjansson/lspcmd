@@ -264,7 +264,6 @@ See `lspcmd COMMAND --help` for more documentation and command-specific options.
         "supertypes",
         "subtypes",
         "declaration",
-        "diagnostics",
         "rename",
         "move-file",
         "replace-function",
