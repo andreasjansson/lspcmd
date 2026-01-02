@@ -1,12 +1,13 @@
 """Handler for implementations command."""
 
-from ..rpc import ImplementationsParams, ImplementationsResult, LocationInfo
+from ..rpc import ImplementationsParams as RPCImplementationsParams, ImplementationsResult, LocationInfo
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
+from ...lsp.types import ImplementationParams, TextDocumentIdentifier, Position
 from .base import HandlerContext
 
 
 async def handle_implementations(
-    ctx: HandlerContext, params: ImplementationsParams
+    ctx: HandlerContext, params: RPCImplementationsParams
 ) -> ImplementationsResult:
     workspace, doc, path = await ctx.get_workspace_and_document({
         "path": params.path,
@@ -25,10 +26,10 @@ async def handle_implementations(
     try:
         result = await workspace.client.send_request(
             "textDocument/implementation",
-            {
-                "textDocument": {"uri": doc.uri},
-                "position": {"line": line, "character": column},
-            },
+            ImplementationParams(
+                textDocument=TextDocumentIdentifier(uri=doc.uri),
+                position=Position(line=line, character=column),
+            ),
         )
     except LSPResponseError as e:
         if e.is_method_not_found():
