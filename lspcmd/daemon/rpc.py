@@ -239,6 +239,7 @@ class CallsResult(BaseModel):
     root: CallNode | None = None
     path: list[CallNode] | None = None
     message: str | None = None
+    error: str | None = None
 
 
 # === Rename ===
