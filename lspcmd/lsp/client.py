@@ -269,10 +269,6 @@ class LSPClient:
     def on_notification(self, method: str, handler: Callable) -> None:
         self._notification_handlers[method] = handler
 
-    def get_stored_diagnostics(self, uri: str) -> list[dict]:
-        """Get diagnostics stored from publishDiagnostics notifications."""
-        return self._diagnostics.get(uri, [])
-
     async def wait_for_service_ready(self, timeout: float = 30.0) -> bool:
         if not self._needs_service_ready:
             return True
