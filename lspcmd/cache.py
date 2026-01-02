@@ -92,7 +92,7 @@ class LMDBCache:
             raise KeyError(key)
         return result
 
-    def __setitem__(self, key: tuple, value: Any) -> None:
+    def __setitem__(self, key: tuple[Any, ...], value: Any) -> None:
         key_bytes = pickle.dumps(key)
         entry = {
             "value": value,
