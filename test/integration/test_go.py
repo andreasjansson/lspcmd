@@ -402,46 +402,35 @@ type FileStorage struct {
     # =========================================================================
 
     # =========================================================================
-    # rename tests
+    # rename tests (uses isolated editable files)
     # =========================================================================
 
     def test_rename(self, workspace):
         os.chdir(workspace)
         
-        # Verify User struct exists before rename
-        original_content = (workspace / "main.go").read_text()
-        assert "type User struct" in original_content
+        editable_path = workspace / "editable.go"
+        original_editable = editable_path.read_text()
         
-        response = run_request("rename", {
-            "path": str(workspace / "main.go"),
-            "workspace_root": str(workspace),
-            "line": 9,
-            "column": 5,
-            "new_name": "Person",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        try:
+            assert "type EditablePerson struct" in original_editable
+            
+            response = run_request("rename", {
+                "path": str(editable_path),
+                "workspace_root": str(workspace),
+                "line": 9,
+                "column": 5,
+                "new_name": "RenamedPerson",
+            })
+            output = format_output(response["result"], "plain")
+            assert output == """\
 Renamed in 1 file(s):
-  main.go"""
+  editable.go"""
 
-        # Verify rename actually happened in the file
-        renamed_content = (workspace / "main.go").read_text()
-        assert "type Person struct" in renamed_content
-        assert "type User struct" not in renamed_content
-
-        # Revert the rename
-        run_request("rename", {
-            "path": str(workspace / "main.go"),
-            "workspace_root": str(workspace),
-            "line": 9,
-            "column": 5,
-            "new_name": "User",
-        })
-        
-        # Verify revert worked
-        reverted_content = (workspace / "main.go").read_text()
-        assert "type User struct" in reverted_content
-        assert "type Person struct" not in reverted_content
+            renamed_editable = editable_path.read_text()
+            assert "type RenamedPerson struct" in renamed_editable
+            assert "type EditablePerson struct" not in renamed_editable
+        finally:
+            editable_path.write_text(original_editable)
 
     # =========================================================================
     # declaration tests (gopls doesn't support this)
