@@ -272,7 +272,7 @@ def get_server_for_language(language_id: str, config: dict | None = None) -> Ser
 
 
 def is_server_installed(server: ServerConfig) -> bool:
-    return shutil.which(server.command[0]) is not None
+    return shutil.which(server.command[0], path=_get_extended_path()) is not None
 
 
 def get_all_servers() -> list[ServerConfig]:
