@@ -35,7 +35,7 @@ BINARY_EXTENSIONS = {
     ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".tiff", ".tif",
     ".svg", ".pdf", ".eps", ".ps",
     ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z", ".rar",
-    ".exe", ".dll", ".so", ".dylib", ".a", ".o", ".obj", ".lib",
+    ".exe", ".dll", ".so", ".dylib", ".a", ".o", ".lib",
     ".woff", ".woff2", ".ttf", ".otf", ".eot",
     ".mp3", ".mp4", ".wav", ".ogg", ".flac", ".avi", ".mov", ".mkv", ".webm",
     ".pyc", ".pyo", ".class", ".jar", ".war", ".ear",
