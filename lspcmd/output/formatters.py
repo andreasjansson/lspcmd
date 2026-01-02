@@ -107,6 +107,11 @@ def format_plain(data: Any) -> str:
             return "\n".join(lines)
 
         if "restarted" in data:
+            # New format: list of server names
+            if isinstance(data["restarted"], list):
+                servers = data["restarted"]
+                return f"Restarted {len(servers)} server(s): {', '.join(servers)}"
+            # Old format: boolean
             return "Workspace restarted" if data["restarted"] else "Failed to restart workspace"
 
         if "status" in data:
