@@ -419,3 +419,82 @@ def format_diagnostics(diagnostics: list[dict]) -> str:
             lines.append(f"  {extra_line}")
     
     return "\n".join(lines)
+
+
+def format_call_tree(data: dict) -> str:
+    lines = []
+
+    name = data.get("name", "")
+    kind = data.get("kind", "")
+    detail = data.get("detail", "")
+    path = data.get("path", "")
+    line = data.get("line", 0)
+
+    parts = [f"{path}:{line}", f"[{kind}]" if kind else "", name]
+    if detail:
+        parts.append(f"({detail})")
+    lines.append(" ".join(filter(None, parts)))
+
+    if "calls" in data:
+        lines.append("")
+        lines.append("Outgoing calls:")
+        _render_calls_tree(data.get("calls", []), lines, "  ", is_outgoing=True)
+    elif "called_by" in data:
+        lines.append("")
+        lines.append("Incoming calls:")
+        _render_calls_tree(data.get("called_by", []), lines, "  ", is_outgoing=False)
+
+    return "\n".join(lines)
+
+
+def _render_calls_tree(items: list[dict], lines: list[str], prefix: str, is_outgoing: bool) -> None:
+    for i, item in enumerate(items):
+        is_last = i == len(items) - 1
+        connector = "└── " if is_last else "├── "
+        child_prefix = prefix + ("    " if is_last else "│   ")
+
+        name = item.get("name", "")
+        kind = item.get("kind", "")
+        detail = item.get("detail", "")
+        path = item.get("path", "")
+        line = item.get("line", 0)
+
+        parts = [f"{path}:{line}", f"[{kind}]" if kind else "", name]
+        if detail:
+            parts.append(f"({detail})")
+        lines.append(f"{prefix}{connector}" + " ".join(filter(None, parts)))
+
+        children_key = "calls" if is_outgoing else "called_by"
+        children = item.get(children_key, [])
+        if children:
+            _render_calls_tree(children, lines, child_prefix, is_outgoing)
+
+
+def format_call_path(data: dict) -> str:
+    if not data.get("found"):
+        return data.get("message", "No path found")
+
+    path = data.get("path", [])
+    if not path:
+        return "Empty path"
+
+    lines = ["Call path:"]
+    for i, item in enumerate(path):
+        name = item.get("name", "")
+        kind = item.get("kind", "")
+        detail = item.get("detail", "")
+        file_path = item.get("path", "")
+        line = item.get("line", 0)
+
+        parts = [f"{file_path}:{line}", f"[{kind}]" if kind else "", name]
+        if detail:
+            parts.append(f"({detail})")
+
+        if i == 0:
+            arrow = ""
+        else:
+            arrow = "  → "
+
+        lines.append(f"{arrow}" + " ".join(filter(None, parts)))
+
+    return "\n".join(lines)
