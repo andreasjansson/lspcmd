@@ -1325,64 +1325,6 @@ class DaemonServer:
 
         file_path.write_text(result)
 
-    async def _handle_format(self, params: dict) -> dict:
-        workspace, doc, path = await self._get_workspace_and_document(params)
-        config = self.session.config.get("formatting", {})
-
-        result = await workspace.client.send_request(
-            "textDocument/formatting",
-            {
-                "textDocument": {"uri": doc.uri},
-                "options": {
-                    "tabSize": config.get("tab_size", 4),
-                    "insertSpaces": config.get("insert_spaces", True),
-                },
-            },
-        )
-
-        if result:
-            await self._apply_text_edits(path, result)
-            return {"formatted": True, "edits_applied": len(result)}
-
-        return {"formatted": False}
-
-    async def _handle_organize_imports(self, params: dict) -> dict:
-        workspace, doc, path = await self._get_workspace_and_document(params)
-
-        result = await workspace.client.send_request(
-            "textDocument/codeAction",
-            {
-                "textDocument": {"uri": doc.uri},
-                "range": {
-                    "start": {"line": 0, "character": 0},
-                    "end": {"line": 0, "character": 0},
-                },
-                "context": {
-                    "diagnostics": [],
-                    "only": [CodeActionKind.SourceOrganizeImports],
-                },
-            },
-        )
-
-        if not result:
-            return {"organized": False, "error": "No organize imports action available"}
-
-        action = result[0]
-
-        if action.get("edit"):
-            await self._apply_workspace_edit(action["edit"], workspace.root)
-            return {"organized": True}
-
-        if action.get("command"):
-            cmd = action["command"]
-            await workspace.client.send_request(
-                "workspace/executeCommand",
-                {"command": cmd["command"], "arguments": cmd.get("arguments", [])},
-            )
-            return {"organized": True}
-
-        return {"organized": False}
-
     async def _apply_workspace_edit(self, edit: dict, workspace_root: Path) -> list[str]:
         files_modified = []
 
