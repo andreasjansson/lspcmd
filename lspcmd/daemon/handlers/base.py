@@ -192,7 +192,7 @@ class HandlerContext:
 
     async def collect_all_workspace_symbols(
         self, workspace_root: Path, query: str
-    ) -> list[dict]:
+    ) -> list[SymbolDict]:
         from ...servers.registry import get_server_for_language
 
         skip_dirs = {
