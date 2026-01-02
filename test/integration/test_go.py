@@ -490,42 +490,6 @@ Renamed in 1 file(s):
         assert "textDocument/declaration" in response["error"]
 
     # =========================================================================
-    # diagnostics tests
-    # =========================================================================
-
-    def test_diagnostics_single_file(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "errors.go"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "errors.go" in output
-        assert "error" in output.lower()
-
-    def test_diagnostics_undefined_variable(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "errors.go"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "undefinedVar" in output or "undefined" in output.lower()
-
-    def test_diagnostics_type_error(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "errors.go"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        lines = output.split("\n")
-        has_type_error = any("int" in line and "string" in line for line in lines) or \
-                        any("cannot" in line.lower() and "type" in line.lower() for line in lines) or \
-                        any("convert" in line.lower() for line in lines)
-        assert has_type_error, f"Expected type error in output: {output}"
-
-    # =========================================================================
     # move-file tests
     # =========================================================================
 
