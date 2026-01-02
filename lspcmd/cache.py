@@ -64,7 +64,7 @@ class LMDBCache:
         with self.env.begin() as txn:
             return txn.get(key_bytes) is not None
 
-    def get(self, key: tuple, default: Any = None) -> Any:
+    def get(self, key: tuple[Any, ...], default: Any = None) -> Any:
         key_bytes = pickle.dumps(key)
         
         with self.env.begin(write=True) as txn:
