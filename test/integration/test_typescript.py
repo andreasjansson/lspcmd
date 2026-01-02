@@ -174,7 +174,7 @@ src/user.ts:119 [Function] validateUser"""
             "workspace_root": str(workspace),
             "pattern": ".*",
             "kinds": ["function"],
-            "exclude_patterns": ["errors.ts"],
+            "exclude_patterns": ["errors.ts", "editable*"],
         })
         filtered_output = format_output(response["result"], "plain")
         assert filtered_output == """\
