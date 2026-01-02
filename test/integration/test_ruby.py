@@ -347,3 +347,62 @@ Represents a user in the system."""
         result = response["result"]
         assert result["name"] == "User"
         assert result["path"].endswith("user.rb")
+
+    # =========================================================================
+    # show multi-line constant tests
+    # =========================================================================
+
+    def test_show_multiline_hash_constant(self, workspace):
+        """Test that show displays multi-line Hash constants correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "user.rb"),
+            "workspace_root": str(workspace),
+            "line": 144,
+            "column": 0,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 144,
+            "range_end_line": 152,
+            "kind": "Constant",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+user.rb:144-152
+
+COUNTRY_CODES = {
+  'US' => 'United States',
+  'CA' => 'Canada',
+  'GB' => 'United Kingdom',
+  'DE' => 'Germany',
+  'FR' => 'France',
+  'JP' => 'Japan',
+  'AU' => 'Australia'
+}.freeze"""
+
+    def test_show_multiline_array_constant(self, workspace):
+        """Test that show displays multi-line Array constants correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "user.rb"),
+            "workspace_root": str(workspace),
+            "line": 155,
+            "column": 0,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 155,
+            "range_end_line": 160,
+            "kind": "Constant",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+user.rb:155-160
+
+DEFAULT_CONFIG = [
+  'debug=false',
+  'timeout=30',
+  'max_retries=3',
+  'log_level=INFO'
+].freeze"""
