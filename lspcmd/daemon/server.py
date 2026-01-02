@@ -466,6 +466,289 @@ class DaemonServer:
             "total_lines": total_lines,
         }
 
+    async def _handle_calls(self, params: dict) -> dict | list:
+        workspace_root = Path(params["workspace_root"]).resolve()
+        mode = params["mode"]
+        max_depth = params.get("max_depth", 3)
+
+        if mode == "outgoing":
+            path = Path(params["from_path"]).resolve()
+            line = params["from_line"]
+            column = params["from_column"]
+            symbol_name = params.get("from_symbol", "")
+            return await self._get_outgoing_calls_tree(
+                workspace_root, path, line, column, symbol_name, max_depth
+            )
+        elif mode == "incoming":
+            path = Path(params["to_path"]).resolve()
+            line = params["to_line"]
+            column = params["to_column"]
+            symbol_name = params.get("to_symbol", "")
+            return await self._get_incoming_calls_tree(
+                workspace_root, path, line, column, symbol_name, max_depth
+            )
+        else:  # mode == "path"
+            from_path = Path(params["from_path"]).resolve()
+            from_line = params["from_line"]
+            from_column = params["from_column"]
+            from_symbol = params.get("from_symbol", "")
+            to_path = Path(params["to_path"]).resolve()
+            to_line = params["to_line"]
+            to_column = params["to_column"]
+            to_symbol = params.get("to_symbol", "")
+            return await self._find_call_path(
+                workspace_root,
+                from_path, from_line, from_column, from_symbol,
+                to_path, to_line, to_column, to_symbol,
+                max_depth
+            )
+
+    async def _prepare_call_hierarchy(
+        self, workspace: "Workspace", path: Path, line: int, column: int
+    ) -> dict | None:
+        doc = await workspace.ensure_document_open(path)
+        
+        try:
+            result = await workspace.client.send_request(
+                "textDocument/prepareCallHierarchy",
+                {
+                    "textDocument": {"uri": doc.uri},
+                    "position": {"line": line - 1, "character": column},
+                },
+            )
+        except LSPResponseError as e:
+            if e.is_method_not_found():
+                raise LSPMethodNotSupported(
+                    "textDocument/prepareCallHierarchy", workspace.server_config.name
+                )
+            raise
+
+        if not result:
+            return None
+        return result[0]
+
+    async def _get_outgoing_calls_tree(
+        self, workspace_root: Path, path: Path, line: int, column: int,
+        symbol_name: str, max_depth: int
+    ) -> dict:
+        workspace = await self.session.get_or_create_workspace(path, workspace_root)
+        if not workspace or not workspace.client:
+            raise ValueError(f"No language server available for {path}")
+
+        await workspace.client.wait_for_service_ready()
+
+        item = await self._prepare_call_hierarchy(workspace, path, line, column)
+        if not item:
+            return {"error": f"Could not prepare call hierarchy for '{symbol_name}'"}
+
+        root = self._format_call_hierarchy_item(item, workspace_root)
+        root["calls"] = await self._expand_outgoing_calls(
+            workspace, workspace_root, item, max_depth, set()
+        )
+        return root
+
+    async def _expand_outgoing_calls(
+        self, workspace: "Workspace", workspace_root: Path, item: dict,
+        depth: int, visited: set
+    ) -> list[dict]:
+        if depth <= 0:
+            return []
+
+        item_key = (item.get("uri"), item.get("selectionRange", {}).get("start", {}).get("line"))
+        if item_key in visited:
+            return []
+        visited.add(item_key)
+
+        try:
+            result = await workspace.client.send_request(
+                "callHierarchy/outgoingCalls",
+                {"item": item},
+            )
+        except LSPResponseError as e:
+            if e.is_method_not_found():
+                return []
+            raise
+
+        if not result:
+            return []
+
+        calls = []
+        for call in result:
+            to_item = call.get("to")
+            if not to_item:
+                continue
+
+            call_info = self._format_call_hierarchy_item(to_item, workspace_root)
+            call_info["from_ranges"] = [
+                {"line": r["start"]["line"] + 1, "column": r["start"]["character"]}
+                for r in call.get("fromRanges", [])
+            ]
+            call_info["calls"] = await self._expand_outgoing_calls(
+                workspace, workspace_root, to_item, depth - 1, visited
+            )
+            calls.append(call_info)
+
+        return calls
+
+    async def _get_incoming_calls_tree(
+        self, workspace_root: Path, path: Path, line: int, column: int,
+        symbol_name: str, max_depth: int
+    ) -> dict:
+        workspace = await self.session.get_or_create_workspace(path, workspace_root)
+        if not workspace or not workspace.client:
+            raise ValueError(f"No language server available for {path}")
+
+        await workspace.client.wait_for_service_ready()
+
+        item = await self._prepare_call_hierarchy(workspace, path, line, column)
+        if not item:
+            return {"error": f"Could not prepare call hierarchy for '{symbol_name}'"}
+
+        root = self._format_call_hierarchy_item(item, workspace_root)
+        root["called_by"] = await self._expand_incoming_calls(
+            workspace, workspace_root, item, max_depth, set()
+        )
+        return root
+
+    async def _expand_incoming_calls(
+        self, workspace: "Workspace", workspace_root: Path, item: dict,
+        depth: int, visited: set
+    ) -> list[dict]:
+        if depth <= 0:
+            return []
+
+        item_key = (item.get("uri"), item.get("selectionRange", {}).get("start", {}).get("line"))
+        if item_key in visited:
+            return []
+        visited.add(item_key)
+
+        try:
+            result = await workspace.client.send_request(
+                "callHierarchy/incomingCalls",
+                {"item": item},
+            )
+        except LSPResponseError as e:
+            if e.is_method_not_found():
+                return []
+            raise
+
+        if not result:
+            return []
+
+        callers = []
+        for call in result:
+            from_item = call.get("from")
+            if not from_item:
+                continue
+
+            caller_info = self._format_call_hierarchy_item(from_item, workspace_root)
+            caller_info["call_sites"] = [
+                {"line": r["start"]["line"] + 1, "column": r["start"]["character"]}
+                for r in call.get("fromRanges", [])
+            ]
+            caller_info["called_by"] = await self._expand_incoming_calls(
+                workspace, workspace_root, from_item, depth - 1, visited
+            )
+            callers.append(caller_info)
+
+        return callers
+
+    async def _find_call_path(
+        self, workspace_root: Path,
+        from_path: Path, from_line: int, from_column: int, from_symbol: str,
+        to_path: Path, to_line: int, to_column: int, to_symbol: str,
+        max_depth: int
+    ) -> dict:
+        workspace = await self.session.get_or_create_workspace(from_path, workspace_root)
+        if not workspace or not workspace.client:
+            raise ValueError(f"No language server available for {from_path}")
+
+        await workspace.client.wait_for_service_ready()
+
+        from_item = await self._prepare_call_hierarchy(workspace, from_path, from_line, from_column)
+        if not from_item:
+            return {"error": f"Could not prepare call hierarchy for '{from_symbol}'"}
+
+        to_item = await self._prepare_call_hierarchy(workspace, to_path, to_line, to_column)
+        if not to_item:
+            return {"error": f"Could not prepare call hierarchy for '{to_symbol}'"}
+
+        to_key = (to_item.get("uri"), to_item.get("selectionRange", {}).get("start", {}).get("line"))
+
+        path = await self._bfs_call_path(
+            workspace, workspace_root, from_item, to_key, max_depth
+        )
+
+        if not path:
+            return {
+                "found": False,
+                "from": self._format_call_hierarchy_item(from_item, workspace_root),
+                "to": self._format_call_hierarchy_item(to_item, workspace_root),
+                "message": f"No call path found from '{from_symbol}' to '{to_symbol}' within depth {max_depth}",
+            }
+
+        return {
+            "found": True,
+            "path": [self._format_call_hierarchy_item(item, workspace_root) for item in path],
+        }
+
+    async def _bfs_call_path(
+        self, workspace: "Workspace", workspace_root: Path, start_item: dict,
+        target_key: tuple, max_depth: int
+    ) -> list[dict] | None:
+        from collections import deque
+
+        queue = deque([(start_item, [start_item], 0)])
+        visited = set()
+        start_key = (start_item.get("uri"), start_item.get("selectionRange", {}).get("start", {}).get("line"))
+        visited.add(start_key)
+
+        while queue:
+            current_item, path, depth = queue.popleft()
+
+            if depth >= max_depth:
+                continue
+
+            try:
+                result = await workspace.client.send_request(
+                    "callHierarchy/outgoingCalls",
+                    {"item": current_item},
+                )
+            except LSPResponseError:
+                continue
+
+            if not result:
+                continue
+
+            for call in result:
+                to_item = call.get("to")
+                if not to_item:
+                    continue
+
+                item_key = (to_item.get("uri"), to_item.get("selectionRange", {}).get("start", {}).get("line"))
+
+                if item_key == target_key:
+                    return path + [to_item]
+
+                if item_key not in visited:
+                    visited.add(item_key)
+                    queue.append((to_item, path + [to_item], depth + 1))
+
+        return None
+
+    def _format_call_hierarchy_item(self, item: dict, workspace_root: Path) -> dict:
+        uri = item.get("uri", "")
+        file_path = uri_to_path(uri)
+        sel_range = item.get("selectionRange", item.get("range", {}))
+        return {
+            "name": item.get("name", ""),
+            "kind": SymbolKind(item.get("kind", 0)).name if item.get("kind") else None,
+            "detail": item.get("detail"),
+            "path": self._relative_path(file_path, workspace_root),
+            "line": sel_range.get("start", {}).get("line", 0) + 1,
+            "column": sel_range.get("start", {}).get("character", 0),
+        }
+
     def _find_all_files_for_tree(self, workspace_root: Path, exclude_dirs: set[str]) -> list[Path]:
         files = []
         for root, dirs, filenames in os.walk(workspace_root):
