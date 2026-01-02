@@ -525,7 +525,8 @@ Renamed in 2 file(s):
         assert output == """\
 main.py:14 class StorageProtocol(Protocol):
 main.py:48 class MemoryStorage:
-main.py:61 class FileStorage:"""
+main.py:61 class FileStorage:
+editable.py:30 class EditableStorage:"""
 
     # =========================================================================
     # subtypes/supertypes tests (not supported by pyright)
