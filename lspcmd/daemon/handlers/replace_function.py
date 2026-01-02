@@ -196,7 +196,7 @@ async def _extract_function_signature(
 
     symbols_result = await workspace.client.send_request(
         "textDocument/documentSymbol",
-        DocumentSymbolParams(text_document=TextDocumentIdentifier(uri=doc.uri)),
+        DocumentSymbolParams(textDocument=TextDocumentIdentifier(uri=doc.uri)),
     )
     if symbols_result:
         symbol = find_symbol_at_line(symbols_result, line - 1)
@@ -206,7 +206,7 @@ async def _extract_function_signature(
     hover_result = await workspace.client.send_request(
         "textDocument/hover",
         TextDocumentPositionParams(
-            text_document=TextDocumentIdentifier(uri=doc.uri),
+            textDocument=TextDocumentIdentifier(uri=doc.uri),
             position=Position(line=line - 1, character=column),
         ),
     )
