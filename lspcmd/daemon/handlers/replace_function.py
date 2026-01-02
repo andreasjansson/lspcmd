@@ -91,11 +91,14 @@ async def handle_replace_function(
             )
 
         if check_signature:
-            await asyncio.sleep(0.2)
-
-            new_signature = await _extract_function_signature(
-                workspace, file_path, range_start, column
-            )
+            new_signature = None
+            for delay in [0.3, 0.5, 1.0]:
+                await asyncio.sleep(delay)
+                new_signature = await _extract_function_signature(
+                    workspace, file_path, range_start, column
+                )
+                if new_signature is not None:
+                    break
 
             if new_signature is None:
                 await _revert_file(file_path, original_content, backup_path, doc, workspace)
