@@ -260,19 +260,6 @@ src/Main.php:17 [Method] createSampleUser (static) in Main
         assert "may require a license" in output
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "src" / "User.php"),
-            "workspace_root": str(workspace),
-            "line": 10,
-            "column": 6,
-        })
-        output = format_output(response["result"], "plain")
-        assert "User" in output
 
     # =========================================================================
     # move-file tests

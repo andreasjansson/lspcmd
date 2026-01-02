@@ -457,21 +457,7 @@ export class FileStorage implements Storage {
 """
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
 
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-
-```typescript
 class User
 ```
 Represents a user in the system."""

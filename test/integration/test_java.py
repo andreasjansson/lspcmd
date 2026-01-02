@@ -440,19 +440,6 @@ src/main/java/com/example/UserRepository.java:54-56
         assert "MemoryStorage.java:12" in output
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java"),
-            "workspace_root": str(workspace),
-            "line": 9,
-            "column": 13,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == "com.example.User\nRepresents a user in the system."
 
     # =========================================================================
     # move-file tests

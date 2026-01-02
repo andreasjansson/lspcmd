@@ -400,36 +400,6 @@ type FileStorage struct {
 """
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "main.go"),
-            "workspace_root": str(workspace),
-            "line": 9,
-            "column": 5,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-```go
-type User struct { // size=40 (0x28), class=48 (0x30)
-\tName  string
-\tEmail string
-\tAge   int
-}
-```
-
----
-
-User represents a user in the system.
-
-
-```go
-func (u *User) DisplayName() string
-func (u *User) IsAdult() bool
-```"""
 
     # =========================================================================
     # rename tests

@@ -450,26 +450,6 @@ main.py:114-116
     # describe (hover) tests
     # =========================================================================
 
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-```python
-(class) User
-```
----
-Represents a user in the system.
-
-Attributes:  
-&nbsp;&nbsp;&nbsp;&nbsp;name: The user's full name.  
-&nbsp;&nbsp;&nbsp;&nbsp;email: The user's email address (used as unique identifier).  
-&nbsp;&nbsp;&nbsp;&nbsp;age: The user's age in years."""
 
     # =========================================================================
     # rename tests

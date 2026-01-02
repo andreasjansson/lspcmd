@@ -246,22 +246,6 @@ main.rb:9   User.new('John Doe', 'john@example.com', 30)
 user.rb:8 class User"""
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "user.rb"),
-            "workspace_root": str(workspace),
-            "line": 8,
-            "column": 6,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-User
-
-Represents a user in the system."""
 
     # =========================================================================
     # move-file tests

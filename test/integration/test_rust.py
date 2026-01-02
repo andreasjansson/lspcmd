@@ -216,7 +216,7 @@ src/main.rs:10 [Function] create_sample_user (fn() -> User)
 
     def test_definition_basic(self, workspace):
         os.chdir(workspace)
-        response = self._run_request_with_retry("definition", {
+        response = self._run_request_with_retry("show", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 25,
@@ -229,7 +229,7 @@ src/main.rs:10 [Function] create_sample_user (fn() -> User)
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
-        response = self._run_request_with_retry("definition", {
+        response = self._run_request_with_retry("show", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 25,
@@ -248,7 +248,7 @@ fn create_sample_user() -> User {
 
     def test_definition_with_body_and_context(self, workspace):
         os.chdir(workspace)
-        response = self._run_request_with_retry("definition", {
+        response = self._run_request_with_retry("show", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 25,
@@ -269,7 +269,7 @@ fn create_sample_user() -> User {
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
-        response = self._run_request_with_retry("definition", {
+        response = self._run_request_with_retry("show", {
             "path": str(workspace / "src" / "main.rs"),
             "workspace_root": str(workspace),
             "line": 25,
@@ -459,7 +459,7 @@ Moved file and updated imports in 3 file(s):
     def test_show_multiline_array_constant(self, workspace):
         """Test that show displays multi-line array constants correctly."""
         os.chdir(workspace)
-        response = self._run_request_with_retry("definition", {
+        response = self._run_request_with_retry("show", {
             "path": str(workspace / "src" / "user.rs"),
             "workspace_root": str(workspace),
             "line": 92,

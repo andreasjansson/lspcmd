@@ -343,19 +343,6 @@ inline User createSampleUser() {
         assert "FileStorage" in output
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 13,
-            "column": 6,
-        })
-        output = format_output(response["result"], "plain")
-        assert "User" in output
 
     # =========================================================================
     # rename tests

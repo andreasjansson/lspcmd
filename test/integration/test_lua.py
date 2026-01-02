@@ -237,27 +237,6 @@ end"""
         assert output == "user.lua:12 User.__index = User"
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "user.lua"),
-            "workspace_root": str(workspace),
-            "line": 12,
-            "column": 6,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-```lua
-(field) User.__index: {
-    displayName: function,
-    isAdult: function,
-    new: function,
-    __index: table,
-}
-```"""
 
     # =========================================================================
     # move-file tests

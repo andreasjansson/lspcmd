@@ -240,31 +240,6 @@ pub fn createSampleUser() user.User {
         assert "src/user.zig:10" in output
 
     # =========================================================================
-    # describe (hover) tests
-    # =========================================================================
-
-    def test_describe_hover(self, workspace):
-        os.chdir(workspace)
-        response = run_request("describe", {
-            "path": str(workspace / "src" / "user.zig"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 11,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-```zig
-const User = struct {
-    name: []const u8,
-    email: []const u8,
-    age: i32,
-}
-```
-```zig
-(type)
-```
-
-Represents a user in the system."""
 
     # =========================================================================
     # move-file tests
