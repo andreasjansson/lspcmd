@@ -259,8 +259,6 @@ class HandlerContext:
     async def get_symbol_documentation(
         self, workspace_root: Path, rel_path: str, line: int, column: int
     ) -> str | None:
-        from ...lsp.types import Hover, MarkupContent
-
         file_path = workspace_root / rel_path
 
         workspace = self.session.get_workspace_for_file(file_path)
@@ -277,10 +275,10 @@ class HandlerContext:
             doc = await workspace.ensure_document_open(file_path)
             result = await workspace.client.send_request(
                 "textDocument/hover",
-                {
-                    "textDocument": {"uri": doc.uri},
-                    "position": {"line": line - 1, "character": column},
-                },
+                TextDocumentPositionParams(
+                    text_document=TextDocumentIdentifier(uri=doc.uri),
+                    position=Position(line=line - 1, character=column),
+                ),
             )
 
             if not result:
