@@ -145,13 +145,6 @@ class DocumentSymbol(BaseModel):
     children: list["DocumentSymbol"] | None = None
 
 
-class DiagnosticSeverity(IntEnum):
-    Error = 1
-    Warning = 2
-    Information = 3
-    Hint = 4
-
-
 class Diagnostic(BaseModel):
     range: Range
     message: str
