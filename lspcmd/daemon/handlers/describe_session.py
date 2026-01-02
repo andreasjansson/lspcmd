@@ -20,7 +20,7 @@ async def handle_describe_session(
             workspaces.append(WorkspaceInfo(
                 root=str(root),
                 language=server_name,
-                server_pid=workspace.client.server_process.pid if workspace.client and workspace.client.server_process else None,
+                server_pid=workspace.client.process.pid if workspace.client and workspace.client.process else None,
                 open_documents=list(workspace.open_documents.keys()),
             ))
 
