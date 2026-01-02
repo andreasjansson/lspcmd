@@ -242,7 +242,7 @@ class DaemonServer:
             logger.exception(f"Error in handler {method}")
             return {"error": str(e)}
 
-    async def _get_workspace_and_document(self, params: dict):
+    async def _get_workspace_and_document(self, params: JsonDict) -> tuple[Workspace, Any, Path]:
         path = Path(params["path"]).resolve()
         workspace_root = Path(params["workspace_root"]).resolve()
 
@@ -251,7 +251,7 @@ class DaemonServer:
 
         return workspace, doc, path
 
-    def _parse_position(self, params: dict) -> tuple[int, int]:
+    def _parse_position(self, params: JsonDict) -> tuple[int, int]:
         line = params["line"] - 1
         column = params["column"]
         return line, column
