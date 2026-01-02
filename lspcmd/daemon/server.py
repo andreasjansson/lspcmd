@@ -1484,6 +1484,22 @@ class DaemonServer:
         sig = sig.strip()
         return sig
 
+    async def _handle_remove_workspace(self, params: dict) -> dict:
+        workspace_root = Path(params["workspace_root"]).resolve()
+        servers = self.session.workspaces.get(workspace_root, {})
+
+        if not servers:
+            return {"removed": True, "servers_stopped": []}
+
+        stopped = []
+        for server_name, workspace in list(servers.items()):
+            if workspace.client is not None:
+                await workspace.stop_server()
+            stopped.append(server_name)
+
+        del self.session.workspaces[workspace_root]
+        return {"removed": True, "servers_stopped": stopped}
+
     async def _handle_restart_workspace(self, params: dict) -> dict:
         workspace_root = Path(params["workspace_root"]).resolve()
         servers = self.session.workspaces.get(workspace_root, {})
