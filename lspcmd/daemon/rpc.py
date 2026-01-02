@@ -323,4 +323,4 @@ class ResolveSymbolResult(BaseModel):
     # Error fields
     error: str | None = None
     matches: list[SymbolInfo] | None = None
-    total: int | None = None
+    total_matches: int | None = None
