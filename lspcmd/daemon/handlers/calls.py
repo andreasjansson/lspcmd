@@ -48,6 +48,8 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             ctx, workspace_root, path, line, column, symbol_name, max_depth,
             include_non_workspace
         )
+        if "error" in result:
+            return CallsResult(error=result["error"])
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     elif mode == "incoming":
         path = Path(params.to_path).resolve()
@@ -58,6 +60,8 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             ctx, workspace_root, path, line, column, symbol_name, max_depth,
             include_non_workspace
         )
+        if "error" in result:
+            return CallsResult(error=result["error"])
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     else:  # mode == "path"
         from_path = Path(params.from_path).resolve()
