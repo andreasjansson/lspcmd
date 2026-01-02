@@ -1,6 +1,14 @@
 {
-  "include": ["lspcmd"],
-  "exclude": ["**/__pycache__", ".venv", "lspcmd.egg-info", "test"],
+  "include": [
+    "lspcmd",
+    "test"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    ".venv",
+    "lspcmd.egg-info",
+    "test/fixtures"
+  ],
   "reportMissingImports": "error",
   "reportMissingTypeStubs": false,
   "pythonVersion": "3.13",
