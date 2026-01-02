@@ -76,13 +76,21 @@ class TestCliCommands:
 
     def test_no_results_written_to_stderr(self):
         """Test that output_result writes 'No results' to stderr."""
-        from io import StringIO
         from unittest.mock import patch
         from lspcmd.cli import output_result
         
         with patch('lspcmd.cli.click.echo') as mock_echo:
             output_result([], "plain")
             mock_echo.assert_called_once_with("No results", err=True)
+
+    def test_warning_written_to_stderr(self):
+        """Test that output_result writes warnings to stderr."""
+        from unittest.mock import patch
+        from lspcmd.cli import output_result
+        
+        with patch('lspcmd.cli.click.echo') as mock_echo:
+            output_result({"warning": "test warning message"}, "plain")
+            mock_echo.assert_called_once_with("Warning: test warning message", err=True)
 
 
 class TestCliWithDaemon:
