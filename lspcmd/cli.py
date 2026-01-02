@@ -945,6 +945,7 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
 
 
 @cli.command("files")
+@click.argument("path", required=False)
 @click.option(
     "-x",
     "--exclude",
@@ -958,11 +959,12 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     help="Include default-excluded directories (e.g., -i .git -i node_modules)",
 )
 @click.pass_context
-def files(ctx, exclude, include):
+def files(ctx, path, exclude, include):
     """Show source file tree with symbol and line counts.
 
-    Lists all files in the workspace with line counts. For files tracked by
-    language servers, also shows counts of classes, functions, methods, etc.
+    Lists all files in the workspace (or PATH if specified) with line counts.
+    For files tracked by language servers, also shows counts of classes,
+    functions, methods, etc.
 
     By default excludes common non-source directories like .git, __pycache__,
     node_modules, etc. Use -i/--include to include them.
@@ -971,6 +973,8 @@ def files(ctx, exclude, include):
 
       lspcmd files                       # current workspace
 
+      lspcmd files src/                  # only src/ directory
+
       lspcmd files -x tests -x vendor    # exclude additional directories
 
       lspcmd files -i .git               # include .git directory
@@ -978,10 +982,18 @@ def files(ctx, exclude, include):
       lspcmd --json files                # JSON output
     """
     config = load_config()
-    workspace_root = get_workspace_root_for_cwd(config)
+    
+    if path:
+        target_path = Path(path).resolve()
+        workspace_root = get_workspace_root_for_path(target_path, config)
+        subpath = str(target_path)
+    else:
+        workspace_root = get_workspace_root_for_cwd(config)
+        subpath = None
 
     response = run_request("files", {
         "workspace_root": str(workspace_root),
+        "subpath": subpath,
         "exclude_patterns": list(exclude),
         "include_patterns": list(include),
     })
