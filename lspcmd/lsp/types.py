@@ -348,7 +348,105 @@ class InitializeResult(BaseModel):
     serverInfo: ServerInfo | None = None
 
 
-# Type aliases for LSP responses
+# =============================================================================
+# LSP Request Params
+# =============================================================================
+
+
+class WorkspaceFolder(BaseModel):
+    uri: str
+    name: str
+
+
+class ClientCapabilities(BaseModel, extra="allow"):
+    workspace: dict[str, Any] | None = None
+    textDocument: dict[str, Any] | None = None
+    window: dict[str, Any] | None = None
+    general: dict[str, Any] | None = None
+    experimental: Any | None = None
+
+
+class InitializeParams(BaseModel):
+    processId: int | None
+    rootUri: str | None
+    rootPath: str | None = None
+    capabilities: ClientCapabilities
+    workspaceFolders: list[WorkspaceFolder] | None = None
+    initializationOptions: Any | None = None
+    trace: str | None = None
+
+
+class DefinitionParams(TextDocumentPositionParams):
+    pass
+
+
+class DeclarationParams(TextDocumentPositionParams):
+    pass
+
+
+class ImplementationParams(TextDocumentPositionParams):
+    pass
+
+
+class TypeDefinitionParams(TextDocumentPositionParams):
+    pass
+
+
+class HoverParams(TextDocumentPositionParams):
+    pass
+
+
+class ReferenceParams(TextDocumentPositionParams):
+    context: ReferenceContext
+
+
+class DocumentSymbolParams(BaseModel):
+    textDocument: TextDocumentIdentifier
+
+
+class RenameParams(BaseModel):
+    textDocument: TextDocumentIdentifier
+    position: Position
+    newName: str
+
+
+class PrepareCallHierarchyParams(TextDocumentPositionParams):
+    pass
+
+
+class CallHierarchyIncomingCallsParams(BaseModel):
+    item: CallHierarchyItem
+
+
+class CallHierarchyOutgoingCallsParams(BaseModel):
+    item: CallHierarchyItem
+
+
+class PrepareTypeHierarchyParams(TextDocumentPositionParams):
+    pass
+
+
+class TypeHierarchySubtypesParams(BaseModel):
+    item: TypeHierarchyItem
+
+
+class TypeHierarchySupertypesParams(BaseModel):
+    item: TypeHierarchyItem
+
+
+class FileRename(BaseModel):
+    oldUri: str
+    newUri: str
+
+
+class RenameFilesParams(BaseModel):
+    files: list[FileRename]
+
+
+# =============================================================================
+# LSP Response Type Aliases
+# =============================================================================
+
 DefinitionResponse = Location | list[Location] | list[LocationLink] | None
 DeclarationResponse = Location | list[Location] | list[LocationLink] | None
 ReferencesResponse = list[Location] | None
@@ -356,7 +454,7 @@ ImplementationResponse = Location | list[Location] | list[LocationLink] | None
 TypeDefinitionResponse = Location | list[Location] | list[LocationLink] | None
 HoverResponse = Hover | None
 DocumentSymbolResponse = list[DocumentSymbol] | list[SymbolInformation] | None
-RenameResponse = WorkspaceEdit | None
+RenameResponseType = WorkspaceEdit | None
 PrepareCallHierarchyResponse = list[CallHierarchyItem] | None
 CallHierarchyIncomingCallsResponse = list[CallHierarchyIncomingCall] | None
 CallHierarchyOutgoingCallsResponse = list[CallHierarchyOutgoingCall] | None
