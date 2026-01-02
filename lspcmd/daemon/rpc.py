@@ -268,25 +268,6 @@ class MoveFileResult(BaseModel):
     imports_updated: bool
 
 
-# === Replace Function ===
-class ReplaceFunctionParams(BaseModel):
-    workspace_root: str
-    symbol: str
-    new_contents: str
-    check_signature: bool = True
-
-
-class ReplaceFunctionResult(BaseModel):
-    replaced: bool = False
-    path: str | None = None
-    old_range: str | None = None
-    new_range: str | None = None
-    error: str | None = None
-    old_signature: str | None = None
-    new_signature: str | None = None
-    hint: str | None = None
-
-
 # === Raw LSP Request ===
 class RawLspRequestParams(BaseModel):
     workspace_root: str
