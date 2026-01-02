@@ -141,3 +141,23 @@ test "User.isAdult returns false for minors" {
     const u = User.init("Test", "test@test.com", 15);
     try std.testing.expect(!u.isAdult());
 }
+
+/// Default ports for various services.
+pub const DEFAULT_PORTS = [_]u16{
+    80,
+    443,
+    8080,
+    8443,
+    3000,
+};
+
+/// Country codes as a list.
+pub const COUNTRY_CODES = [_][]const u8{
+    "US",
+    "CA",
+    "GB",
+    "DE",
+    "FR",
+    "JP",
+    "AU",
+};
