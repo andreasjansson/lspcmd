@@ -134,7 +134,7 @@ def get_workspace_root_for_path(path: Path, config: dict) -> Path:
         return workspace_root
 
     raise click.ClickException(
-        f"No workspace initialized for {path}\n" f"Run: lspcmd workspace init"
+        f"No workspace found for {path}\n" f"Run: lspcmd workspace add"
     )
 
 
