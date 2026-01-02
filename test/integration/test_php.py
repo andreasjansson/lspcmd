@@ -411,3 +411,23 @@ src/User.php:15-23
         'JP' => 'Japan',
         'AU' => 'Australia',
     ];"""
+
+    # =========================================================================
+    # calls tests (intelephense does not support call hierarchy)
+    # =========================================================================
+
+    def test_calls_not_supported(self, workspace):
+        """Test that calls returns proper error for intelephense."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "outgoing",
+            "from_path": str(workspace / "src" / "Main.php"),
+            "from_line": 58,
+            "from_column": 23,
+            "from_symbol": "run",
+            "max_depth": 1,
+        })
+        assert "error" in response
+        assert "prepareCallHierarchy" in response["error"]
+        assert "intelephense" in response["error"]
