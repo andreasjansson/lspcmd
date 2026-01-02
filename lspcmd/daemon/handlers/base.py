@@ -118,7 +118,7 @@ class HandlerContext:
         if cached is not None:
             return cached
 
-        symbols = []
+        symbols: list[SymbolDict] = []
         try:
             doc = await workspace.ensure_document_open(file_path)
             result = await workspace.client.send_request(
@@ -142,7 +142,7 @@ class HandlerContext:
         workspace_root: Path,
         files: list[Path],
         close_after: bool = True,
-    ) -> list[dict]:
+    ) -> list[SymbolDict]:
         symbols = []
         opened_files = []
 
