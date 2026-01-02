@@ -17,6 +17,7 @@ async def handle_references(
         "path": params.path,
         "workspace_root": params.workspace_root,
     })
+    assert workspace.client
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
