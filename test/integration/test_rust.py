@@ -479,3 +479,35 @@ Moved file and updated imports in 3 file(s):
         result = response["result"]
         assert result["name"] == "Storage"
         assert result["path"].endswith("storage.rs")
+
+    # =========================================================================
+    # show multi-line constant tests
+    # =========================================================================
+
+    def test_show_multiline_array_constant(self, workspace):
+        """Test that show displays multi-line array constants correctly."""
+        os.chdir(workspace)
+        response = self._run_request_with_retry("definition", {
+            "path": str(workspace / "src" / "user.rs"),
+            "workspace_root": str(workspace),
+            "line": 92,
+            "column": 10,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 91,
+            "range_end_line": 98,
+            "kind": "Constant",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.rs:91-98
+
+/// Default ports for various services.
+pub const DEFAULT_PORTS: [u16; 5] = [
+    80,
+    443,
+    8080,
+    8443,
+    3000,
+];"""
