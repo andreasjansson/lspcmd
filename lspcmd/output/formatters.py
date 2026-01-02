@@ -29,14 +29,6 @@ def format_plain(data: Any) -> str:
         if "contents" in data:
             return data["contents"] or "No information available"
 
-        if "formatted" in data:
-            if data["formatted"]:
-                return f"Formatted ({data.get('edits_applied', 0)} edits applied)"
-            return "No formatting changes"
-
-        if "organized" in data:
-            return "Imports organized" if data["organized"] else data.get("error", "Failed to organize imports")
-
         if "renamed" in data:
             if data["renamed"]:
                 files = data.get("files_modified", [])
