@@ -86,7 +86,7 @@ class LMDBCache:
                 logger.warning(f"Failed to read cache entry: {e}")
                 return default
 
-    def __getitem__(self, key: tuple) -> Any:
+    def __getitem__(self, key: tuple[Any, ...]) -> Any:
         result = self.get(key)
         if result is None:
             raise KeyError(key)
