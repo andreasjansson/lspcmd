@@ -457,7 +457,7 @@ Renamed in 1 file(s):
             "context": 0,
         })
         assert response == {
-            "error": 'LSP error: JSON RPC method not found: "Declaration" not yet implemented'
+            "error": "textDocument/declaration is not supported by gopls"
         }
 
     # =========================================================================
