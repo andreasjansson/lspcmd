@@ -10,6 +10,29 @@ namespace LspcmdFixture;
 class User
 {
     /**
+     * Country codes mapped to their full names.
+     */
+    public const COUNTRY_CODES = [
+        'US' => 'United States',
+        'CA' => 'Canada',
+        'GB' => 'United Kingdom',
+        'DE' => 'Germany',
+        'FR' => 'France',
+        'JP' => 'Japan',
+        'AU' => 'Australia',
+    ];
+
+    /**
+     * Default configuration values.
+     */
+    public const DEFAULT_CONFIG = [
+        'debug=false',
+        'timeout=30',
+        'max_retries=3',
+        'log_level=INFO',
+    ];
+
+    /**
      * Creates a new User instance.
      *
      * @param string $name The user's full name
