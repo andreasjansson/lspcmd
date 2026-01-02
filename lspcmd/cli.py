@@ -698,40 +698,6 @@ def supertypes(ctx, symbol, context):
     output_result(response["result"], output_format)
 
 
-@cli.command("format")
-@click.argument("path", type=click.Path(exists=True))
-@click.pass_context
-def format_buffer(ctx, path):
-    """Format a file."""
-    path = Path(path).resolve()
-    config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
-
-    response = run_request("format", {
-        "path": str(path),
-        "workspace_root": str(workspace_root),
-    })
-    output_format = "json" if ctx.obj["json"] else "plain"
-    output_result(response["result"], output_format)
-
-
-@cli.command("organize-imports")
-@click.argument("path", type=click.Path(exists=True))
-@click.pass_context
-def organize_imports(ctx, path):
-    """Organize imports in a file."""
-    path = Path(path).resolve()
-    config = load_config()
-    workspace_root = get_workspace_root_for_path(path, config)
-
-    response = run_request("organize-imports", {
-        "path": str(path),
-        "workspace_root": str(workspace_root),
-    })
-    output_format = "json" if ctx.obj["json"] else "plain"
-    output_result(response["result"], output_format)
-
-
 @cli.command("rename")
 @click.argument("symbol")
 @click.argument("new_name")
