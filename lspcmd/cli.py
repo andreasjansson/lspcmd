@@ -348,6 +348,19 @@ def workspace(ctx):
     pass
 
 
+def _is_interactive() -> bool:
+    """Check if we're running in an interactive terminal."""
+    if not sys.stdin.isatty():
+        return False
+    try:
+        size = os.get_terminal_size()
+        if size.columns == 0 or size.lines == 0:
+            return False
+    except OSError:
+        return False
+    return True
+
+
 @workspace.command("add")
 @click.option("--root", type=click.Path(exists=True), help="Workspace root directory")
 @click.pass_context
@@ -366,7 +379,7 @@ def workspace_add(ctx, root):
         else:
             default_root = cwd
 
-        if sys.stdin.isatty():
+        if _is_interactive():
             workspace_root = click.prompt(
                 "Workspace root",
                 default=str(default_root),
