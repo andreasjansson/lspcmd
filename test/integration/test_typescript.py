@@ -457,101 +457,88 @@ export class FileStorage implements Storage {
 """
 
     # =========================================================================
-    # rename tests
+    # rename tests (uses isolated editable files)
     # =========================================================================
 
     def test_rename(self, workspace):
         os.chdir(workspace)
         
-        # Save original content for restoration
-        user_ts_path = workspace / "src" / "user.ts"
-        main_ts_path = workspace / "src" / "main.ts"
-        original_user_ts = user_ts_path.read_text()
-        original_main_ts = main_ts_path.read_text()
+        editable_path = workspace / "src" / "editable.ts"
+        consumer_path = workspace / "src" / "editable_consumer.ts"
+        original_editable = editable_path.read_text()
+        original_consumer = consumer_path.read_text()
         
         try:
-            # Verify User class exists before rename
-            assert "export class User {" in original_user_ts
-            assert "import { User," in original_main_ts
+            assert "export class EditablePerson {" in original_editable
+            assert "import { EditablePerson," in original_consumer
             
             response = run_request("rename", {
-                "path": str(user_ts_path),
+                "path": str(editable_path),
                 "workspace_root": str(workspace),
-                "line": 4,
+                "line": 11,
                 "column": 13,
-                "new_name": "Person",
+                "new_name": "RenamedPerson",
             })
             output = format_output(response["result"], "plain")
-            # TypeScript renames in both user.ts and main.ts (order may vary)
             lines = output.strip().split("\n")
             assert lines[0] == "Renamed in 2 file(s):"
             files_renamed = {line.strip() for line in lines[1:]}
-            assert files_renamed == {"src/main.ts", "src/user.ts"}
+            assert files_renamed == {"src/editable.ts", "src/editable_consumer.ts"}
 
-            # Verify rename actually happened in the files
-            renamed_user_ts = user_ts_path.read_text()
-            renamed_main_ts = main_ts_path.read_text()
-            assert "export class Person {" in renamed_user_ts
-            assert "export class User {" not in renamed_user_ts
-            assert "import { Person," in renamed_main_ts
-            assert "import { User," not in renamed_main_ts
+            renamed_editable = editable_path.read_text()
+            renamed_consumer = consumer_path.read_text()
+            assert "export class RenamedPerson {" in renamed_editable
+            assert "export class EditablePerson {" not in renamed_editable
+            assert "import { RenamedPerson," in renamed_consumer
+            assert "import { EditablePerson," not in renamed_consumer
         finally:
-            # Always restore original content
-            user_ts_path.write_text(original_user_ts)
-            main_ts_path.write_text(original_main_ts)
+            editable_path.write_text(original_editable)
+            consumer_path.write_text(original_consumer)
 
     # =========================================================================
-    # move-file tests
+    # move-file tests (uses isolated editable files)
     # =========================================================================
 
     def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
         
-        # Save original state for restoration
-        user_ts_path = workspace / "src" / "user.ts"
-        main_ts_path = workspace / "src" / "main.ts"
+        editable_path = workspace / "src" / "editable.ts"
+        consumer_path = workspace / "src" / "editable_consumer.ts"
         models_dir = workspace / "src" / "models"
-        moved_user_ts_path = models_dir / "user.ts"
+        moved_editable_path = models_dir / "editable.ts"
         
-        original_user_ts = user_ts_path.read_text()
-        original_main_ts = main_ts_path.read_text()
+        original_editable = editable_path.read_text()
+        original_consumer = consumer_path.read_text()
         
         try:
-            # Create a subdirectory to move the file into
             models_dir.mkdir(exist_ok=True)
             
-            # Check initial import in main.ts
-            assert "from './user'" in original_main_ts
+            assert "from './editable'" in original_consumer
             
-            # Move user.ts to models/user.ts
             response = run_request("move-file", {
-                "old_path": str(user_ts_path),
-                "new_path": str(moved_user_ts_path),
+                "old_path": str(editable_path),
+                "new_path": str(moved_editable_path),
                 "workspace_root": str(workspace),
             })
             output = format_output(response["result"], "plain")
             
-            # Verify the file was moved
-            assert not user_ts_path.exists()
-            assert moved_user_ts_path.exists()
+            assert not editable_path.exists()
+            assert moved_editable_path.exists()
             
-            # Check exact output - TypeScript updates imports
             assert output == """\
 Moved file and updated imports in 2 file(s):
-  src/main.ts
-  src/models/user.ts"""
+  src/editable_consumer.ts
+  src/models/editable.ts"""
             
-            # Check that imports were updated in main.ts
-            updated_main = main_ts_path.read_text()
-            assert "from './models/user'" in updated_main
+            updated_consumer = consumer_path.read_text()
+            assert "from './models/editable'" in updated_consumer
         finally:
-            # Always restore original state
-            if moved_user_ts_path.exists():
-                moved_user_ts_path.unlink()
+            if moved_editable_path.exists():
+                moved_editable_path.unlink()
             if models_dir.exists() and not any(models_dir.iterdir()):
                 models_dir.rmdir()
-            user_ts_path.write_text(original_user_ts)
-            main_ts_path.write_text(original_main_ts)
+            editable_path.write_text(original_editable)
+            consumer_path.write_text(original_consumer)
 
     # =========================================================================
     # replace-function tests
