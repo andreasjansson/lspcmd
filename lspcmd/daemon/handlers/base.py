@@ -18,6 +18,11 @@ from ...lsp.types import (
     DocumentSymbol,
     SymbolInformation,
     DefinitionResponse,
+    DocumentSymbolParams,
+    TextDocumentPositionParams,
+    TextDocumentIdentifier,
+    Position,
+    MarkupContent,
 )
 from ...utils.text import get_language_id, read_file_content, get_lines_around
 from ...utils.uri import uri_to_path
