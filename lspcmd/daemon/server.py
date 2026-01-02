@@ -615,7 +615,7 @@ class DaemonServer:
 
     async def _get_incoming_calls_tree(
         self, workspace_root: Path, path: Path, line: int, column: int,
-        symbol_name: str, max_depth: int
+        symbol_name: str, max_depth: int, include_non_workspace: bool = False
     ) -> dict:
         workspace = await self.session.get_or_create_workspace(path, workspace_root)
         if not workspace or not workspace.client:
@@ -629,13 +629,15 @@ class DaemonServer:
 
         root = self._format_call_hierarchy_item(item, workspace_root)
         root["called_by"] = await self._expand_incoming_calls(
-            workspace, workspace_root, item, max_depth, set(), is_root=True
+            workspace, workspace_root, item, max_depth, set(),
+            include_non_workspace, is_root=True
         )
         return root
 
     async def _expand_incoming_calls(
         self, workspace: "Workspace", workspace_root: Path, item: dict,
-        depth: int, visited: set, is_root: bool = False
+        depth: int, visited: set, include_non_workspace: bool = False,
+        is_root: bool = False
     ) -> list[dict]:
         if depth <= 0:
             return []
@@ -668,13 +670,18 @@ class DaemonServer:
             if not from_item:
                 continue
 
+            from_uri = from_item.get("uri", "")
+            if not include_non_workspace and not self._is_path_in_workspace(from_uri, workspace_root):
+                continue
+
             caller_info = self._format_call_hierarchy_item(from_item, workspace_root)
             caller_info["call_sites"] = [
                 {"line": r["start"]["line"] + 1, "column": r["start"]["character"]}
                 for r in call.get("fromRanges", [])
             ]
             caller_info["called_by"] = await self._expand_incoming_calls(
-                workspace, workspace_root, from_item, depth - 1, visited
+                workspace, workspace_root, from_item, depth - 1, visited,
+                include_non_workspace
             )
             callers.append(caller_info)
 
