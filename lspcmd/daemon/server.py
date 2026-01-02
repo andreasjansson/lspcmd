@@ -706,11 +706,13 @@ class DaemonServer:
 
         from_item = await self._prepare_call_hierarchy(workspace, from_path, from_line, from_column)
         if not from_item:
-            return {"error": f"Could not prepare call hierarchy for '{from_symbol}'"}
+            rel_path = self._relative_path(from_path, workspace_root)
+            return {"error": f"No callable symbol found at {rel_path}:{from_line}:{from_column} for '{from_symbol}'. The symbol may not be a function/method, or the position may be incorrect."}
 
         to_item = await self._prepare_call_hierarchy(workspace, to_path, to_line, to_column)
         if not to_item:
-            return {"error": f"Could not prepare call hierarchy for '{to_symbol}'"}
+            rel_path = self._relative_path(to_path, workspace_root)
+            return {"error": f"No callable symbol found at {rel_path}:{to_line}:{to_column} for '{to_symbol}'. The symbol may not be a function/method, or the position may be incorrect."}
 
         to_key = (to_item.get("uri"), to_item.get("selectionRange", {}).get("start", {}).get("line"))
 
