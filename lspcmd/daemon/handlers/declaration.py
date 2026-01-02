@@ -12,14 +12,13 @@ async def handle_declaration(
         "path": params.path,
         "workspace_root": params.workspace_root,
     })
-    assert workspace.client
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
     result = await workspace.client.send_request(
         "textDocument/declaration",
         TextDocumentPositionParams(
-            text_document=TextDocumentIdentifier(uri=doc.uri),
+            textDocument=TextDocumentIdentifier(uri=doc.uri),
             position=Position(line=line, character=column),
         ),
     )
