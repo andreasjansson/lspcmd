@@ -1,36 +1,31 @@
 from enum import IntEnum
 from typing import Any, Literal
-from pydantic import BaseModel, Field, ConfigDict, AliasChoices
+from pydantic import BaseModel, Field
 
 
-class LSPModel(BaseModel):
-    """Base model allowing both snake_case and camelCase field access."""
-    model_config = ConfigDict(populate_by_name=True)
-
-
-class Position(LSPModel):
+class Position(BaseModel):
     line: int
     character: int
 
 
-class Range(LSPModel):
+class Range(BaseModel):
     start: Position
     end: Position
 
 
-class Location(LSPModel):
+class Location(BaseModel):
     uri: str
     range: Range
 
 
-class LocationLink(LSPModel):
-    origin_selection_range: Range | None = Field(default=None, alias="originSelectionRange")
-    target_uri: str = Field(alias="targetUri")
-    target_range: Range = Field(alias="targetRange")
-    target_selection_range: Range = Field(alias="targetSelectionRange")
+class LocationLink(BaseModel):
+    originSelectionRange: Range | None = None
+    targetUri: str
+    targetRange: Range
+    targetSelectionRange: Range
 
 
-class TextDocumentIdentifier(LSPModel):
+class TextDocumentIdentifier(BaseModel):
     uri: str
 
 
@@ -42,74 +37,72 @@ class OptionalVersionedTextDocumentIdentifier(TextDocumentIdentifier):
     version: int | None = None
 
 
-class TextDocumentItem(LSPModel):
+class TextDocumentItem(BaseModel):
     uri: str
-    language_id: str = Field(alias="languageId")
+    languageId: str
     version: int
     text: str
 
 
-class TextDocumentPositionParams(LSPModel):
-    text_document: TextDocumentIdentifier = Field(alias="textDocument")
+class TextDocumentPositionParams(BaseModel):
+    textDocument: TextDocumentIdentifier
     position: Position
 
 
-class TextEdit(LSPModel):
+class TextEdit(BaseModel):
     range: Range
-    new_text: str = Field(alias="newText")
+    newText: str
 
 
 class AnnotatedTextEdit(TextEdit):
-    annotation_id: str | None = Field(default=None, alias="annotationId")
+    annotationId: str | None = None
 
 
-class TextDocumentEdit(LSPModel):
-    text_document: OptionalVersionedTextDocumentIdentifier = Field(alias="textDocument")
+class TextDocumentEdit(BaseModel):
+    textDocument: OptionalVersionedTextDocumentIdentifier
     edits: list[TextEdit | AnnotatedTextEdit]
 
 
-class CreateFileOptions(LSPModel):
+class CreateFileOptions(BaseModel):
     overwrite: bool | None = None
-    ignore_if_exists: bool | None = Field(default=None, alias="ignoreIfExists")
+    ignoreIfExists: bool | None = None
 
 
-class CreateFile(LSPModel):
+class CreateFile(BaseModel):
     kind: Literal["create"] = "create"
     uri: str
     options: CreateFileOptions | None = None
 
 
-class RenameFileOptions(LSPModel):
+class RenameFileOptions(BaseModel):
     overwrite: bool | None = None
-    ignore_if_exists: bool | None = Field(default=None, alias="ignoreIfExists")
+    ignoreIfExists: bool | None = None
 
 
-class RenameFile(LSPModel):
+class RenameFile(BaseModel):
     kind: Literal["rename"] = "rename"
-    old_uri: str = Field(alias="oldUri")
-    new_uri: str = Field(alias="newUri")
+    oldUri: str
+    newUri: str
     options: RenameFileOptions | None = None
 
 
-class DeleteFileOptions(LSPModel):
+class DeleteFileOptions(BaseModel):
     recursive: bool | None = None
-    ignore_if_not_exists: bool | None = Field(default=None, alias="ignoreIfNotExists")
+    ignoreIfNotExists: bool | None = None
 
 
-class DeleteFile(LSPModel):
+class DeleteFile(BaseModel):
     kind: Literal["delete"] = "delete"
     uri: str
     options: DeleteFileOptions | None = None
 
 
-class WorkspaceEdit(LSPModel):
+class WorkspaceEdit(BaseModel):
     changes: dict[str, list[TextEdit]] | None = None
-    document_changes: list[TextDocumentEdit | CreateFile | RenameFile | DeleteFile] | None = Field(
-        default=None, alias="documentChanges"
-    )
+    documentChanges: list[TextDocumentEdit | CreateFile | RenameFile | DeleteFile] | None = None
 
 
-class Command(LSPModel):
+class Command(BaseModel):
     title: str
     command: str
     arguments: list[Any] | None = None
@@ -144,23 +137,23 @@ class SymbolKind(IntEnum):
     TypeParameter = 26
 
 
-class SymbolInformation(LSPModel):
+class SymbolInformation(BaseModel):
     name: str
     kind: int
     location: Location
-    container_name: str | None = Field(default=None, alias="containerName")
+    containerName: str | None = None
 
 
-class DocumentSymbol(LSPModel):
+class DocumentSymbol(BaseModel):
     name: str
     kind: int
     range: Range
-    selection_range: Range = Field(alias="selectionRange")
+    selectionRange: Range
     detail: str | None = None
     children: list["DocumentSymbol"] | None = None
 
 
-class Diagnostic(LSPModel):
+class Diagnostic(BaseModel):
     range: Range
     message: str
     severity: int | None = None
@@ -180,11 +173,11 @@ class CodeActionKind:
     SourceFixAll = "source.fixAll"
 
 
-class CodeAction(LSPModel):
+class CodeAction(BaseModel):
     title: str
     kind: str | None = None
     diagnostics: list[Diagnostic] | None = None
-    is_preferred: bool | None = Field(default=None, alias="isPreferred")
+    isPreferred: bool | None = None
     edit: WorkspaceEdit | None = None
     command: Command | None = None
     data: Any | None = None
@@ -195,12 +188,12 @@ class MarkupKind:
     Markdown = "markdown"
 
 
-class MarkupContent(LSPModel):
+class MarkupContent(BaseModel):
     kind: str
     value: str
 
 
-class Hover(LSPModel):
+class Hover(BaseModel):
     contents: MarkupContent | str | list[str]
     range: Range | None = None
 
@@ -233,92 +226,94 @@ class CompletionItemKind(IntEnum):
     TypeParameter = 25
 
 
-class CompletionItem(LSPModel):
+class CompletionItem(BaseModel):
     label: str
     kind: int | None = None
     detail: str | None = None
     documentation: MarkupContent | str | None = None
-    insert_text: str | None = Field(default=None, alias="insertText")
-    text_edit: TextEdit | None = Field(default=None, alias="textEdit")
+    insertText: str | None = None
+    textEdit: TextEdit | None = None
 
 
-class CompletionList(LSPModel):
-    is_incomplete: bool = Field(alias="isIncomplete")
+class CompletionList(BaseModel):
+    isIncomplete: bool
     items: list[CompletionItem]
 
 
-class SignatureInformation(LSPModel):
+class SignatureInformation(BaseModel):
     label: str
     documentation: MarkupContent | str | None = None
     parameters: list["ParameterInformation"] | None = None
 
 
-class ParameterInformation(LSPModel):
+class ParameterInformation(BaseModel):
     label: str | tuple[int, int]
     documentation: MarkupContent | str | None = None
 
 
-class SignatureHelp(LSPModel):
+class SignatureHelp(BaseModel):
     signatures: list[SignatureInformation]
-    active_signature: int | None = Field(default=None, alias="activeSignature")
-    active_parameter: int | None = Field(default=None, alias="activeParameter")
+    activeSignature: int | None = None
+    activeParameter: int | None = None
 
 
-class FormattingOptions(LSPModel):
-    tab_size: int = Field(alias="tabSize")
-    insert_spaces: bool = Field(alias="insertSpaces")
-    trim_trailing_whitespace: bool | None = Field(default=None, alias="trimTrailingWhitespace")
-    insert_final_newline: bool | None = Field(default=None, alias="insertFinalNewline")
-    trim_final_newlines: bool | None = Field(default=None, alias="trimFinalNewlines")
+class FormattingOptions(BaseModel):
+    tabSize: int
+    insertSpaces: bool
+    trimTrailingWhitespace: bool | None = None
+    insertFinalNewline: bool | None = None
+    trimFinalNewlines: bool | None = None
 
 
-class ReferenceContext(LSPModel):
-    include_declaration: bool = Field(alias="includeDeclaration")
+class ReferenceContext(BaseModel):
+    includeDeclaration: bool
 
 
-class CallHierarchyItem(LSPModel):
+class CallHierarchyItem(BaseModel):
     name: str
     kind: int
     uri: str
     range: Range
-    selection_range: Range = Field(alias="selectionRange")
+    selectionRange: Range
     detail: str | None = None
     data: Any | None = None
 
 
-class CallHierarchyIncomingCall(LSPModel):
+class CallHierarchyIncomingCall(BaseModel):
     from_: CallHierarchyItem = Field(alias="from")
-    from_ranges: list[Range] = Field(alias="fromRanges")
+    fromRanges: list[Range]
+
+    model_config = {"populate_by_name": True}
 
 
-class CallHierarchyOutgoingCall(LSPModel):
+class CallHierarchyOutgoingCall(BaseModel):
     to: CallHierarchyItem
-    from_ranges: list[Range] = Field(alias="fromRanges")
+    fromRanges: list[Range]
 
 
-class TypeHierarchyItem(LSPModel):
+class TypeHierarchyItem(BaseModel):
     name: str
     kind: int
     uri: str
     range: Range
-    selection_range: Range = Field(alias="selectionRange")
+    selectionRange: Range
     detail: str | None = None
     tags: list[int] | None = None
     data: Any | None = None
 
 
-class ServerCapabilities(LSPModel, extra="allow"):
+class ServerCapabilities(BaseModel, extra="allow"):
     pass
 
 
-class ServerInfo(LSPModel):
+class ServerInfo(BaseModel):
     name: str
     version: str | None = None
 
 
-class InitializeResult(LSPModel):
+class InitializeResult(BaseModel):
     capabilities: ServerCapabilities
-    server_info: ServerInfo | None = Field(default=None, alias="serverInfo")
+    serverInfo: ServerInfo | None = None
 
 
 # =============================================================================
@@ -326,22 +321,22 @@ class InitializeResult(LSPModel):
 # =============================================================================
 
 
-class WorkspaceFolder(LSPModel):
+class WorkspaceFolder(BaseModel):
     uri: str
     name: str
 
 
-class ClientCapabilities(LSPModel, extra="allow"):
+class ClientCapabilities(BaseModel, extra="allow"):
     pass
 
 
-class InitializeParams(LSPModel):
-    process_id: int | None = Field(alias="processId")
-    root_uri: str | None = Field(alias="rootUri")
-    root_path: str | None = Field(default=None, alias="rootPath")
+class InitializeParams(BaseModel):
+    processId: int | None
+    rootUri: str | None
+    rootPath: str | None = None
     capabilities: ClientCapabilities
-    workspace_folders: list[WorkspaceFolder] | None = Field(default=None, alias="workspaceFolders")
-    initialization_options: Any | None = Field(default=None, alias="initializationOptions")
+    workspaceFolders: list[WorkspaceFolder] | None = None
+    initializationOptions: Any | None = None
     trace: str | None = None
 
 
@@ -349,30 +344,30 @@ class ReferenceParams(TextDocumentPositionParams):
     context: ReferenceContext
 
 
-class DocumentSymbolParams(LSPModel):
-    text_document: TextDocumentIdentifier = Field(alias="textDocument")
+class DocumentSymbolParams(BaseModel):
+    textDocument: TextDocumentIdentifier
 
 
-class RenameParams(LSPModel):
-    text_document: TextDocumentIdentifier = Field(alias="textDocument")
+class RenameParams(BaseModel):
+    textDocument: TextDocumentIdentifier
     position: Position
-    new_name: str = Field(alias="newName")
+    newName: str
 
 
-class CallHierarchyItemParams(LSPModel):
+class CallHierarchyItemParams(BaseModel):
     item: CallHierarchyItem
 
 
-class TypeHierarchyItemParams(LSPModel):
+class TypeHierarchyItemParams(BaseModel):
     item: TypeHierarchyItem
 
 
-class FileRename(LSPModel):
-    old_uri: str = Field(alias="oldUri")
-    new_uri: str = Field(alias="newUri")
+class FileRename(BaseModel):
+    oldUri: str
+    newUri: str
 
 
-class RenameFilesParams(LSPModel):
+class RenameFilesParams(BaseModel):
     files: list[FileRename]
 
 
