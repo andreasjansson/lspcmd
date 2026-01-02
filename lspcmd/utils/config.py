@@ -172,6 +172,20 @@ def add_workspace_root(root: Path, config: dict) -> None:
         save_config(config)
 
 
+def remove_workspace_root(root: Path, config: dict) -> bool:
+    """Remove a workspace root from the config.
+    
+    Returns True if the root was found and removed, False otherwise.
+    """
+    roots = config.get("workspaces", {}).get("roots", [])
+    root_str = str(root.resolve())
+    if root_str in roots:
+        roots.remove(root_str)
+        save_config(config)
+        return True
+    return False
+
+
 def cleanup_stale_workspace_roots(config: dict) -> list[str]:
     """Remove workspace roots that no longer exist on disk.
     
