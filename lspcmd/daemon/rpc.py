@@ -179,7 +179,8 @@ class ImplementationsParams(BaseModel):
 
 
 class ImplementationsResult(BaseModel):
-    locations: list[LocationInfo]
+    locations: list[LocationInfo] = []
+    error: str | None = None
 
 
 # === Subtypes ===
