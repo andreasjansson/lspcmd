@@ -967,7 +967,7 @@ def grep(ctx, pattern, path, kind, exclude, docs, case_sensitive):
     if path:
         files = expand_path_pattern(path)
         if not files:
-            click.echo("No results")
+            click.echo("No results", err=True)
             return
         workspace_root = get_workspace_root_for_path(files[0], config)
         paths = [str(f) for f in files]
