@@ -131,3 +131,67 @@ class TestAddWorkspaceRoot:
         loaded = load_config()
         roots = loaded["workspaces"]["roots"]
         assert roots.count(str(project)) == 1
+
+
+class TestCleanupStaleWorkspaceRoots:
+    def test_removes_nonexistent_roots(self, temp_dir, isolated_config):
+        existing = (temp_dir / "existing").resolve()
+        existing.mkdir()
+        nonexistent = (temp_dir / "nonexistent").resolve()
+        
+        config = {"workspaces": {"roots": [str(existing), str(nonexistent)]}}
+        save_config(config)
+        config = load_config()
+        
+        removed = cleanup_stale_workspace_roots(config)
+        
+        assert removed == [str(nonexistent)]
+        assert config["workspaces"]["roots"] == [str(existing)]
+        
+        loaded = load_config()
+        assert loaded["workspaces"]["roots"] == [str(existing)]
+
+    def test_keeps_all_existing_roots(self, temp_dir, isolated_config):
+        project1 = (temp_dir / "project1").resolve()
+        project2 = (temp_dir / "project2").resolve()
+        project1.mkdir()
+        project2.mkdir()
+        
+        config = {"workspaces": {"roots": [str(project1), str(project2)]}}
+        save_config(config)
+        config = load_config()
+        
+        removed = cleanup_stale_workspace_roots(config)
+        
+        assert removed == []
+        assert str(project1) in config["workspaces"]["roots"]
+        assert str(project2) in config["workspaces"]["roots"]
+
+    def test_handles_empty_roots(self, isolated_config):
+        config = {"workspaces": {"roots": []}}
+        
+        removed = cleanup_stale_workspace_roots(config)
+        
+        assert removed == []
+
+    def test_handles_missing_workspaces_section(self, isolated_config):
+        config = {}
+        
+        removed = cleanup_stale_workspace_roots(config)
+        
+        assert removed == []
+
+    def test_removes_file_path_not_directory(self, temp_dir, isolated_config):
+        existing_dir = (temp_dir / "project").resolve()
+        existing_dir.mkdir()
+        existing_file = (temp_dir / "file.txt").resolve()
+        existing_file.touch()
+        
+        config = {"workspaces": {"roots": [str(existing_dir), str(existing_file)]}}
+        save_config(config)
+        config = load_config()
+        
+        removed = cleanup_stale_workspace_roots(config)
+        
+        assert removed == [str(existing_file)]
+        assert config["workspaces"]["roots"] == [str(existing_dir)]
