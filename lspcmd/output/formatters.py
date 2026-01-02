@@ -135,7 +135,15 @@ def format_plain(data: Any) -> str:
         # New format: CallsResult with root
         if "root" in data and data["root"]:
             return format_call_tree(data["root"])
+        
+        # New format: CallsResult with path (call path result)
+        if "path" in data and isinstance(data.get("path"), list):
+            if data["path"]:
+                return format_call_path({"found": True, "path": data["path"]})
+            # Empty path means not found - but we need more context
+            # Fall through to JSON output
 
+        # Old format: found + path/from/to
         if "found" in data and ("path" in data or "from" in data):
             return format_call_path(data)
 
