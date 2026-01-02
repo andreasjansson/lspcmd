@@ -155,7 +155,7 @@ def detect_workspace_root(path: Path) -> Path | None:
     return None
 
 
-def get_known_workspace_root(path: Path, config: dict) -> Path | None:
+def get_known_workspace_root(path: Path, config: Config) -> Path | None:
     """Get the deepest known workspace root that contains path.
     
     If path is in multiple known workspaces (nested), returns the deepest one.
