@@ -333,6 +333,54 @@ Outgoing calls:
   │   └── utils.py:15 [Function] bar
   └── utils.py:25 [Function] baz"""
 
+    def test_stdlib_paths_hidden(self):
+        data = {
+            "name": "main",
+            "kind": "Function",
+            "detail": None,
+            "path": "main.py",
+            "line": 10,
+            "column": 0,
+            "calls": [
+                {
+                    "name": "helper",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "utils.py",
+                    "line": 5,
+                    "column": 0,
+                    "calls": [
+                        {
+                            "name": "len",
+                            "kind": "Function",
+                            "detail": None,
+                            "path": "/usr/lib/basedpyright/typeshed-fallback/stdlib/builtins.pyi",
+                            "line": 100,
+                            "column": 0,
+                            "calls": [],
+                        },
+                    ],
+                },
+                {
+                    "name": "Sprintf",
+                    "kind": "Function",
+                    "detail": "fmt",
+                    "path": "/opt/homebrew/Cellar/go/1.25/libexec/src/fmt/print.go",
+                    "line": 237,
+                    "column": 0,
+                    "calls": [],
+                },
+            ],
+        }
+        result = format_output(data, "plain")
+        assert result == """\
+main.py:10 [Function] main
+
+Outgoing calls:
+  ├── utils.py:5 [Function] helper
+  │   └── [Function] len
+  └── [Function] Sprintf (fmt)"""
+
 
 class TestFormatCallPath:
     def test_path_found(self):
