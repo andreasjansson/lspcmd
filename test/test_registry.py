@@ -42,7 +42,7 @@ class TestGetServerForLanguage:
     def test_python(self):
         server = get_server_for_language("python")
         assert server is not None
-        assert server.name in ["pyright", "pylsp", "ruff-lsp"]
+        assert server.name in ["basedpyright", "pyright", "pylsp", "ruff-lsp"]
 
     def test_rust(self):
         server = get_server_for_language("rust")
