@@ -6,9 +6,8 @@ import fnmatch
 import hashlib
 import logging
 import os
-import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, TypedDict
 
 from ...cache import LMDBCache
 from ...lsp.types import SymbolKind
@@ -16,9 +15,33 @@ from ...utils.text import get_language_id, read_file_content, get_lines_around
 from ...utils.uri import uri_to_path
 
 if TYPE_CHECKING:
-    from ..session import Session, Workspace
+    from ..session import Session, Workspace, OpenDocument
 
 logger = logging.getLogger(__name__)
+
+
+class SymbolDict(TypedDict, total=False):
+    name: str
+    kind: str
+    path: str
+    line: int
+    column: int
+    container: str | None
+    detail: str | None
+    documentation: str | None
+    range_start_line: int | None
+    range_end_line: int | None
+
+
+class LocationDict(TypedDict, total=False):
+    path: str
+    line: int
+    column: int
+    context_lines: list[str]
+    context_start: int
+    name: str
+    kind: str | None
+    detail: str | None
 
 DEFAULT_EXCLUDE_DIRS = {
     ".git", "__pycache__", "node_modules", ".venv", "venv",
