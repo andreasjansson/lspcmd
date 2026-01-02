@@ -1117,8 +1117,9 @@ SYMBOL formats:
 @click.option("--from", "from_symbol", default=None, help="Starting symbol (outgoing calls)")
 @click.option("--to", "to_symbol", default=None, help="Target symbol (incoming calls)")
 @click.option("--max-depth", default=3, help="Maximum recursion depth (default: 3)")
+@click.option("--include-non-workspace", is_flag=True, help="Include calls to symbols outside the workspace (stdlib, dependencies)")
 @click.pass_context
-def calls(ctx, from_symbol, to_symbol, max_depth):
+def calls(ctx, from_symbol, to_symbol, max_depth, include_non_workspace):
     if not from_symbol and not to_symbol:
         raise click.ClickException("At least one of --from or --to must be specified")
 
@@ -1128,6 +1129,7 @@ def calls(ctx, from_symbol, to_symbol, max_depth):
     params = {
         "workspace_root": str(workspace_root),
         "max_depth": max_depth,
+        "include_non_workspace": include_non_workspace,
     }
 
     if from_symbol and to_symbol:
