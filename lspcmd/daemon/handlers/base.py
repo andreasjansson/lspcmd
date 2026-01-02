@@ -502,7 +502,9 @@ def flatten_symbols(
                 flatten_symbols(item["children"], file_path, output, item["name"])
 
 
-def find_symbol_at_line(symbols: list, line: int) -> dict | None:
+def find_symbol_at_line(
+    symbols: list[dict[str, object]], line: int
+) -> dict[str, object] | None:
     for sym in symbols:
         if "range" in sym:
             start = sym["range"]["start"]["line"]
