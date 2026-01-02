@@ -53,9 +53,9 @@ class TestJavaIntegration:
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-src/main/java/com/example/User.java:29 [Method] getName() ( : String) in User
-src/main/java/com/example/User.java:38 [Method] getEmail() ( : String) in User
-src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User"""
+src/main/java/com/example/User.java:54 [Method] getName() ( : String) in User
+src/main/java/com/example/User.java:63 [Method] getEmail() ( : String) in User
+src/main/java/com/example/User.java:72 [Method] getAge() ( : int) in User"""
 
     def test_grep_kind_filter_class(self, workspace):
         os.chdir(workspace)
@@ -66,7 +66,7 @@ src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User"""
             "kinds": ["class"],
         })
         output = format_output(response["result"], "plain")
-        assert output == "src/main/java/com/example/User.java:6 [Class] User"
+        assert output == "src/main/java/com/example/User.java:9 [Class] User"
 
     def test_grep_kind_filter_method(self, workspace):
         os.chdir(workspace)
@@ -78,12 +78,12 @@ src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User"""
         })
         output = format_output(response["result"], "plain")
         assert output == """\
-src/main/java/com/example/User.java:29 [Method] getName() ( : String) in User
-src/main/java/com/example/User.java:38 [Method] getEmail() ( : String) in User
-src/main/java/com/example/User.java:47 [Method] getAge() ( : int) in User
-src/main/java/com/example/User.java:56 [Method] isAdult() ( : boolean) in User
-src/main/java/com/example/User.java:65 [Method] displayName() ( : String) in User
-src/main/java/com/example/User.java:70 [Method] toString() ( : String) in User"""
+src/main/java/com/example/User.java:54 [Method] getName() ( : String) in User
+src/main/java/com/example/User.java:63 [Method] getEmail() ( : String) in User
+src/main/java/com/example/User.java:72 [Method] getAge() ( : int) in User
+src/main/java/com/example/User.java:81 [Method] isAdult() ( : boolean) in User
+src/main/java/com/example/User.java:90 [Method] displayName() ( : String) in User
+src/main/java/com/example/User.java:95 [Method] toString() ( : String) in User"""
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
@@ -94,7 +94,7 @@ src/main/java/com/example/User.java:70 [Method] toString() ( : String) in User""
             "case_sensitive": False,
         })
         output = format_output(response["result"], "plain")
-        assert output == "src/main/java/com/example/User.java:6 [Class] User"
+        assert output == "src/main/java/com/example/User.java:9 [Class] User"
         
         response = run_request("grep", {
             "paths": [str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java")],
