@@ -392,9 +392,9 @@ def workspace_add(ctx, root):
                 f"Use: lspcmd workspace add --root {default_root}"
             )
 
-    known = get_known_workspace_root(workspace_root, config)
-    if known:
-        click.echo(f"Workspace already added: {known}")
+    roots = config.get("workspaces", {}).get("roots", [])
+    if str(workspace_root) in roots:
+        click.echo(f"Workspace already added: {workspace_root}")
         return
 
     add_workspace_root(workspace_root, config)
