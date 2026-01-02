@@ -214,7 +214,7 @@ user.rb:163 [Class] UserRepository"""
 main.rb:8 def create_sample_user
 main.rb:8 def create_sample_user"""
 
-    def test_definition_with_body_not_supported(self, workspace):
+    def test_definition_with_body(self, workspace):
         os.chdir(workspace)
         response = run_request("show", {
             "path": str(workspace / "main.rb"),
@@ -225,7 +225,12 @@ main.rb:8 def create_sample_user"""
             "body": True,
         })
         output = format_output(response["result"], "plain")
-        assert output == "Error: Language server does not provide symbol ranges"
+        assert output == """\
+main.rb:8-10
+
+def create_sample_user
+  User.new('John Doe', 'john@example.com', 30)
+end"""
 
     # =========================================================================
     # references tests
@@ -246,6 +251,7 @@ main.rb:9   User.new('John Doe', 'john@example.com', 30)
 user.rb:8 class User"""
 
     # =========================================================================
+"
 
     # =========================================================================
     # move-file tests
