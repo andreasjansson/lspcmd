@@ -1,6 +1,12 @@
 """Handler for references command."""
 
 from ..rpc import ReferencesParams, ReferencesResult, LocationInfo
+from ...lsp.types import (
+    ReferenceParams,
+    TextDocumentIdentifier,
+    Position,
+    ReferenceContext,
+)
 from .base import HandlerContext
 
 
@@ -16,11 +22,11 @@ async def handle_references(
 
     result = await workspace.client.send_request(
         "textDocument/references",
-        {
-            "textDocument": {"uri": doc.uri},
-            "position": {"line": line, "character": column},
-            "context": {"includeDeclaration": True},
-        },
+        ReferenceParams(
+            textDocument=TextDocumentIdentifier(uri=doc.uri),
+            position=Position(line=line, character=column),
+            context=ReferenceContext(includeDeclaration=True),
+        ),
     )
 
     locations = ctx.format_locations(result, workspace.root, context)
