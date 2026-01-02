@@ -31,6 +31,19 @@ DEFAULT_EXCLUDE_DIRS = {
     "coverage", ".nyc_output",
 }
 
+BINARY_EXTENSIONS = {
+    ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".webp", ".tiff", ".tif",
+    ".svg", ".pdf", ".eps", ".ps",
+    ".zip", ".tar", ".gz", ".bz2", ".xz", ".7z", ".rar",
+    ".exe", ".dll", ".so", ".dylib", ".a", ".o", ".obj", ".lib",
+    ".woff", ".woff2", ".ttf", ".otf", ".eot",
+    ".mp3", ".mp4", ".wav", ".ogg", ".flac", ".avi", ".mov", ".mkv", ".webm",
+    ".pyc", ".pyo", ".class", ".jar", ".war", ".ear",
+    ".db", ".sqlite", ".sqlite3",
+    ".bin", ".dat", ".pak", ".bundle",
+    ".lock",
+}
+
 
 class DaemonServer:
     def __init__(self, hover_cache_bytes: int | None = None, symbol_cache_bytes: int | None = None):
