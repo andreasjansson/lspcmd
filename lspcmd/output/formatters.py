@@ -339,11 +339,7 @@ def format_definition_content(data: dict) -> str:
         location = f"{data['path']}:{start}-{end}"
     
     content = data["content"]
-    # Only add separator if content doesn't already start with newline
-    if content.startswith("\n"):
-        lines = [location, content]
-    else:
-        lines = [location, "", content]
+    lines = [location, "", content]
     
     if data.get("truncated"):
         head = data.get("head", 200)
