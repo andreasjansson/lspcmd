@@ -124,6 +124,7 @@ class HandlerContext:
     async def get_file_symbols_cached(
         self, workspace: Workspace, workspace_root: Path, file_path: Path
     ) -> list[SymbolDict]:
+        assert workspace.client
         file_sha = self.get_file_sha(file_path)
         cache_key = (str(file_path), str(workspace_root), file_sha)
 
@@ -136,7 +137,7 @@ class HandlerContext:
             doc = await workspace.ensure_document_open(file_path)
             result = await workspace.client.send_request(
                 "textDocument/documentSymbol",
-                {"textDocument": {"uri": doc.uri}},
+                DocumentSymbolParams(text_document=TextDocumentIdentifier(uri=doc.uri)),
             )
             if result:
                 rel_path = self.relative_path(file_path, workspace_root)
