@@ -34,10 +34,15 @@ class FormattedCallItem(TypedDict, total=False):
 
 
 async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
+    import logging
+    logger = logging.getLogger(__name__)
+    
     workspace_root = Path(params.workspace_root).resolve()
     mode = params.mode
     max_depth = params.max_depth
     include_non_workspace = params.include_non_workspace
+    
+    logger.info(f"handle_calls: workspace_root={workspace_root}, mode={mode}, from_path={params.from_path}, from_line={params.from_line}")
 
     if mode == "outgoing":
         path = Path(params.from_path).resolve()
