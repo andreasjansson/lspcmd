@@ -48,18 +48,18 @@ class TestCliCommands:
         assert "lspcmd daemon info" in result.output
         assert "COOKBOOK EXAMPLES" in result.output
 
-    def test_workspace_init(self, python_project, isolated_config):
+    def test_workspace_add(self, python_project, isolated_config):
         runner = CliRunner()
-        result = runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
+        result = runner.invoke(cli, ["workspace", "add", "--root", str(python_project)])
         assert result.exit_code == 0
-        assert "Initialized workspace:" in result.output
+        assert "Added workspace:" in result.output
 
-    def test_workspace_init_already_initialized(self, python_project, isolated_config):
+    def test_workspace_add_already_added(self, python_project, isolated_config):
         runner = CliRunner()
-        runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
-        result = runner.invoke(cli, ["workspace", "init", "--root", str(python_project)])
+        runner.invoke(cli, ["workspace", "add", "--root", str(python_project)])
+        result = runner.invoke(cli, ["workspace", "add", "--root", str(python_project)])
         assert result.exit_code == 0
-        assert "already initialized" in result.output
+        assert "already added" in result.output
 
     def test_grep_no_workspace(self, isolated_config, temp_dir):
         runner = CliRunner()
@@ -71,8 +71,8 @@ class TestCliCommands:
             os.chdir(empty_dir)
             result = runner.invoke(cli, ["grep", ".*"])
         assert result.exit_code == 1
-        assert "No workspace initialized" in result.output
-        assert "workspace init" in result.output
+        assert "No workspace found" in result.output
+        assert "workspace add" in result.output
 
     def test_no_results_written_to_stderr(self):
         """Test that output_result writes 'No results' to stderr."""
