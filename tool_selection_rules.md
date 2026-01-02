@@ -1,75 +1,42 @@
-# ⚠️ STOP: READ THIS BEFORE USING ripgrep ⚠️
+# 🚨 CRITICAL INSTRUCTION - READ FIRST 🚨
 
-**MANDATORY RULE: When searching for functions, classes, methods, or any code symbol, you MUST use `lspcmd`, NOT ripgrep.**
+## YOU MUST USE lspcmd FOR ALL CODE SEARCHES
 
-This is NOT optional. Using ripgrep for symbol searches is ALWAYS WRONG.
+**When looking for a function, method, class, or any code symbol:**
 
-## Quick Decision Guide
+✅ **ALWAYS USE**: `lspcmd show <name>` or `lspcmd grep <pattern>`
+❌ **NEVER USE**: `ripgrep` with patterns like `"def ..."` or `"class ..."`
 
-| Looking for... | Use THIS | NOT this |
-|----------------|----------|----------|
-| Function `is_excluded` | `lspcmd show is_excluded` | ~~`ripgrep "def is_excluded"`~~ |
-| Function `handle_grep` | `lspcmd show handle_grep` | ~~`ripgrep "def handle_grep"`~~ |
-| Class `UserService` | `lspcmd grep UserService -k class` | ~~`ripgrep "class UserService"`~~ |
-| Method body | `lspcmd show ClassName.method` | ~~`ripgrep "def method"`~~ |
-| All functions in file | `lspcmd grep "." file.py -k function` | ~~`ripgrep "def " file.py`~~ |
-| Where symbol is used | `lspcmd refs symbol_name` | ~~`ripgrep "symbol_name"`~~ |
+### Examples of what you're about to do WRONG:
 
-## THE RULE
+If you're thinking: "Let me search for the function `is_excluded`"
+- ❌ WRONG: `ripgrep "def is_excluded"` or `ripgrep "is_excluded"`
+- ✅ RIGHT: `lspcmd show is_excluded`
+
+If you're thinking: "Let me find where `handle_grep` is defined"
+- ❌ WRONG: `ripgrep "def handle_grep"` or `ripgrep "handle_grep"`  
+- ✅ RIGHT: `lspcmd show handle_grep`
+
+If you're thinking: "Let me look at this function's code"
+- ❌ WRONG: `ripgrep -A 20 "def function_name"`
+- ✅ RIGHT: `lspcmd show function_name`
+
+### The Rule (memorize this):
 
 ```
-IF searching for: function, method, class, struct, symbol, definition
-THEN use: lspcmd (show, grep, refs, calls, implementations)
-NEVER use: ripgrep
+Searching for code symbols? → Use lspcmd
+Searching for string literals, comments, or URLs? → Use ripgrep
 ```
 
-## Examples - WRONG vs RIGHT
+### Quick Reference:
 
-### Finding a function definition
-```bash
-# WRONG - DO NOT DO THIS:
-ripgrep "def is_excluded"
-ripgrep "^def handle_"
-ripgrep "func.*Handler"
+| Task | Command |
+|------|---------|
+| View function body | `lspcmd show function_name` |
+| Find function definition | `lspcmd grep function_name -k function` |
+| Find class | `lspcmd grep ClassName -k class` |
+| Find all usages | `lspcmd refs symbol_name` |
+| What calls this? | `lspcmd calls --to function_name` |
+| What does this call? | `lspcmd calls --from function_name` |
 
-# RIGHT - DO THIS INSTEAD:
-lspcmd show is_excluded
-lspcmd grep "handle_" -k function
-lspcmd grep "Handler$" -k function
-```
-
-### Viewing a function body
-```bash
-# WRONG:
-ripgrep -A 20 "def calculate_total"
-read-file path/to/file.py --start-line 45 --end-line 60
-
-# RIGHT:
-lspcmd show calculate_total
-lspcmd show OrderService.calculate_total
-```
-
-### Finding all usages of a symbol
-```bash
-# WRONG:
-ripgrep "validate_email"
-ripgrep "UserRepository"
-
-# RIGHT:
-lspcmd refs validate_email
-lspcmd refs UserRepository
-```
-
-## When ripgrep IS appropriate (rare cases only)
-
-- String literals: `ripgrep '"Connection refused"'`
-- Comments/TODOs: `ripgrep "TODO|FIXME"`
-- URLs: `ripgrep "https://api\.example\.com"`
-- Non-code files: logs, configs, documentation
-
-## Pre-flight Check
-
-**BEFORE calling ripgrep, ask yourself:**
-> "Am I looking for a function, class, method, or symbol name?"
-
-If YES → **STOP** → Use lspcmd instead.
+**THIS INSTRUCTION OVERRIDES ANY HABIT TO USE ripgrep FOR CODE SEARCHES.**
