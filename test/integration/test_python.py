@@ -554,53 +554,46 @@ main.py:61 class FileStorage:"""
         assert "prepareTypeHierarchy" in response["error"]
 
     # =========================================================================
-    # move-file tests
+    # move-file tests (uses isolated editable files)
     # =========================================================================
 
     def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
         
-        # Verify utils.py exists
-        assert (workspace / "utils.py").exists()
+        editable_path = workspace / "editable.py"
+        consumer_path = workspace / "editable_consumer.py"
+        renamed_editable_path = workspace / "editable_renamed.py"
         
-        # Check initial import in main.py
-        original_main = (workspace / "main.py").read_text()
-        assert "from utils import validate_email" in original_main
+        original_editable = editable_path.read_text()
+        original_consumer = consumer_path.read_text()
         
-        # Rename utils.py to helpers.py (basedpyright only updates imports when
-        # the filename changes, not when the file moves to a different directory)
-        response = run_request("move-file", {
-            "old_path": str(workspace / "utils.py"),
-            "new_path": str(workspace / "helpers.py"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        
-        # Verify the file was renamed
-        assert not (workspace / "utils.py").exists()
-        assert (workspace / "helpers.py").exists()
-        
-        # basedpyright updates the import when the filename changes
-        assert output == """\
-Moved file and updated imports in 4 file(s):
-  main.py
-  utils.py
-  errors.py
-  helpers.py"""
-        
-        # Verify the import was updated
-        updated_main = (workspace / "main.py").read_text()
-        assert "from helpers import validate_email" in updated_main
-        assert "from utils import validate_email" not in updated_main
-        
-        # Restore utils.py for other tests that depend on it
-        run_request("move-file", {
-            "old_path": str(workspace / "helpers.py"),
-            "new_path": str(workspace / "utils.py"),
-            "workspace_root": str(workspace),
-        })
-        # Also restore main.py imports
-        (workspace / "main.py").write_text(original_main)
+        try:
+            assert editable_path.exists()
+            assert "from editable import EditablePerson" in original_consumer
+            
+            response = run_request("move-file", {
+                "old_path": str(editable_path),
+                "new_path": str(renamed_editable_path),
+                "workspace_root": str(workspace),
+            })
+            output = format_output(response["result"], "plain")
+            
+            assert not editable_path.exists()
+            assert renamed_editable_path.exists()
+            
+            assert output == """\
+Moved file and updated imports in 2 file(s):
+  editable.py
+  editable_renamed.py"""
+            
+            updated_consumer = consumer_path.read_text()
+            assert "from editable_renamed import EditablePerson" in updated_consumer
+            assert "from editable import EditablePerson" not in updated_consumer
+        finally:
+            if renamed_editable_path.exists():
+                renamed_editable_path.unlink()
+            editable_path.write_text(original_editable)
+            consumer_path.write_text(original_consumer)
 
     # =========================================================================
     # replace-function tests
