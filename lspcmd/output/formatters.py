@@ -103,7 +103,7 @@ def format_plain(data: Any) -> str:
 
     if isinstance(data, list):
         if not data:
-            return "No results"
+            return ""
 
         first = data[0]
 
