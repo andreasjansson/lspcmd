@@ -293,29 +293,6 @@ class DaemonServer:
 
         return await workspace.client.send_request(lsp_method, lsp_params)
 
-    async def _handle_hover(self, params: dict) -> dict:
-        workspace, doc, path = await self._get_workspace_and_document(params)
-        line, column = self._parse_position(params)
-
-        result = await workspace.client.send_request(
-            "textDocument/hover",
-            {
-                "textDocument": {"uri": doc.uri},
-                "position": {"line": line, "character": column},
-            },
-        )
-
-        if not result:
-            return {"contents": None}
-
-        contents = result.get("contents")
-        if isinstance(contents, dict):
-            return {"contents": contents.get("value", str(contents))}
-        elif isinstance(contents, list):
-            return {"contents": "\n".join(str(c.get("value", c) if isinstance(c, dict) else c) for c in contents)}
-        else:
-            return {"contents": str(contents)}
-
     async def _handle_grep(self, params: dict) -> list[dict] | dict:
         workspace_root = Path(params["workspace_root"]).resolve()
         pattern = params.get("pattern", ".*")
