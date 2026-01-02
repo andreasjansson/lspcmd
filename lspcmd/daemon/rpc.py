@@ -273,10 +273,10 @@ class ReplaceFunctionParams(BaseModel):
 
 
 class ReplaceFunctionResult(BaseModel):
+    replaced: bool = True
     path: str
-    old_range: tuple[int, int]
-    new_range: tuple[int, int]
-    message: str | None = None
+    old_range: str
+    new_range: str
 
 
 # === Raw LSP Request ===
