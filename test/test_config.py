@@ -6,6 +6,7 @@ from lspcmd.utils.config import (
     detect_workspace_root,
     get_known_workspace_root,
     add_workspace_root,
+    cleanup_stale_workspace_roots,
     load_config,
     save_config,
 )
