@@ -384,3 +384,43 @@ class TestFormatOutput:
         data = {"contents": "Hello world"}
         result = format_output(data, "plain")
         assert "Hello world" in result
+
+
+class TestIsStdlibPath:
+    def test_python_typeshed_stdlib(self):
+        assert _is_stdlib_path("/Users/foo/.local/share/uv/tools/basedpyright/lib/python3.14/site-packages/basedpyright/dist/typeshed-fallback/stdlib/builtins.pyi")
+        assert _is_stdlib_path("/path/to/typeshed/stdlib/collections/__init__.pyi")
+
+    def test_python_site_packages_not_stdlib(self):
+        assert not _is_stdlib_path(".venv/lib/python3.14/site-packages/click/core.py")
+        assert not _is_stdlib_path("/Users/foo/.local/lib/python3.14/site-packages/requests/api.py")
+
+    def test_go_stdlib(self):
+        assert _is_stdlib_path("/opt/homebrew/Cellar/go/1.25.5/libexec/src/fmt/print.go")
+        assert _is_stdlib_path("/usr/local/go/libexec/src/io/io.go")
+
+    def test_go_third_party_not_stdlib(self):
+        assert not _is_stdlib_path("/Users/foo/go/pkg/mod/github.com/gin-gonic/gin@v1.9.0/gin.go")
+        assert not _is_stdlib_path("/home/user/project/vendor/github.com/pkg/errors/errors.go")
+
+    def test_typescript_lib_dts(self):
+        assert _is_stdlib_path("/Users/foo/.nvm/versions/node/v25.2.1/lib/node_modules/typescript/lib/lib.dom.d.ts")
+        assert _is_stdlib_path("/usr/lib/node_modules/typescript/lib/lib.es5.d.ts")
+        assert _is_stdlib_path("/path/to/lib.es2020.d.ts")
+
+    def test_typescript_node_modules_not_stdlib(self):
+        assert not _is_stdlib_path("node_modules/lodash/index.d.ts")
+        assert not _is_stdlib_path("/Users/foo/project/node_modules/@types/node/index.d.ts")
+
+    def test_rust_stdlib(self):
+        assert _is_stdlib_path("/Users/foo/.rustup/toolchains/stable-aarch64-apple-darwin/lib/rustlib/src/rust/library/alloc/src/string.rs")
+        assert _is_stdlib_path("/home/user/.rustup/toolchains/nightly-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/core/src/iter/mod.rs")
+
+    def test_rust_cargo_not_stdlib(self):
+        assert not _is_stdlib_path("/Users/foo/.cargo/registry/src/github.com-1ecc6299db9ec823/serde-1.0.0/src/lib.rs")
+
+    def test_project_files_not_stdlib(self):
+        assert not _is_stdlib_path("src/main.py")
+        assert not _is_stdlib_path("main.go")
+        assert not _is_stdlib_path("/home/user/project/src/lib.rs")
+        assert not _is_stdlib_path("src/main.ts")
