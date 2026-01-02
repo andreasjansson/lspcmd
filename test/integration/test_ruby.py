@@ -424,5 +424,4 @@ DEFAULT_CONFIG = [
             "max_depth": 1,
         })
         assert "error" in response
-        assert "prepareCallHierarchy" in response["error"]
-        assert "solargraph" in response["error"]
+        assert response["error"] == "textDocument/prepareCallHierarchy is not supported by solargraph"
