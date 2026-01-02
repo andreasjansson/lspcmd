@@ -477,7 +477,7 @@ export class FileStorage implements Storage {
             response = run_request("rename", {
                 "path": str(editable_path),
                 "workspace_root": str(workspace),
-                "line": 11,
+                "line": 10,
                 "column": 13,
                 "new_name": "RenamedPerson",
             })
