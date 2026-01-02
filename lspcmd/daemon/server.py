@@ -376,12 +376,22 @@ class DaemonServer:
 
     async def _handle_files(self, params: dict) -> dict:
         workspace_root = Path(params["workspace_root"]).resolve()
+        subpath = params.get("subpath")
         exclude_patterns = params.get("exclude_patterns", [])
         include_patterns = set(params.get("include_patterns", []))
 
         active_excludes = DEFAULT_EXCLUDE_DIRS - include_patterns
 
-        files = self._find_all_files_for_tree(workspace_root, active_excludes)
+        if subpath:
+            scan_root = Path(subpath).resolve()
+            if not scan_root.exists():
+                raise ValueError(f"Path does not exist: {subpath}")
+            if not scan_root.is_dir():
+                raise ValueError(f"Path is not a directory: {subpath}")
+        else:
+            scan_root = workspace_root
+
+        files = self._find_all_files_for_tree(scan_root, active_excludes)
 
         if exclude_patterns:
             def is_excluded(rel_path: str) -> bool:
