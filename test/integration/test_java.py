@@ -179,7 +179,15 @@ src/main/java/com/example/MemoryStorage.java:12 [Class] MemoryStorage"""
             "include_docs": True,
         })
         output = format_output(response["result"], "plain")
-        assert "src/main/java/com/example/Main.java:15 [Method] createSampleUser" in output
+        assert output == """\
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in Main
+    User com.example.Main.createSampleUser()
+    Creates a sample user for testing.
+    
+     *  **Returns:**
+        
+         *  A sample user
+"""
 
     # =========================================================================
     # definition tests
