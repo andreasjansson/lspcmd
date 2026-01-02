@@ -13,7 +13,7 @@ from .pidfile import write_pid, remove_pid
 from ..cache import LMDBCache
 from ..lsp.protocol import LSPResponseError, LSPMethodNotSupported, LanguageServerNotFound
 from ..lsp.types import SymbolKind, CodeActionKind
-from ..utils.config import get_socket_path, get_pid_path, get_log_dir, get_cache_dir, load_config
+from ..utils.config import get_socket_path, get_pid_path, get_log_dir, get_cache_dir, load_config, cleanup_stale_workspace_roots
 from ..utils.uri import path_to_uri, uri_to_path
 from ..utils.text import read_file_content, get_lines_around, get_language_id
 
