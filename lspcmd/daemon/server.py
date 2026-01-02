@@ -301,12 +301,14 @@ class DaemonServer:
     async def _handle_tree(self, params: dict) -> dict:
         workspace_root = Path(params["workspace_root"]).resolve()
         exclude_patterns = params.get("exclude_patterns", [])
+        include_patterns = set(params.get("include_patterns", []))
 
-        files = self._find_all_source_files(workspace_root)
+        active_excludes = DEFAULT_EXCLUDE_DIRS - include_patterns
+
+        files = self._find_all_files_for_tree(workspace_root, active_excludes)
 
         if exclude_patterns:
-            def is_excluded(file_path: Path) -> bool:
-                rel_path = self._relative_path(file_path, workspace_root)
+            def is_excluded(rel_path: str) -> bool:
                 path_parts = Path(rel_path).parts
                 for pat in exclude_patterns:
                     if fnmatch.fnmatch(rel_path, pat):
@@ -314,33 +316,106 @@ class DaemonServer:
                     if "/" not in pat and "*" not in pat and "?" not in pat:
                         if pat in path_parts:
                             return True
-                    if fnmatch.fnmatch(file_path.name, pat):
+                    if fnmatch.fnmatch(Path(rel_path).name, pat):
                         return True
                 return False
 
-            files = [f for f in files if not is_excluded(f)]
+            files = [f for f in files if not is_excluded(self._relative_path(f, workspace_root))]
+
+        files_by_language = self._group_files_by_language(files)
+        symbol_counts_by_file: dict[Path, dict[str, int]] = {}
+
+        for lang_id, lang_files in files_by_language.items():
+            if lang_id is None:
+                continue
+            try:
+                workspace = await self.session.get_or_create_workspace_for_language(
+                    lang_id, workspace_root
+                )
+                if workspace and workspace.client:
+                    for file_path in lang_files:
+                        symbols = await self._get_file_symbols_cached(
+                            workspace, workspace_root, file_path
+                        )
+                        counts: dict[str, int] = {}
+                        for sym in symbols:
+                            kind = sym.get("kind", "").lower()
+                            if kind:
+                                counts[kind] = counts.get(kind, 0) + 1
+                        symbol_counts_by_file[file_path] = counts
+                        if str(file_path) in workspace.open_documents:
+                            await workspace.close_document(file_path)
+            except Exception as e:
+                logger.debug(f"Could not get symbols for {lang_id}: {e}")
 
         tree_data: dict[str, dict] = {}
         total_bytes = 0
         total_files = 0
+        total_lines = 0
 
         for file_path in sorted(files):
             rel_path = self._relative_path(file_path, workspace_root)
             try:
                 size = file_path.stat().st_size
+                content = file_path.read_text(errors="replace")
+                lines = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
             except Exception:
                 size = 0
+                lines = 0
 
-            tree_data[rel_path] = {"size": size}
+            file_info: dict[str, Any] = {"size": size, "lines": lines}
+            
+            if file_path in symbol_counts_by_file:
+                file_info["symbols"] = symbol_counts_by_file[file_path]
+
+            tree_data[rel_path] = file_info
             total_bytes += size
             total_files += 1
+            total_lines += lines
 
         return {
             "root": str(workspace_root),
             "files": tree_data,
             "total_files": total_files,
             "total_bytes": total_bytes,
+            "total_lines": total_lines,
         }
+
+    def _find_all_files_for_tree(self, workspace_root: Path, exclude_dirs: set[str]) -> list[Path]:
+        files = []
+        for root, dirs, filenames in os.walk(workspace_root):
+            dirs[:] = [
+                d for d in dirs
+                if d not in exclude_dirs and not d.endswith(".egg-info")
+            ]
+
+            for filename in filenames:
+                if not filename.startswith("."):
+                    files.append(Path(root) / filename)
+
+        return files
+
+    def _group_files_by_language(self, files: list[Path]) -> dict[str | None, list[Path]]:
+        from ..servers.registry import get_server_for_language
+
+        excluded_languages = set(
+            self.session.config.get("workspaces", {}).get("excluded_languages", [])
+        )
+
+        result: dict[str | None, list[Path]] = {}
+        for file_path in files:
+            lang_id = get_language_id(file_path)
+            if lang_id == "plaintext" or lang_id in excluded_languages:
+                result.setdefault(None, []).append(file_path)
+                continue
+
+            server_config = get_server_for_language(lang_id, self.session.config)
+            if server_config is None:
+                result.setdefault(None, []).append(file_path)
+            else:
+                result.setdefault(lang_id, []).append(file_path)
+
+        return result
 
     async def _handle_definition(self, params: dict) -> list[dict] | dict:
         body = params.get("body", False)
