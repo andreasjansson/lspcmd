@@ -43,7 +43,6 @@ from .rpc import (
     CallsParams,
     RenameParams,
     MoveFileParams,
-    ReplaceFunctionParams,
     RestartWorkspaceParams,
     RemoveWorkspaceParams,
     ShutdownParams,
