@@ -9,33 +9,25 @@ from .capabilities import get_client_capabilities
 from .types import (
     InitializeParams,
     InitializeResult,
-    DefinitionParams,
+    TextDocumentPositionParams,
     DefinitionResponse,
-    DeclarationParams,
     DeclarationResponse,
     ReferenceParams,
     ReferencesResponse,
-    ImplementationParams,
     ImplementationResponse,
-    TypeDefinitionParams,
     TypeDefinitionResponse,
-    HoverParams,
     HoverResponse,
     DocumentSymbolParams,
     DocumentSymbolResponse,
     RenameParams,
     RenameResponseType,
-    PrepareCallHierarchyParams,
     PrepareCallHierarchyResponse,
-    CallHierarchyIncomingCallsParams,
+    CallHierarchyItemParams,
     CallHierarchyIncomingCallsResponse,
-    CallHierarchyOutgoingCallsParams,
     CallHierarchyOutgoingCallsResponse,
-    PrepareTypeHierarchyParams,
     PrepareTypeHierarchyResponse,
-    TypeHierarchySubtypesParams,
+    TypeHierarchyItemParams,
     TypeHierarchySubtypesResponse,
-    TypeHierarchySupertypesParams,
     TypeHierarchySupertypesResponse,
     RenameFilesParams,
     WillRenameFilesResponse,
@@ -137,14 +129,14 @@ class LSPClient:
         from .types import InitializeParams, WorkspaceFolder, ClientCapabilities
 
         init_params = InitializeParams(
-            processId=os.getpid(),
-            rootUri=self.workspace_root,
-            rootPath=self.workspace_root.replace("file://", ""),
+            process_id=os.getpid(),
+            root_uri=self.workspace_root,
+            root_path=self.workspace_root.replace("file://", ""),
             capabilities=ClientCapabilities.model_validate(get_client_capabilities()),
-            workspaceFolders=[
+            workspace_folders=[
                 WorkspaceFolder(uri=self.workspace_root, name=self.workspace_root.split("/")[-1])
             ],
-            initializationOptions=self.init_options if self.init_options else None,
+            initialization_options=self.init_options if self.init_options else None,
         )
 
         result = await self.send_request("initialize", init_params)
@@ -172,7 +164,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/definition"],
-        params: DefinitionParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> DefinitionResponse: ...
 
@@ -180,7 +172,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/declaration"],
-        params: DeclarationParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> DeclarationResponse: ...
 
@@ -196,7 +188,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/implementation"],
-        params: ImplementationParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> ImplementationResponse: ...
 
@@ -204,7 +196,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/typeDefinition"],
-        params: TypeDefinitionParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> TypeDefinitionResponse: ...
 
@@ -212,7 +204,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/hover"],
-        params: HoverParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> HoverResponse: ...
 
@@ -236,7 +228,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/prepareCallHierarchy"],
-        params: PrepareCallHierarchyParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> PrepareCallHierarchyResponse: ...
 
@@ -244,7 +236,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["callHierarchy/incomingCalls"],
-        params: CallHierarchyIncomingCallsParams,
+        params: CallHierarchyItemParams,
         timeout: float | None = None,
     ) -> CallHierarchyIncomingCallsResponse: ...
 
@@ -252,7 +244,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["callHierarchy/outgoingCalls"],
-        params: CallHierarchyOutgoingCallsParams,
+        params: CallHierarchyItemParams,
         timeout: float | None = None,
     ) -> CallHierarchyOutgoingCallsResponse: ...
 
@@ -260,7 +252,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["textDocument/prepareTypeHierarchy"],
-        params: PrepareTypeHierarchyParams,
+        params: TextDocumentPositionParams,
         timeout: float | None = None,
     ) -> PrepareTypeHierarchyResponse: ...
 
@@ -268,7 +260,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["typeHierarchy/subtypes"],
-        params: TypeHierarchySubtypesParams,
+        params: TypeHierarchyItemParams,
         timeout: float | None = None,
     ) -> TypeHierarchySubtypesResponse: ...
 
@@ -276,7 +268,7 @@ class LSPClient:
     async def send_request(
         self,
         method: Literal["typeHierarchy/supertypes"],
-        params: TypeHierarchySupertypesParams,
+        params: TypeHierarchyItemParams,
         timeout: float | None = None,
     ) -> TypeHierarchySupertypesResponse: ...
 
