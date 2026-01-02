@@ -73,6 +73,18 @@ class TestCliCommands:
         assert "No workspace initialized" in result.output
         assert "workspace init" in result.output
 
+    def test_grep_no_results_to_stderr(self, python_project, isolated_config):
+        """Test that 'No results' is written to stderr, not stdout."""
+        config = load_config()
+        add_workspace_root(python_project, config)
+
+        runner = CliRunner(mix_stderr=False)
+        result = runner.invoke(cli, ["grep", "NonExistentSymbolXYZ123", str(python_project / "main.py")])
+        
+        assert result.exit_code == 0
+        assert result.output == ""
+        assert "No results" in result.stderr
+
 
 class TestCliWithDaemon:
     @pytest.fixture(autouse=True)
