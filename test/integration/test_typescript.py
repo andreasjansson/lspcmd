@@ -541,34 +541,34 @@ Moved file and updated imports in 2 file(s):
             consumer_path.write_text(original_consumer)
 
     # =========================================================================
-    # replace-function tests
+    # replace-function tests (uses isolated editable files)
     # =========================================================================
 
     def test_replace_function_basic(self, workspace):
         """Test basic function replacement with matching signature."""
         os.chdir(workspace)
         
-        main_path = workspace / "src" / "main.ts"
-        original = main_path.read_text()
+        editable_path = workspace / "src" / "editable.ts"
+        original = editable_path.read_text()
         
         try:
             response = _call_replace_function_request({
                 "workspace_root": str(workspace),
-                "symbol": "createSampleUser",
-                "new_contents": '''function createSampleUser(): User {
-    return new User("Jane Doe", "jane@example.com", 25);
+                "symbol": "editableCreateSample",
+                "new_contents": '''export function editableCreateSample(): EditablePerson {
+    return new EditablePerson("Jane Doe", "jane@example.com");
 }''',
                 "check_signature": True,
             })
             result = response["result"]
             assert result["replaced"] == True
-            assert "main.ts" in result["path"]
+            assert "editable.ts" in result["path"]
             
-            updated = main_path.read_text()
+            updated = editable_path.read_text()
             assert 'Jane Doe' in updated
             assert 'jane@example.com' in updated
         finally:
-            main_path.write_text(original)
+            editable_path.write_text(original)
 
     def test_replace_function_signature_mismatch(self, workspace):
         """Test that signature mismatch is detected."""
@@ -576,9 +576,9 @@ Moved file and updated imports in 2 file(s):
         
         response = _call_replace_function_request({
             "workspace_root": str(workspace),
-            "symbol": "createSampleUser",
-            "new_contents": '''function createSampleUser(extra: string): User {
-    return new User("Jane Doe", "jane@example.com", 25);
+            "symbol": "editableCreateSample",
+            "new_contents": '''export function editableCreateSample(extra: string): EditablePerson {
+    return new EditablePerson("Jane Doe", "jane@example.com");
 }''',
             "check_signature": True,
         })
@@ -590,25 +590,25 @@ Moved file and updated imports in 2 file(s):
         """Test that check_signature=False allows signature changes."""
         os.chdir(workspace)
         
-        main_path = workspace / "src" / "main.ts"
-        original = main_path.read_text()
+        editable_path = workspace / "src" / "editable.ts"
+        original = editable_path.read_text()
         
         try:
             response = _call_replace_function_request({
                 "workspace_root": str(workspace),
-                "symbol": "createSampleUser",
-                "new_contents": '''function createSampleUser(name: string = "Default"): User {
-    return new User(name, "default@example.com", 30);
+                "symbol": "editableCreateSample",
+                "new_contents": '''export function editableCreateSample(name: string = "Default"): EditablePerson {
+    return new EditablePerson(name, "default@example.com");
 }''',
                 "check_signature": False,
             })
             result = response["result"]
             assert result["replaced"] == True
             
-            updated = main_path.read_text()
+            updated = editable_path.read_text()
             assert 'name: string = "Default"' in updated
         finally:
-            main_path.write_text(original)
+            editable_path.write_text(original)
 
     def test_replace_function_non_function_error(self, workspace):
         """Test that replacing a non-function symbol gives an error."""
@@ -616,8 +616,8 @@ Moved file and updated imports in 2 file(s):
         
         response = _call_replace_function_request({
             "workspace_root": str(workspace),
-            "symbol": "User",
-            "new_contents": '''class User {
+            "symbol": "EditablePerson",
+            "new_contents": '''class EditablePerson {
 }''',
             "check_signature": True,
         })
@@ -629,24 +629,22 @@ Moved file and updated imports in 2 file(s):
         """Test that bogus content that fails signature check reverts the file."""
         os.chdir(workspace)
         
-        main_path = workspace / "src" / "main.ts"
-        original = main_path.read_text()
+        editable_path = workspace / "src" / "editable.ts"
+        original = editable_path.read_text()
         
         response = _call_replace_function_request({
             "workspace_root": str(workspace),
-            "symbol": "createSampleUser",
+            "symbol": "editableCreateSample",
             "new_contents": "this is not valid typescript @#$%^&*()",
             "check_signature": True,
         })
         result = response["result"]
         assert "error" in result
         
-        # Verify file was reverted
-        current = main_path.read_text()
+        current = editable_path.read_text()
         assert current == original
         
-        # Verify no backup file left behind
-        backup_path = main_path.with_suffix(".ts.lspcmd.bkup")
+        backup_path = editable_path.with_suffix(".ts.lspcmd.bkup")
         assert not backup_path.exists()
 
     def test_replace_function_symbol_not_found(self, workspace):
