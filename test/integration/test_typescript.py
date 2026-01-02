@@ -843,25 +843,23 @@ export const DEFAULT_CONFIG: string[] = [
     # =========================================================================
 
     def test_calls_outgoing(self, workspace):
-        """Test outgoing calls from main function."""
+        """Test outgoing calls from createSampleUser (only calls User)."""
         os.chdir(workspace)
         response = run_request("calls", {
             "workspace_root": str(workspace),
             "mode": "outgoing",
             "from_path": str(workspace / "src" / "main.ts"),
-            "from_line": 55,
+            "from_line": 6,
             "from_column": 9,
-            "from_symbol": "main",
+            "from_symbol": "createSampleUser",
             "max_depth": 1,
         })
-        result = response["result"]
-        assert result["name"] == "main"
-        assert result["kind"] == "Function"
-        assert "calls" in result
-        call_names = [c["name"] for c in result["calls"]]
-        assert "MemoryStorage" in call_names
-        assert "UserRepository" in call_names
-        assert "createSampleUser" in call_names
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.ts:6 [Function] createSampleUser
+
+Outgoing calls:
+  └── src/user.ts:4 [Class] User"""
 
     def test_calls_incoming(self, workspace):
         """Test incoming calls to createSampleUser function."""
@@ -873,11 +871,11 @@ export const DEFAULT_CONFIG: string[] = [
             "to_line": 6,
             "to_column": 9,
             "to_symbol": "createSampleUser",
-            "max_depth": 2,
+            "max_depth": 1,
         })
-        result = response["result"]
-        assert result["name"] == "createSampleUser"
-        assert result["kind"] == "Function"
-        assert "called_by" in result
-        caller_names = [c["name"] for c in result["called_by"]]
-        assert "main" in caller_names
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/main.ts:6 [Function] createSampleUser
+
+Incoming calls:
+  └── src/main.ts:55 [Function] main"""
