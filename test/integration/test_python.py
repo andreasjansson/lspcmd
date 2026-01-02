@@ -642,6 +642,15 @@ Moved file and updated imports in 4 file(s):
         updated_main = (workspace / "main.py").read_text()
         assert "from helpers import validate_email" in updated_main
         assert "from utils import validate_email" not in updated_main
+        
+        # Restore utils.py for other tests that depend on it
+        run_request("move-file", {
+            "old_path": str(workspace / "helpers.py"),
+            "new_path": str(workspace / "utils.py"),
+            "workspace_root": str(workspace),
+        })
+        # Also restore main.py imports
+        (workspace / "main.py").write_text(original_main)
 
     # =========================================================================
     # replace-function tests
