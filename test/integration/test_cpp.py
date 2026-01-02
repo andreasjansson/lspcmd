@@ -534,3 +534,42 @@ constexpr const char* COUNTRY_CODES[] = {
     "JP",
     "AU",
 };"""
+
+    # =========================================================================
+    # calls tests (clangd only supports incoming calls, not outgoing)
+    # =========================================================================
+
+    def test_calls_outgoing_not_supported(self, workspace):
+        """Test that outgoing calls returns proper error for clangd."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "outgoing",
+            "from_path": str(workspace / "main.cpp"),
+            "from_line": 7,
+            "from_column": 4,
+            "from_symbol": "main",
+            "max_depth": 1,
+        })
+        assert "error" in response
+        assert "outgoingCalls" in response["error"]
+        assert "clangd" in response["error"]
+
+    def test_calls_incoming(self, workspace):
+        """Test incoming calls to createSampleUser function."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "incoming",
+            "to_path": str(workspace / "user.hpp"),
+            "to_line": 135,
+            "to_column": 5,
+            "to_symbol": "createSampleUser",
+            "max_depth": 2,
+        })
+        result = response["result"]
+        assert result["name"] == "createSampleUser"
+        assert result["kind"] == "Function"
+        assert "called_by" in result
+        caller_names = [c["name"] for c in result["called_by"]]
+        assert "main" in caller_names
