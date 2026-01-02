@@ -1,4 +1,27 @@
 /**
+ * Country codes mapped to their full names.
+ */
+export const COUNTRY_CODES: Record<string, string> = {
+    "US": "United States",
+    "CA": "Canada",
+    "GB": "United Kingdom",
+    "DE": "Germany",
+    "FR": "France",
+    "JP": "Japan",
+    "AU": "Australia",
+};
+
+/**
+ * Default configuration values.
+ */
+export const DEFAULT_CONFIG: string[] = [
+    "debug=false",
+    "timeout=30",
+    "max_retries=3",
+    "log_level=INFO",
+];
+
+/**
  * Represents a user in the system.
  */
 export class User {
