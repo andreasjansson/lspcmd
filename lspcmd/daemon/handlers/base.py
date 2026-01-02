@@ -289,8 +289,10 @@ class HandlerContext:
             return None
 
     def format_locations(
-        self, result: Any, workspace_root: Path, context: int = 0
-    ) -> list[dict]:
+        self, result: list[dict[str, object]] | dict[str, object] | None,
+        workspace_root: Path,
+        context: int = 0,
+    ) -> list[LocationDict]:
         if not result:
             return []
 
