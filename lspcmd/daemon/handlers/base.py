@@ -23,6 +23,7 @@ from ...lsp.types import (
     TextDocumentIdentifier,
     Position,
     MarkupContent,
+    MarkedString,
 )
 from ...utils.text import get_language_id, read_file_content, get_lines_around
 from ...utils.uri import uri_to_path
