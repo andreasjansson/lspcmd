@@ -163,7 +163,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         result = runner.invoke(cli, ["grep", ".*", str(main_py)])
-        assert result.exit_code == 0
+        assert result.exit_code == 0, f"Failed: {result.output}"
         assert "User" in result.output or "Class" in result.output
 
     def test_daemon_stop(self, isolated_config):
