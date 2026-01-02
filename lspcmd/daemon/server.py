@@ -299,7 +299,7 @@ class DaemonServer:
 
         return await workspace.client.send_request(lsp_method, lsp_params)
 
-    async def _handle_grep(self, params: dict) -> list[dict] | dict:
+    async def _handle_grep(self, params: JsonDict) -> list[JsonDict] | JsonDict:
         workspace_root = Path(params["workspace_root"]).resolve()
         pattern = params.get("pattern", ".*")
         kinds = params.get("kinds")
