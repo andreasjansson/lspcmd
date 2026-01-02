@@ -222,6 +222,155 @@ main.py (1.0KB, 50 lines)
 1 files, 512B, 25 lines"""
 
 
+class TestFormatCallTree:
+    def test_outgoing_calls(self):
+        data = {
+            "name": "main",
+            "kind": "Function",
+            "detail": None,
+            "path": "main.py",
+            "line": 10,
+            "column": 0,
+            "calls": [
+                {
+                    "name": "helper",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "utils.py",
+                    "line": 5,
+                    "column": 0,
+                    "from_ranges": [{"line": 12, "column": 4}],
+                    "calls": [],
+                },
+            ],
+        }
+        result = format_output(data, "plain")
+        assert result == """\
+main.py:10 [Function] main
+
+Outgoing calls:
+  └── utils.py:5 [Function] helper"""
+
+    def test_incoming_calls(self):
+        data = {
+            "name": "helper",
+            "kind": "Function",
+            "detail": None,
+            "path": "utils.py",
+            "line": 5,
+            "column": 0,
+            "called_by": [
+                {
+                    "name": "main",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "main.py",
+                    "line": 10,
+                    "column": 0,
+                    "call_sites": [{"line": 12, "column": 4}],
+                    "called_by": [],
+                },
+            ],
+        }
+        result = format_output(data, "plain")
+        assert result == """\
+utils.py:5 [Function] helper
+
+Incoming calls:
+  └── main.py:10 [Function] main"""
+
+    def test_nested_outgoing_calls(self):
+        data = {
+            "name": "main",
+            "kind": "Function",
+            "detail": None,
+            "path": "main.py",
+            "line": 10,
+            "column": 0,
+            "calls": [
+                {
+                    "name": "foo",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "utils.py",
+                    "line": 5,
+                    "column": 0,
+                    "from_ranges": [],
+                    "calls": [
+                        {
+                            "name": "bar",
+                            "kind": "Function",
+                            "detail": None,
+                            "path": "utils.py",
+                            "line": 15,
+                            "column": 0,
+                            "from_ranges": [],
+                            "calls": [],
+                        },
+                    ],
+                },
+                {
+                    "name": "baz",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "utils.py",
+                    "line": 25,
+                    "column": 0,
+                    "from_ranges": [],
+                    "calls": [],
+                },
+            ],
+        }
+        result = format_output(data, "plain")
+        assert result == """\
+main.py:10 [Function] main
+
+Outgoing calls:
+  ├── utils.py:5 [Function] foo
+  │   └── utils.py:15 [Function] bar
+  └── utils.py:25 [Function] baz"""
+
+
+class TestFormatCallPath:
+    def test_path_found(self):
+        data = {
+            "found": True,
+            "path": [
+                {
+                    "name": "main",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "main.py",
+                    "line": 10,
+                    "column": 0,
+                },
+                {
+                    "name": "helper",
+                    "kind": "Function",
+                    "detail": None,
+                    "path": "utils.py",
+                    "line": 5,
+                    "column": 0,
+                },
+            ],
+        }
+        result = format_output(data, "plain")
+        assert result == """\
+Call path:
+main.py:10 [Function] main
+  → utils.py:5 [Function] helper"""
+
+    def test_path_not_found(self):
+        data = {
+            "found": False,
+            "from": {"name": "foo", "kind": "Function", "path": "a.py", "line": 1},
+            "to": {"name": "bar", "kind": "Function", "path": "b.py", "line": 1},
+            "message": "No call path found from 'foo' to 'bar' within depth 3",
+        }
+        result = format_output(data, "plain")
+        assert result == "No call path found from 'foo' to 'bar' within depth 3"
+
+
 class TestFormatOutput:
     def test_json_output(self):
         data = {"key": "value"}
