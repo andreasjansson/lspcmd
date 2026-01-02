@@ -99,7 +99,6 @@ class Workspace:
         if self.server_config.name == "gopls":
             return {
                 "linksInHover": False,
-                "pullDiagnostics": True,
             }
         return {}
 
