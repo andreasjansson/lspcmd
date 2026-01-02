@@ -533,7 +533,7 @@ class DaemonServer:
 
     async def _get_outgoing_calls_tree(
         self, workspace_root: Path, path: Path, line: int, column: int,
-        symbol_name: str, max_depth: int
+        symbol_name: str, max_depth: int, include_non_workspace: bool = False
     ) -> dict:
         workspace = await self.session.get_or_create_workspace(path, workspace_root)
         if not workspace or not workspace.client:
@@ -547,13 +547,23 @@ class DaemonServer:
 
         root = self._format_call_hierarchy_item(item, workspace_root)
         root["calls"] = await self._expand_outgoing_calls(
-            workspace, workspace_root, item, max_depth, set(), is_root=True
+            workspace, workspace_root, item, max_depth, set(),
+            include_non_workspace, is_root=True
         )
         return root
 
+    def _is_path_in_workspace(self, uri: str, workspace_root: Path) -> bool:
+        file_path = uri_to_path(uri)
+        try:
+            file_path.relative_to(workspace_root)
+            return True
+        except ValueError:
+            return False
+
     async def _expand_outgoing_calls(
         self, workspace: "Workspace", workspace_root: Path, item: dict,
-        depth: int, visited: set, is_root: bool = False
+        depth: int, visited: set, include_non_workspace: bool = False,
+        is_root: bool = False
     ) -> list[dict]:
         if depth <= 0:
             return []
@@ -586,13 +596,18 @@ class DaemonServer:
             if not to_item:
                 continue
 
+            to_uri = to_item.get("uri", "")
+            if not include_non_workspace and not self._is_path_in_workspace(to_uri, workspace_root):
+                continue
+
             call_info = self._format_call_hierarchy_item(to_item, workspace_root)
             call_info["from_ranges"] = [
                 {"line": r["start"]["line"] + 1, "column": r["start"]["character"]}
                 for r in call.get("fromRanges", [])
             ]
             call_info["calls"] = await self._expand_outgoing_calls(
-                workspace, workspace_root, to_item, depth - 1, visited
+                workspace, workspace_root, to_item, depth - 1, visited,
+                include_non_workspace
             )
             calls.append(call_info)
 
