@@ -789,3 +789,69 @@ var DefaultPorts = []int{
 \t8443,
 \t3000,
 }"""
+
+    # =========================================================================
+    # calls tests
+    # =========================================================================
+
+    def test_calls_outgoing(self, workspace):
+        """Test outgoing calls from main function."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "outgoing",
+            "from_path": str(workspace / "main.go"),
+            "from_line": 172,
+            "from_column": 5,
+            "from_symbol": "main",
+            "max_depth": 1,
+        })
+        result = response["result"]
+        assert result["name"] == "main"
+        assert result["kind"] == "Function"
+        assert "calls" in result
+        call_names = [c["name"] for c in result["calls"]]
+        assert "NewMemoryStorage" in call_names
+        assert "NewUserRepository" in call_names
+        assert "createSampleUser" in call_names
+
+    def test_calls_incoming(self, workspace):
+        """Test incoming calls to NewUser function."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "incoming",
+            "to_path": str(workspace / "main.go"),
+            "to_line": 16,
+            "to_column": 5,
+            "to_symbol": "NewUser",
+            "max_depth": 2,
+        })
+        result = response["result"]
+        assert result["name"] == "NewUser"
+        assert result["kind"] == "Function"
+        assert "called_by" in result
+        caller_names = [c["name"] for c in result["called_by"]]
+        assert "createSampleUser" in caller_names
+
+    def test_calls_path_found(self, workspace):
+        """Test finding call path between two functions."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "path",
+            "from_path": str(workspace / "main.go"),
+            "from_line": 172,
+            "from_column": 5,
+            "from_symbol": "main",
+            "to_path": str(workspace / "main.go"),
+            "to_line": 16,
+            "to_column": 5,
+            "to_symbol": "NewUser",
+            "max_depth": 3,
+        })
+        result = response["result"]
+        assert result["found"] == True
+        assert len(result["path"]) >= 2
+        assert result["path"][0]["name"] == "main"
+        assert result["path"][-1]["name"] == "NewUser"
