@@ -17,6 +17,15 @@ def format_plain(data: Any) -> str:
         return data
 
     if isinstance(data, dict):
+        # Handle new pydantic model structures - extract and format inner data
+        if "symbols" in data and isinstance(data["symbols"], list):
+            if data.get("warning"):
+                return f"Warning: {data['warning']}"
+            return format_symbols(data["symbols"])
+        
+        if "locations" in data and isinstance(data["locations"], list):
+            return format_locations(data["locations"])
+
         if "warning" in data:
             return f"Warning: {data['warning']}"
 
