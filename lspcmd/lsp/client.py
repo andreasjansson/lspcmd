@@ -35,6 +35,7 @@ class LSPClient:
         self._log_handle: Any | None = None
         self._service_ready = asyncio.Event()
         self._needs_service_ready = server_name == "jdtls"
+        self._diagnostics: set[str] = set()  # URIs that have received diagnostics
 
         self._active_progress_tokens: set[str | int] = set()
         self._indexing_done = asyncio.Event()
