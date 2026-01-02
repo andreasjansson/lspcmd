@@ -62,11 +62,6 @@ def format_output(data, output_format: str = "plain") -> str:
     return _format_output(data, output_format)
 
 
-def _call_replace_function_request(params: dict) -> dict:
-    """Call replace-function request."""
-    return run_request("replace-function", params)
-
-
 @pytest.fixture(scope="class")
 def class_temp_dir(tmp_path_factory):
     return tmp_path_factory.mktemp("integration")
