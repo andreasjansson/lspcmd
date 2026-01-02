@@ -448,7 +448,7 @@ src/main/java/com/example/UserRepository.java:54-56
         response = run_request("describe", {
             "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "User.java"),
             "workspace_root": str(workspace),
-            "line": 6,
+            "line": 9,
             "column": 13,
         })
         output = format_output(response["result"], "plain")
