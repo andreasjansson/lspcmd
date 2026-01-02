@@ -126,7 +126,9 @@ async def _prepare_call_hierarchy(
             raise LSPMethodNotSupported(
                 "textDocument/prepareCallHierarchy", workspace.server_config.name
             )
-        raise
+        # For other LSP errors (e.g. position out of range), return None 
+        # and let the caller handle it as "no callable found"
+        return None
 
     if not result:
         return None
