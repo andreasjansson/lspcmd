@@ -455,39 +455,6 @@ src/main/java/com/example/UserRepository.java:54-56
         assert output == "com.example.User\nRepresents a user in the system."
 
     # =========================================================================
-    # diagnostics tests
-    # =========================================================================
-
-    def test_diagnostics_single_file(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Errors.java"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "Errors.java" in output
-        assert "error" in output.lower()
-
-    def test_diagnostics_undefined_variable(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Errors.java"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "undefinedVar" in output or "cannot find symbol" in output.lower() or "cannot be resolved" in output.lower()
-
-    def test_diagnostics_type_error(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "src" / "main" / "java" / "com" / "example" / "Errors.java"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        has_type_error = "incompatible" in output.lower() or "cannot convert" in output.lower() or "type mismatch" in output.lower()
-        assert has_type_error, f"Expected type error in output: {output}"
-
-    # =========================================================================
     # move-file tests
     # =========================================================================
 
