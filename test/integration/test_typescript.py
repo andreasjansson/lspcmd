@@ -778,3 +778,62 @@ Moved file and updated imports in 2 file(s):
         result = response["result"]
         assert result["name"] == "createSampleUser"
         assert result["path"].endswith("main.ts")
+
+    # =========================================================================
+    # show multi-line constant tests
+    # =========================================================================
+
+    def test_show_multiline_object_constant(self, workspace):
+        """Test that show displays multi-line object constants correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "src" / "user.ts"),
+            "workspace_root": str(workspace),
+            "line": 135,
+            "column": 13,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 135,
+            "range_end_line": 143,
+            "kind": "Constant",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.ts:135-143
+
+export const COUNTRY_CODES: Record<string, string> = {
+    "US": "United States",
+    "CA": "Canada",
+    "GB": "United Kingdom",
+    "DE": "Germany",
+    "FR": "France",
+    "JP": "Japan",
+    "AU": "Australia",
+};"""
+
+    def test_show_multiline_array_constant(self, workspace):
+        """Test that show displays multi-line array constants correctly."""
+        os.chdir(workspace)
+        response = run_request("definition", {
+            "path": str(workspace / "src" / "user.ts"),
+            "workspace_root": str(workspace),
+            "line": 148,
+            "column": 13,
+            "context": 0,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": 148,
+            "range_end_line": 153,
+            "kind": "Constant",
+        })
+        output = format_output(response["result"], "plain")
+        assert output == """\
+src/user.ts:148-153
+
+export const DEFAULT_CONFIG: string[] = [
+    "debug=false",
+    "timeout=30",
+    "max_retries=3",
+    "log_level=INFO",
+];"""
