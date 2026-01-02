@@ -791,8 +791,8 @@ Moved file and updated imports in 2 file(s):
         result = response["result"]
         assert result["error"] == "Symbol 'save' is ambiguous (4 matches)"
         assert result["total_matches"] == 4
-        refs = [m["ref"] for m in result["matches"]]
-        assert refs == ["StorageProtocol.save", "MemoryStorage.save", "FileStorage.save"]
+        refs = sorted([m["ref"] for m in result["matches"]])
+        assert refs == ["EditableStorage.save", "FileStorage.save", "MemoryStorage.save", "StorageProtocol.save"]
 
     def test_resolve_symbol_qualified_name(self, workspace):
         """Test resolving Container.name format."""
