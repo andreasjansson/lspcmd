@@ -262,11 +262,11 @@ class DaemonServer:
         except ValueError:
             return str(path)
 
-    async def _handle_shutdown(self, params: dict) -> dict:
+    async def _handle_shutdown(self, params: JsonDict) -> JsonDict:
         asyncio.create_task(self._shutdown())
         return {"status": "shutting_down"}
 
-    async def _handle_describe_session(self, params: dict) -> dict:
+    async def _handle_describe_session(self, params: JsonDict) -> JsonDict:
         result = self.session.to_dict()
         result["daemon_pid"] = os.getpid()
         result["caches"] = {
