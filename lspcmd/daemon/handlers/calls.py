@@ -2,7 +2,7 @@
 
 from collections import deque
 from pathlib import Path
-from typing import TYPE_CHECKING, TypedDict
+from typing import TypedDict
 
 from ..rpc import CallsParams, CallsResult, CallNode
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
@@ -16,9 +16,6 @@ from ...lsp.types import (
 )
 from ...utils.uri import uri_to_path
 from .base import HandlerContext
-
-if TYPE_CHECKING:
-    from ..session import Workspace
 
 
 class FormattedCallItem(TypedDict, total=False):
@@ -41,7 +38,6 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
     include_non_workspace = params.include_non_workspace
 
     if mode == "outgoing":
-        assert params.from_path and params.from_line and params.from_column
         path = Path(params.from_path).resolve()
         line = params.from_line
         column = params.from_column
@@ -54,7 +50,6 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             return CallsResult(error=str(result["error"]))
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     elif mode == "incoming":
-        assert params.to_path and params.to_line and params.to_column
         path = Path(params.to_path).resolve()
         line = params.to_line
         column = params.to_column
@@ -67,8 +62,6 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             return CallsResult(error=str(result["error"]))
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     else:
-        assert params.from_path and params.from_line and params.from_column
-        assert params.to_path and params.to_line and params.to_column
         from_path = Path(params.from_path).resolve()
         from_line = params.from_line
         from_column = params.from_column
@@ -84,9 +77,8 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             max_depth, include_non_workspace
         )
         if result.get("found") and result.get("path"):
-            path_items: list[dict[str, object]] = result["path"]  # type: ignore
             return CallsResult(
-                path=[_dict_to_call_node(item) for item in path_items]
+                path=[_dict_to_call_node(item) for item in result["path"]]
             )
         return CallsResult(message=str(result.get("message")) if result.get("message") else None)
 
@@ -95,18 +87,16 @@ def _dict_to_call_node(d: dict[str, object]) -> CallNode:
     calls = None
     called_by = None
     if "calls" in d:
-        calls_list: list[dict[str, object]] = d["calls"]  # type: ignore
-        calls = [_dict_to_call_node(c) for c in calls_list]
+        calls = [_dict_to_call_node(c) for c in d["calls"]]
     elif "called_by" in d:
-        called_by_list: list[dict[str, object]] = d["called_by"]  # type: ignore
-        called_by = [_dict_to_call_node(c) for c in called_by_list]
+        called_by = [_dict_to_call_node(c) for c in d["called_by"]]
     return CallNode(
         name=str(d.get("name", "")),
         kind=str(d["kind"]) if d.get("kind") else None,
         detail=str(d["detail"]) if d.get("detail") else None,
         path=str(d["path"]) if d.get("path") else None,
-        line=int(d["line"]) if d.get("line") else None,  # type: ignore
-        column=int(d["column"]) if d.get("column") else None,  # type: ignore
+        line=int(d["line"]) if d.get("line") else None,
+        column=int(d["column"]) if d.get("column") else None,
         calls=calls,
         called_by=called_by,
     )
@@ -114,19 +104,18 @@ def _dict_to_call_node(d: dict[str, object]) -> CallNode:
 
 async def _prepare_call_hierarchy(
     ctx: HandlerContext,
-    workspace: "Workspace",
+    workspace: object,
     path: Path,
     line: int,
     column: int,
 ) -> CallHierarchyItem | None:
-    assert workspace.client
     doc = await workspace.ensure_document_open(path)
 
     try:
         result = await workspace.client.send_request(
             "textDocument/prepareCallHierarchy",
             TextDocumentPositionParams(
-                text_document=TextDocumentIdentifier(uri=doc.uri),
+                textDocument=TextDocumentIdentifier(uri=doc.uri),
                 position=Position(line=line - 1, character=column),
             ),
         )
@@ -158,7 +147,7 @@ def _format_call_hierarchy_item(
     item: CallHierarchyItem, workspace_root: Path, ctx: HandlerContext
 ) -> FormattedCallItem:
     file_path = uri_to_path(item.uri)
-    sel_range = item.selection_range
+    sel_range = item.selectionRange
     return {
         "name": item.name,
         "kind": SymbolKind(item.kind).name,
@@ -180,7 +169,8 @@ async def _get_outgoing_calls_tree(
     include_non_workspace: bool = False,
 ) -> dict[str, object]:
     workspace = await ctx.session.get_or_create_workspace(path, workspace_root)
-    assert workspace.client
+    if not workspace or not workspace.client:
+        raise ValueError(f"No language server available for {path}")
 
     await workspace.client.wait_for_service_ready()
 
@@ -202,7 +192,7 @@ async def _get_outgoing_calls_tree(
 
 async def _expand_outgoing_calls(
     ctx: HandlerContext,
-    workspace: "Workspace",
+    workspace: object,
     workspace_root: Path,
     item: CallHierarchyItem,
     depth: int,
@@ -210,11 +200,10 @@ async def _expand_outgoing_calls(
     include_non_workspace: bool = False,
     is_root: bool = False,
 ) -> list[FormattedCallItem]:
-    assert workspace.client
     if depth <= 0:
         return []
 
-    item_key = (item.uri, item.selection_range.start.line)
+    item_key = (item.uri, item.selectionRange.start.line)
     if item_key in visited:
         return []
     visited.add(item_key)
@@ -246,7 +235,7 @@ async def _expand_outgoing_calls(
         call_info = _format_call_hierarchy_item(to_item, workspace_root, ctx)
         call_info["from_ranges"] = [
             {"line": r.start.line + 1, "column": r.start.character}
-            for r in call.from_ranges
+            for r in call.fromRanges
         ]
         call_info["calls"] = await _expand_outgoing_calls(
             ctx, workspace, workspace_root, to_item, depth - 1, visited,
@@ -268,7 +257,8 @@ async def _get_incoming_calls_tree(
     include_non_workspace: bool = False,
 ) -> dict[str, object]:
     workspace = await ctx.session.get_or_create_workspace(path, workspace_root)
-    assert workspace.client
+    if not workspace or not workspace.client:
+        raise ValueError(f"No language server available for {path}")
 
     await workspace.client.wait_for_service_ready()
 
@@ -290,7 +280,7 @@ async def _get_incoming_calls_tree(
 
 async def _expand_incoming_calls(
     ctx: HandlerContext,
-    workspace: "Workspace",
+    workspace: object,
     workspace_root: Path,
     item: CallHierarchyItem,
     depth: int,
@@ -298,11 +288,10 @@ async def _expand_incoming_calls(
     include_non_workspace: bool = False,
     is_root: bool = False,
 ) -> list[FormattedCallItem]:
-    assert workspace.client
     if depth <= 0:
         return []
 
-    item_key = (item.uri, item.selection_range.start.line)
+    item_key = (item.uri, item.selectionRange.start.line)
     if item_key in visited:
         return []
     visited.add(item_key)
@@ -334,7 +323,7 @@ async def _expand_incoming_calls(
         caller_info = _format_call_hierarchy_item(from_item, workspace_root, ctx)
         caller_info["call_sites"] = [
             {"line": r.start.line + 1, "column": r.start.character}
-            for r in call.from_ranges
+            for r in call.fromRanges
         ]
         caller_info["called_by"] = await _expand_incoming_calls(
             ctx, workspace, workspace_root, from_item, depth - 1, visited,
@@ -360,7 +349,8 @@ async def _find_call_path(
     include_non_workspace: bool = False,
 ) -> dict[str, object]:
     workspace = await ctx.session.get_or_create_workspace(from_path, workspace_root)
-    assert workspace.client
+    if not workspace or not workspace.client:
+        raise ValueError(f"No language server available for {from_path}")
 
     await workspace.client.wait_for_service_ready()
 
@@ -380,14 +370,14 @@ async def _find_call_path(
                      "The symbol may not be a function/method, or the position may be incorrect."
         }
 
-    to_key = (to_item.uri, to_item.selection_range.start.line)
+    to_key = (to_item.uri, to_item.selectionRange.start.line)
 
-    found_path = await _bfs_call_path(
+    path = await _bfs_call_path(
         ctx, workspace, workspace_root, from_item, to_key, max_depth,
         include_non_workspace
     )
 
-    if not found_path:
+    if not path:
         return {
             "found": False,
             "from": _format_call_hierarchy_item(from_item, workspace_root, ctx),
@@ -397,25 +387,24 @@ async def _find_call_path(
 
     return {
         "found": True,
-        "path": [_format_call_hierarchy_item(item, workspace_root, ctx) for item in found_path],
+        "path": [_format_call_hierarchy_item(item, workspace_root, ctx) for item in path],
     }
 
 
 async def _bfs_call_path(
     ctx: HandlerContext,
-    workspace: "Workspace",
+    workspace: object,
     workspace_root: Path,
     start_item: CallHierarchyItem,
     target_key: tuple[str, int],
     max_depth: int,
     include_non_workspace: bool = False,
 ) -> list[CallHierarchyItem] | None:
-    assert workspace.client
     queue: deque[tuple[CallHierarchyItem, list[CallHierarchyItem], int]] = deque([
         (start_item, [start_item], 0)
     ])
     visited: set[tuple[str, int]] = set()
-    start_key = (start_item.uri, start_item.selection_range.start.line)
+    start_key = (start_item.uri, start_item.selectionRange.start.line)
     visited.add(start_key)
 
     while queue:
@@ -441,7 +430,7 @@ async def _bfs_call_path(
             if not include_non_workspace and not _is_path_in_workspace(to_item.uri, workspace_root):
                 continue
 
-            item_key = (to_item.uri, to_item.selection_range.start.line)
+            item_key = (to_item.uri, to_item.selectionRange.start.line)
 
             if item_key == target_key:
                 return path + [to_item]
