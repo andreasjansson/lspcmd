@@ -38,6 +38,11 @@ class LocationInfo(BaseModel):
     line: int
     column: int = 0
     context: list[str] | None = None
+    context_start: int | None = None
+    # For type hierarchy results
+    name: str | None = None
+    kind: str | None = None
+    detail: str | None = None
 
 
 # === Shutdown ===
