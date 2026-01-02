@@ -145,7 +145,7 @@ async def handle_resolve_symbol(
     return ResolveSymbolResult(
         error=f"Symbol '{symbol_path}' is ambiguous ({len(matches)} matches)",
         matches=matches_info,
-        total=len(matches),
+        total_matches=len(matches),
     )
 
 
