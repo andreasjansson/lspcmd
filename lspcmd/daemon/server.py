@@ -2028,14 +2028,17 @@ class DaemonServer:
     ) -> None:
         for item in items:
             if "location" in item:
+                loc_range = item["location"]["range"]
                 output.append(
                     {
                         "name": item["name"],
                         "kind": SymbolKind(item["kind"]).name,
                         "path": file_path,
-                        "line": item["location"]["range"]["start"]["line"] + 1,
-                        "column": item["location"]["range"]["start"]["character"],
+                        "line": loc_range["start"]["line"] + 1,
+                        "column": loc_range["start"]["character"],
                         "container": item.get("containerName"),
+                        "range_start_line": loc_range["start"]["line"] + 1,
+                        "range_end_line": loc_range["end"]["line"] + 1,
                     }
                 )
             else:
