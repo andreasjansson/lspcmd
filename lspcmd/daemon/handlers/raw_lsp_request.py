@@ -18,8 +18,9 @@ async def handle_raw_lsp_request(
     workspace = await ctx.session.get_or_create_workspace_for_language(
         language, workspace_root
     )
-    if not workspace or not workspace.client:
+    if not workspace:
         raise ValueError(f"No LSP server for language: {language}")
+    assert workspace.client
 
     await workspace.client.wait_for_service_ready()
 
