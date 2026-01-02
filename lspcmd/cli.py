@@ -586,19 +586,19 @@ def declaration(ctx, symbol, context):
     output_result(response["result"], output_format)
 
 
-@cli.command("ref")
+@cli.command("refs")
 @click.argument("symbol")
 @click.option("-n", "--context", default=0, help="Lines of context")
 @click.pass_context
 @with_symbol_help
-def ref(ctx, symbol, context):
+def refs(ctx, symbol, context):
     """Find all references to a symbol.
 
     \b
     Examples:
-      lspcmd ref UserRepository
-      lspcmd ref UserRepository.add_user
-      lspcmd ref "*.py:validate_email"
+      lspcmd refs UserRepository
+      lspcmd refs UserRepository.add_user
+      lspcmd refs "*.py:validate_email"
     """
     config = load_config()
     workspace_root = get_workspace_root_for_cwd(config)
