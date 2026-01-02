@@ -418,9 +418,12 @@ class LSPClient:
             await handler(params)
 
     def _handle_progress(self, params: dict[str, Any]) -> None:
-        token = params.get("token")
+        token: str | int | None = params.get("token")
         value = params.get("value", {})
         kind = value.get("kind")
+
+        if token is None:
+            return
 
         if kind == "begin":
             self._active_progress_tokens.add(token)
