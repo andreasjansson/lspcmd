@@ -381,45 +381,6 @@ def format_ambiguous_symbol_error(data: dict) -> str:
     return "\n".join(lines)
 
 
-def format_diagnostics(diagnostics: list[dict]) -> str:
-    severity_symbols = {
-        "error": "✗",
-        "warning": "⚠",
-        "info": "ℹ",
-        "hint": "💡",
-    }
-    
-    lines = []
-    for diag in diagnostics:
-        path = diag.get("path", "")
-        line = diag.get("line", 0)
-        column = diag.get("column", 0)
-        severity = diag.get("severity", "error")
-        message = diag.get("message", "")
-        code = diag.get("code")
-        source = diag.get("source")
-        
-        symbol = severity_symbols.get(severity, "?")
-        location = f"{path}:{line}:{column}"
-        
-        # Build the diagnostic line
-        parts = [location, symbol, severity]
-        if source:
-            parts.append(f"[{source}]")
-        if code:
-            parts.append(f"({code})")
-        
-        header = " ".join(parts)
-        
-        # Handle multi-line messages
-        message_lines = message.split("\n")
-        lines.append(f"{header}: {message_lines[0]}")
-        for extra_line in message_lines[1:]:
-            lines.append(f"  {extra_line}")
-    
-    return "\n".join(lines)
-
-
 def _is_stdlib_path(path: str) -> bool:
     """Detect if path is a language standard library (not third-party)."""
     if "/typeshed-fallback/stdlib/" in path or "/typeshed/stdlib/" in path:
