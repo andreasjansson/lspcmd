@@ -1,8 +1,23 @@
+import os
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from ..utils.text import get_language_id
+
+
+def _get_extended_path() -> str:
+    home = os.path.expanduser("~")
+    extra_paths = [
+        f"{home}/.gem/bin",
+        f"{home}/go/bin",
+        f"{home}/.cargo/bin",
+        f"{home}/.local/bin",
+        "/usr/local/bin",
+        "/opt/homebrew/bin",
+    ]
+    current_path = os.environ.get("PATH", "")
+    return ":".join(extra_paths) + ":" + current_path
 
 
 @dataclass
