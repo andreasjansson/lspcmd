@@ -196,7 +196,7 @@ class DaemonServer:
             writer.close()
             await writer.wait_closed()
 
-    async def _handle_request(self, request: dict) -> dict:
+    async def _handle_request(self, request: JsonDict) -> JsonDict:
         method = request.get("method")
         params = request.get("params", {})
 
