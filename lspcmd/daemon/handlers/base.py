@@ -276,7 +276,7 @@ class HandlerContext:
             result = await workspace.client.send_request(
                 "textDocument/hover",
                 TextDocumentPositionParams(
-                    text_document=TextDocumentIdentifier(uri=doc.uri),
+                    textDocument=TextDocumentIdentifier(uri=doc.uri),
                     position=Position(line=line - 1, character=column),
                 ),
             )
