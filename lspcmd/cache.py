@@ -59,7 +59,7 @@ class LMDBCache:
     def __len__(self) -> int:
         return self._entry_count
 
-    def __contains__(self, key: tuple) -> bool:
+    def __contains__(self, key: tuple[Any, ...]) -> bool:
         key_bytes = pickle.dumps(key)
         with self.env.begin() as txn:
             return txn.get(key_bytes) is not None
