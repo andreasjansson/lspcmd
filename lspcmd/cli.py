@@ -22,6 +22,7 @@ from .utils.config import (
     get_known_workspace_root,
     get_best_workspace_root,
     add_workspace_root,
+    remove_workspace_root,
 )
 
 
