@@ -180,7 +180,6 @@ class DaemonServer:
             "raw-lsp-request": (RawLspRequestParams, handle_raw_lsp_request),
             "rename": (RenameParams, handle_rename),
             "move-file": (MoveFileParams, handle_move_file),
-            "replace-function": (ReplaceFunctionParams, handle_replace_function),
             "grep": (GrepParams, handle_grep),
             "files": (FilesParams, handle_files),
             "calls": (CallsParams, handle_calls),
