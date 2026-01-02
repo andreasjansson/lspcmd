@@ -242,7 +242,7 @@ looking for specific multi-symbol strings, puncuation, or library functions.
 `lspcmd grep PATTERN [PATH] --docs` prints function and method documentation
 for all matching symbols.
 
-`lspcmd tree` is a good starting point when starting work on a project.
+`lspcmd files` is a good starting point when starting work on a project.
 
 Use `lspcmd show SYMBOL` to print the full body of a symbol. Use
 `lspcmd ref SYMBOL` to find all uses of a symbol. These two (and other)
