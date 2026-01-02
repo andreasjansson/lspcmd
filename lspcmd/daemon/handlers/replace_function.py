@@ -231,7 +231,7 @@ def _format_signature_from_detail(symbol: FoundSymbol) -> str | None:
 
 
 def _parse_signature_from_hover(hover_result: object) -> str | None:
-    from ...lsp.types import Hover
+    from ...lsp.types import Hover, MarkedString
 
     if not isinstance(hover_result, Hover):
         return None
@@ -242,8 +242,16 @@ def _parse_signature_from_hover(hover_result: object) -> str | None:
 
     if isinstance(contents, MarkupContent):
         value = contents.value
+    elif isinstance(contents, MarkedString):
+        value = contents.value
     elif isinstance(contents, list):
-        value = "\n".join(str(c) for c in contents)
+        parts = []
+        for c in contents:
+            if isinstance(c, (MarkupContent, MarkedString)):
+                parts.append(c.value)
+            else:
+                parts.append(str(c))
+        value = "\n".join(parts)
     else:
         value = str(contents)
 
