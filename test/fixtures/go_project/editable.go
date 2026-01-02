@@ -1,6 +1,6 @@
 package main
 
-// ISOLATED TEST FILE - Used exclusively by replace-function, rename, and mv tests.
+// ISOLATED TEST FILE - Used exclusively by rename and mv tests.
 // Do NOT use symbols from this file in grep, refs, calls, or other read-only tests.
 
 import "fmt"
