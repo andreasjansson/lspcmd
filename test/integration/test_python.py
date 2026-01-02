@@ -602,7 +602,7 @@ editable.py:30 class EditableStorage:"""
     # =========================================================================
 
     def test_replace_function_basic(self, workspace):
-        """Test basic function replacement without signature check."""
+        """Test basic function replacement with signature check."""
         os.chdir(workspace)
         
         editable_path = workspace / "editable.py"
@@ -615,7 +615,7 @@ editable.py:30 class EditableStorage:"""
                 "new_contents": '''def editable_create_sample() -> EditablePerson:
     """Create an editable sample for testing."""
     return EditablePerson(name="Jane Doe", email="jane@example.com")''',
-                "check_signature": False,
+                "check_signature": True,
             })
             result = response["result"]
             assert result["replaced"] == True
