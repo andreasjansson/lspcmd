@@ -5,6 +5,14 @@ from pathlib import Path
 
 from ..rpc import MoveFileParams, MoveFileResult
 from ...lsp.protocol import LSPResponseError
+from ...lsp.types import (
+    WorkspaceEdit,
+    TextEdit,
+    TextDocumentEdit,
+    CreateFile,
+    RenameFile,
+    DeleteFile,
+)
 from ...utils.text import read_file_content
 from ...utils.uri import path_to_uri, uri_to_path
 from .base import HandlerContext
@@ -92,7 +100,7 @@ async def handle_move_file(
 
 async def _apply_workspace_edit_for_move(
     ctx: HandlerContext,
-    edit: dict,
+    edit: WorkspaceEdit,
     workspace_root: Path,
     move_old_path: Path,
     move_new_path: Path,
@@ -100,41 +108,40 @@ async def _apply_workspace_edit_for_move(
     files_modified: list[str] = []
     file_moved = False
 
-    if edit.get("changes"):
-        for uri, text_edits in edit["changes"].items():
+    if edit.changes:
+        for uri, text_edits in edit.changes.items():
             file_path = uri_to_path(uri)
             await _apply_text_edits(file_path, text_edits)
             files_modified.append(ctx.relative_path(file_path, workspace_root))
 
-    if edit.get("documentChanges"):
-        for change in edit["documentChanges"]:
-            kind = change.get("kind")
-            if kind == "create":
-                file_path = uri_to_path(change["uri"])
+    if edit.documentChanges:
+        for change in edit.documentChanges:
+            if isinstance(change, CreateFile):
+                file_path = uri_to_path(change.uri)
                 file_path.parent.mkdir(parents=True, exist_ok=True)
                 file_path.touch()
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
-            elif kind == "rename":
-                old_path = uri_to_path(change["oldUri"])
-                new_path = uri_to_path(change["newUri"])
+            elif isinstance(change, RenameFile):
+                old_path = uri_to_path(change.oldUri)
+                new_path = uri_to_path(change.newUri)
                 if old_path == move_old_path and new_path == move_new_path:
                     file_moved = True
                 new_path.parent.mkdir(parents=True, exist_ok=True)
                 old_path.rename(new_path)
                 files_modified.append(ctx.relative_path(new_path, workspace_root))
-            elif kind == "delete":
-                file_path = uri_to_path(change["uri"])
+            elif isinstance(change, DeleteFile):
+                file_path = uri_to_path(change.uri)
                 file_path.unlink(missing_ok=True)
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
-            elif "textDocument" in change:
-                file_path = uri_to_path(change["textDocument"]["uri"])
-                await _apply_text_edits(file_path, change["edits"])
+            elif isinstance(change, TextDocumentEdit):
+                file_path = uri_to_path(change.textDocument.uri)
+                await _apply_text_edits(file_path, change.edits)
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
 
     return files_modified, file_moved
 
 
-async def _apply_text_edits(file_path: Path, edits: list[dict]) -> None:
+async def _apply_text_edits(file_path: Path, edits: list[TextEdit]) -> None:
     content = read_file_content(file_path)
     lines = content.splitlines(keepends=True)
 
@@ -143,19 +150,19 @@ async def _apply_text_edits(file_path: Path, edits: list[dict]) -> None:
 
     sorted_edits = sorted(
         edits,
-        key=lambda e: (e["range"]["start"]["line"], e["range"]["start"]["character"]),
+        key=lambda e: (e.range.start.line, e.range.start.character),
         reverse=True,
     )
 
     for edit in sorted_edits:
-        start = edit["range"]["start"]
-        end = edit["range"]["end"]
-        new_text = edit["newText"]
+        start = edit.range.start
+        end = edit.range.end
+        new_text = edit.newText
 
-        start_line = start["line"]
-        start_char = start["character"]
-        end_line = end["line"]
-        end_char = end["character"]
+        start_line = start.line
+        start_char = start.character
+        end_line = end.line
+        end_char = end.character
 
         if start_line >= len(lines):
             lines.extend([""] * (start_line - len(lines) + 1))
