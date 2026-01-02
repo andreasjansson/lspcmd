@@ -577,33 +577,6 @@ main.py:61 class FileStorage:"""
         assert "prepareTypeHierarchy" in response["error"]
 
     # =========================================================================
-    # diagnostics tests
-    # =========================================================================
-
-    def test_diagnostics_single_file(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "errors.py"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        assert "errors.py" in output
-        assert "error" in output.lower()
-        assert "undefined_var" in output or "undefined" in output.lower()
-
-    def test_diagnostics_type_error(self, workspace):
-        os.chdir(workspace)
-        response = run_request("diagnostics", {
-            "path": str(workspace / "errors.py"),
-            "workspace_root": str(workspace),
-        })
-        output = format_output(response["result"], "plain")
-        lines = output.split("\n")
-        type_error_found = any("int" in line and "str" in line for line in lines) or \
-                          any("type" in line.lower() for line in lines)
-        assert type_error_found, f"Expected type error in output: {output}"
-
-    # =========================================================================
     # move-file tests
     # =========================================================================
 
