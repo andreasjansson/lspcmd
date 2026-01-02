@@ -315,7 +315,9 @@ class ResolveSymbolResult(BaseModel):
     path: str | None = None
     line: int | None = None
     column: int | None = None
+    name: str | None = None
     kind: str | None = None
+    container: str | None = None
     range_start_line: int | None = None
     range_end_line: int | None = None
     # Error fields
