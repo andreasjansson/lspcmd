@@ -126,10 +126,11 @@ class ShowParams(BaseModel):
     context: int = 0
     head: int | None = None
     body: bool = True
-    symbol_name: str | None = None
-    symbol_kind: str | None = None
+    symbol_name: str | None = Field(default=None, alias="symbol")
+    symbol_kind: str | None = Field(default=None, alias="kind")
     range_start_line: int | None = None
     range_end_line: int | None = None
+    direct_location: bool = False
 
 
 class ShowResult(BaseModel):
