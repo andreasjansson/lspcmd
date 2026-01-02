@@ -274,10 +274,14 @@ class ReplaceFunctionParams(BaseModel):
 
 
 class ReplaceFunctionResult(BaseModel):
-    replaced: bool = True
-    path: str
-    old_range: str
-    new_range: str
+    replaced: bool = False
+    path: str | None = None
+    old_range: str | None = None
+    new_range: str | None = None
+    error: str | None = None
+    old_signature: str | None = None
+    new_signature: str | None = None
+    hint: str | None = None
 
 
 # === Raw LSP Request ===
