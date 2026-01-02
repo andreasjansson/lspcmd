@@ -1,9 +1,39 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 import tomli
 import tomli_w
+
+
+class DaemonConfig(TypedDict, total=False):
+    log_level: str
+    request_timeout: int
+    hover_cache_size: int
+    symbol_cache_size: int
+
+
+class WorkspacesConfig(TypedDict, total=False):
+    roots: list[str]
+    excluded_languages: list[str]
+
+
+class FormattingConfig(TypedDict, total=False):
+    tab_size: int
+    insert_spaces: bool
+
+
+class ServerConfig(TypedDict, total=False):
+    command: list[str]
+    args: list[str]
+    init_options: dict[str, Any]
+
+
+class Config(TypedDict, total=False):
+    daemon: DaemonConfig
+    workspaces: WorkspacesConfig
+    formatting: FormattingConfig
+    servers: dict[str, ServerConfig]
 
 
 def get_cache_dir() -> Path:
