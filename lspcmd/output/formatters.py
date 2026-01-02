@@ -17,6 +17,13 @@ def format_plain(data: Any) -> str:
         return data
 
     if isinstance(data, dict):
+        # Check error first - it can co-exist with other fields like locations
+        if "error" in data and data["error"]:
+            # Handle ambiguous symbol errors with matches
+            if "matches" in data:
+                return format_ambiguous_symbol_error(data)
+            return f"Error: {data['error']}"
+
         # Handle new pydantic model structures - extract and format inner data
         if "symbols" in data and isinstance(data["symbols"], list):
             if data.get("warning"):
