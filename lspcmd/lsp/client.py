@@ -303,7 +303,7 @@ class LSPClient:
         if params is None:
             params_dict = None
         elif isinstance(params, BaseModel):
-            params_dict = params.model_dump(by_alias=True, exclude_none=True)
+            params_dict = params.model_dump(exclude_none=True)
         else:
             params_dict = params
 
