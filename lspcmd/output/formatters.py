@@ -140,8 +140,10 @@ def format_plain(data: Any) -> str:
         if "path" in data and isinstance(data.get("path"), list):
             if data["path"]:
                 return format_call_path({"found": True, "path": data["path"]})
-            # Empty path means not found - but we need more context
-            # Fall through to JSON output
+        
+        # CallsResult with message (path not found)
+        if "message" in data and data["message"]:
+            return data["message"]
 
         # Old format: found + path/from/to
         if "found" in data and ("path" in data or "from" in data):
