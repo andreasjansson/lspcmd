@@ -117,16 +117,16 @@ async def _apply_workspace_edit_for_move(
             await _apply_text_edits(file_path, text_edits)
             files_modified.append(ctx.relative_path(file_path, workspace_root))
 
-    if edit.documentChanges:
-        for change in edit.documentChanges:
+    if edit.document_changes:
+        for change in edit.document_changes:
             if isinstance(change, CreateFile):
                 file_path = uri_to_path(change.uri)
                 file_path.parent.mkdir(parents=True, exist_ok=True)
                 file_path.touch()
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
             elif isinstance(change, RenameFile):
-                old_path = uri_to_path(change.oldUri)
-                new_path = uri_to_path(change.newUri)
+                old_path = uri_to_path(change.old_uri)
+                new_path = uri_to_path(change.new_uri)
                 if old_path == move_old_path and new_path == move_new_path:
                     file_moved = True
                 new_path.parent.mkdir(parents=True, exist_ok=True)
@@ -137,7 +137,7 @@ async def _apply_workspace_edit_for_move(
                 file_path.unlink(missing_ok=True)
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
             elif isinstance(change, TextDocumentEdit):
-                file_path = uri_to_path(change.textDocument.uri)
+                file_path = uri_to_path(change.text_document.uri)
                 await _apply_text_edits(file_path, change.edits)
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
 
@@ -160,7 +160,7 @@ async def _apply_text_edits(file_path: Path, edits: list[TextEdit]) -> None:
     for edit in sorted_edits:
         start = edit.range.start
         end = edit.range.end
-        new_text = edit.newText
+        new_text = edit.new_text
 
         start_line = start.line
         start_char = start.character

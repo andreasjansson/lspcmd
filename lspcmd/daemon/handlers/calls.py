@@ -158,7 +158,7 @@ def _format_call_hierarchy_item(
     item: CallHierarchyItem, workspace_root: Path, ctx: HandlerContext
 ) -> FormattedCallItem:
     file_path = uri_to_path(item.uri)
-    sel_range = item.selectionRange
+    sel_range = item.selection_range
     return {
         "name": item.name,
         "kind": SymbolKind(item.kind).name,
@@ -214,7 +214,7 @@ async def _expand_outgoing_calls(
     if depth <= 0:
         return []
 
-    item_key = (item.uri, item.selectionRange.start.line)
+    item_key = (item.uri, item.selection_range.start.line)
     if item_key in visited:
         return []
     visited.add(item_key)
@@ -246,7 +246,7 @@ async def _expand_outgoing_calls(
         call_info = _format_call_hierarchy_item(to_item, workspace_root, ctx)
         call_info["from_ranges"] = [
             {"line": r.start.line + 1, "column": r.start.character}
-            for r in call.fromRanges
+            for r in call.from_ranges
         ]
         call_info["calls"] = await _expand_outgoing_calls(
             ctx, workspace, workspace_root, to_item, depth - 1, visited,
@@ -302,7 +302,7 @@ async def _expand_incoming_calls(
     if depth <= 0:
         return []
 
-    item_key = (item.uri, item.selectionRange.start.line)
+    item_key = (item.uri, item.selection_range.start.line)
     if item_key in visited:
         return []
     visited.add(item_key)
@@ -334,7 +334,7 @@ async def _expand_incoming_calls(
         caller_info = _format_call_hierarchy_item(from_item, workspace_root, ctx)
         caller_info["call_sites"] = [
             {"line": r.start.line + 1, "column": r.start.character}
-            for r in call.fromRanges
+            for r in call.from_ranges
         ]
         caller_info["called_by"] = await _expand_incoming_calls(
             ctx, workspace, workspace_root, from_item, depth - 1, visited,
@@ -380,7 +380,7 @@ async def _find_call_path(
                      "The symbol may not be a function/method, or the position may be incorrect."
         }
 
-    to_key = (to_item.uri, to_item.selectionRange.start.line)
+    to_key = (to_item.uri, to_item.selection_range.start.line)
 
     found_path = await _bfs_call_path(
         ctx, workspace, workspace_root, from_item, to_key, max_depth,
@@ -415,7 +415,7 @@ async def _bfs_call_path(
         (start_item, [start_item], 0)
     ])
     visited: set[tuple[str, int]] = set()
-    start_key = (start_item.uri, start_item.selectionRange.start.line)
+    start_key = (start_item.uri, start_item.selection_range.start.line)
     visited.add(start_key)
 
     while queue:
@@ -441,7 +441,7 @@ async def _bfs_call_path(
             if not include_non_workspace and not _is_path_in_workspace(to_item.uri, workspace_root):
                 continue
 
-            item_key = (to_item.uri, to_item.selectionRange.start.line)
+            item_key = (to_item.uri, to_item.selection_range.start.line)
 
             if item_key == target_key:
                 return path + [to_item]

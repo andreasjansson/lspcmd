@@ -318,8 +318,8 @@ class HandlerContext:
         locations: list[LocationDict] = []
         for item in items:
             if isinstance(item, LocationLink):
-                uri = item.targetUri
-                range_ = item.targetSelectionRange
+                uri = item.target_uri
+                range_ = item.target_selection_range
             else:
                 uri = item.uri
                 range_ = item.range
@@ -355,7 +355,7 @@ class HandlerContext:
         locations: list[LocationDict] = []
         for item in result:
             uri = item.uri
-            range_ = item.selectionRange
+            range_ = item.selection_range
 
             file_path = uri_to_path(uri)
             start_line = range_.start.line
@@ -492,13 +492,13 @@ def flatten_symbols(
                     "path": file_path,
                     "line": loc_range.start.line + 1,
                     "column": loc_range.start.character,
-                    "container": item.containerName,
+                    "container": item.container_name,
                     "range_start_line": loc_range.start.line + 1,
                     "range_end_line": loc_range.end.line + 1,
                 }
             )
         else:
-            sel_range = item.selectionRange
+            sel_range = item.selection_range
             full_range = item.range
             output.append(
                 {
