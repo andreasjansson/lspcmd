@@ -390,3 +390,23 @@ M.DEFAULT_CONFIG = {
     "max_retries=3",
     "log_level=INFO",
 }"""
+
+    # =========================================================================
+    # calls tests (lua-language-server does not support call hierarchy)
+    # =========================================================================
+
+    def test_calls_not_supported(self, workspace):
+        """Test that calls returns proper error for lua-language-server."""
+        os.chdir(workspace)
+        response = run_request("calls", {
+            "workspace_root": str(workspace),
+            "mode": "outgoing",
+            "from_path": str(workspace / "main.lua"),
+            "from_line": 36,
+            "from_column": 4,
+            "from_symbol": "main.lua:36:main",
+            "max_depth": 1,
+        })
+        assert "error" in response
+        assert "prepareCallHierarchy" in response["error"]
+        assert "lua-language-server" in response["error"]
