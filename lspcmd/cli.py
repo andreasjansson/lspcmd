@@ -348,11 +348,11 @@ def workspace(ctx):
     pass
 
 
-@workspace.command("init")
+@workspace.command("add")
 @click.option("--root", type=click.Path(exists=True), help="Workspace root directory")
 @click.pass_context
-def workspace_init(ctx, root):
-    """Initialize a workspace for LSP operations."""
+def workspace_add(ctx, root):
+    """Add a workspace for LSP operations."""
     config = load_config()
 
     if root:
@@ -376,16 +376,16 @@ def workspace_init(ctx, root):
         else:
             raise click.ClickException(
                 f"Cannot prompt for workspace root in non-interactive mode.\n"
-                f"Use: lspcmd workspace init --root {default_root}"
+                f"Use: lspcmd workspace add --root {default_root}"
             )
 
     known = get_known_workspace_root(workspace_root, config)
     if known:
-        click.echo(f"Workspace already initialized: {known}")
+        click.echo(f"Workspace already added: {known}")
         return
 
     add_workspace_root(workspace_root, config)
-    click.echo(f"Initialized workspace: {workspace_root}")
+    click.echo(f"Added workspace: {workspace_root}")
 
 
 @workspace.command("restart")
