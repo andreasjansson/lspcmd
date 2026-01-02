@@ -297,32 +297,37 @@ class HandlerContext:
             return None
 
     def format_locations(
-        self, result: list[dict[str, object]] | dict[str, object] | None,
+        self, result: DefinitionResponse,
         workspace_root: Path,
         context: int = 0,
     ) -> list[LocationDict]:
         if not result:
             return []
 
-        if isinstance(result, dict):
-            result = [result]
+        items: list[Location | LocationLink]
+        if isinstance(result, Location):
+            items = [result]
+        elif isinstance(result, list):
+            items = result
+        else:
+            items = [result]
 
         locations: list[LocationDict] = []
-        for item in result:
-            if "targetUri" in item:
-                uri = str(item["targetUri"])
-                range_ = item["targetSelectionRange"]
+        for item in items:
+            if isinstance(item, LocationLink):
+                uri = item.targetUri
+                range_ = item.targetSelectionRange
             else:
-                uri = str(item["uri"])
-                range_ = item["range"]
+                uri = item.uri
+                range_ = item.range
 
             file_path = uri_to_path(uri)
-            start_line = int(range_["start"]["line"])
+            start_line = range_.start.line
 
             location: LocationDict = {
                 "path": self.relative_path(file_path, workspace_root),
                 "line": start_line + 1,
-                "column": int(range_["start"]["character"]),
+                "column": range_.start.character,
             }
 
             if context > 0 and file_path.exists():
@@ -337,7 +342,7 @@ class HandlerContext:
 
     def format_type_hierarchy_items(
         self,
-        result: list[dict[str, object]] | None,
+        result: list[TypeHierarchyItem] | None,
         workspace_root: Path,
         context: int = 0,
     ) -> list[LocationDict]:
@@ -346,20 +351,19 @@ class HandlerContext:
 
         locations: list[LocationDict] = []
         for item in result:
-            uri = str(item["uri"])
-            range_ = item.get("selectionRange", item.get("range"))
+            uri = item.uri
+            range_ = item.selectionRange
 
             file_path = uri_to_path(uri)
-            start_line = int(range_["start"]["line"])
+            start_line = range_.start.line
 
-            kind_val = item.get("kind")
             location: LocationDict = {
                 "path": self.relative_path(file_path, workspace_root),
                 "line": start_line + 1,
-                "column": int(range_["start"]["character"]),
-                "name": str(item.get("name", "")),
-                "kind": SymbolKind(int(kind_val)).name if kind_val else None,
-                "detail": str(item.get("detail")) if item.get("detail") else None,
+                "column": range_.start.character,
+                "name": item.name,
+                "kind": SymbolKind(item.kind).name,
+                "detail": item.detail,
             }
 
             if context > 0 and file_path.exists():
