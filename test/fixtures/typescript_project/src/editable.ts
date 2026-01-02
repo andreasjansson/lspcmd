@@ -1,5 +1,5 @@
 /**
- * ISOLATED TEST FILE - Used exclusively by replace-function, rename, and mv tests.
+ * ISOLATED TEST FILE - Used exclusively by rename and mv tests.
  * Do NOT import this from main.ts, user.ts, or other non-editable files.
  * Do NOT use symbols from this file in grep, refs, calls, or other read-only tests.
  */
