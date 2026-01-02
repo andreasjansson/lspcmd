@@ -87,6 +87,7 @@ DEFAULT_EXCLUDE_DIRS = {
     "vendor", "third_party", ".bundle",
     ".next", ".nuxt", ".svelte-kit", ".turbo", ".parcel-cache",
     "coverage", ".nyc_output",
+    ".zig-cache",
 }
 
 BINARY_EXTENSIONS = {
