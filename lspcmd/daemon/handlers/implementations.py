@@ -2,7 +2,7 @@
 
 from ..rpc import ImplementationsParams as RPCImplementationsParams, ImplementationsResult, LocationInfo
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
-from ...lsp.types import ImplementationParams, TextDocumentIdentifier, Position
+from ...lsp.types import TextDocumentPositionParams, TextDocumentIdentifier, Position
 from .base import HandlerContext
 
 
@@ -13,6 +13,7 @@ async def handle_implementations(
         "path": params.path,
         "workspace_root": params.workspace_root,
     })
+    assert workspace.client
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
@@ -26,8 +27,8 @@ async def handle_implementations(
     try:
         result = await workspace.client.send_request(
             "textDocument/implementation",
-            ImplementationParams(
-                textDocument=TextDocumentIdentifier(uri=doc.uri),
+            TextDocumentPositionParams(
+                text_document=TextDocumentIdentifier(uri=doc.uri),
                 position=Position(line=line, character=column),
             ),
         )
