@@ -21,7 +21,7 @@ func (p *EditablePerson) Greet() string {
 	return fmt.Sprintf("Hello, %s", p.Name)
 }
 
-// editableCreateSample creates an editable sample for testing replace-function.
+// editableCreateSample creates an editable sample for testing.
 func editableCreateSample() *EditablePerson {
 	return NewEditablePerson("Original Name", "original@example.com")
 }
