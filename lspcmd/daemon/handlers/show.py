@@ -10,7 +10,7 @@ from .base import HandlerContext, find_symbol_at_line, expand_variable_range, Lo
 
 async def handle_show(
     ctx: HandlerContext, params: ShowParams
-) -> Union[list[LocationDict], dict]:
+) -> Union[list[LocationDict], dict[str, object]]:
     """Handle show command, returning either locations or definition content."""
     body = params.body
 
@@ -25,7 +25,7 @@ async def handle_show(
 
 async def _handle_direct_definition(
     ctx: HandlerContext, params: ShowParams, body: bool
-) -> Union[list[LocationDict], dict]:
+) -> Union[list[LocationDict], dict[str, object]]:
     path = Path(params.path).resolve()
     workspace_root = Path(params.workspace_root).resolve()
     line = params.line
@@ -57,9 +57,9 @@ async def _handle_direct_definition(
             )
             if result:
                 symbol = find_symbol_at_line(result, line - 1)
-                if symbol and "range" in symbol:
-                    start = symbol["range"]["start"]["line"]
-                    end = symbol["range"]["end"]["line"]
+                if symbol:
+                    start = symbol["range_start"]
+                    end = symbol["range_end"]
                 else:
                     start = end = line - 1
             else:
@@ -99,7 +99,7 @@ async def _handle_direct_definition(
         return [location]
 
 
-async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> dict:
+async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> dict[str, object]:
     locations = await _handle_location_request(ctx, params)
     if not locations:
         return {"error": "Definition not found"}
@@ -128,9 +128,9 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
 
     if result:
         symbol = find_symbol_at_line(result, target_line)
-        if symbol and "range" in symbol:
-            start = symbol["range"]["start"]["line"]
-            end = symbol["range"]["end"]["line"]
+        if symbol:
+            start = symbol["range_start"]
+            end = symbol["range_end"]
             if context > 0:
                 start = max(0, start - context)
                 end = min(len(lines) - 1, end + context)
