@@ -452,46 +452,43 @@ main.py:114-116
 
 
     # =========================================================================
-    # rename tests
+    # rename tests (uses isolated editable files)
     # =========================================================================
 
     def test_rename(self, workspace):
         os.chdir(workspace)
         
-        # Verify User class exists before rename
-        original_content = (workspace / "main.py").read_text()
-        assert "class User:" in original_content
+        editable_path = workspace / "editable.py"
+        consumer_path = workspace / "editable_consumer.py"
+        original_editable = editable_path.read_text()
+        original_consumer = consumer_path.read_text()
         
-        response = run_request("rename", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-            "new_name": "Person",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
-Renamed in 1 file(s):
-  main.py"""
+        try:
+            assert "class EditablePerson:" in original_editable
+            assert "from editable import EditablePerson" in original_consumer
+            
+            response = run_request("rename", {
+                "path": str(editable_path),
+                "workspace_root": str(workspace),
+                "line": 11,
+                "column": 6,
+                "new_name": "RenamedPerson",
+            })
+            output = format_output(response["result"], "plain")
+            assert output == """\
+Renamed in 2 file(s):
+  editable.py
+  editable_consumer.py"""
 
-        # Verify rename actually happened in the file
-        renamed_content = (workspace / "main.py").read_text()
-        assert "class Person:" in renamed_content
-        assert "class User:" not in renamed_content
-
-        # Revert the rename
-        run_request("rename", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-            "new_name": "User",
-        })
-        
-        # Verify revert worked
-        reverted_content = (workspace / "main.py").read_text()
-        assert "class User:" in reverted_content
-        assert "class Person:" not in reverted_content
+            renamed_editable = editable_path.read_text()
+            renamed_consumer = consumer_path.read_text()
+            assert "class RenamedPerson:" in renamed_editable
+            assert "class EditablePerson:" not in renamed_editable
+            assert "from editable import RenamedPerson" in renamed_consumer
+            assert "from editable import EditablePerson" not in renamed_consumer
+        finally:
+            editable_path.write_text(original_editable)
+            consumer_path.write_text(original_consumer)
 
     # =========================================================================
     # declaration tests
