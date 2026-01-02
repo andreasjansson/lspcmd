@@ -179,7 +179,7 @@ user.rb:163 [Class] UserRepository"""
         output = format_output(response["result"], "plain")
         assert output == """\
 user.rb:8 [Class] User
-user.rb:144 [Class] UserRepository"""
+user.rb:163 [Class] UserRepository"""
 
     def test_grep_with_docs(self, workspace):
         """Test grep with docs - Solargraph may not return docs due to hover position."""
