@@ -88,15 +88,15 @@ class HandlerContext:
             return str(path)
 
     async def get_workspace_and_document(
-        self, params: dict
-    ) -> tuple[Workspace, Any, Path]:
+        self, params: dict[str, str]
+    ) -> tuple[Workspace, OpenDocument, Path]:
         path = Path(params["path"]).resolve()
         workspace_root = Path(params["workspace_root"]).resolve()
         workspace = await self.session.get_or_create_workspace(path, workspace_root)
         doc = await workspace.ensure_document_open(path)
         return workspace, doc, path
 
-    def parse_position(self, params: dict) -> tuple[int, int]:
+    def parse_position(self, params: dict[str, int]) -> tuple[int, int]:
         line = params["line"] - 1
         column = params["column"]
         return line, column
