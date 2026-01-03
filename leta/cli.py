@@ -178,15 +178,22 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
         "symbol_path": symbol_path,
     })
 
-    result = response.get("result", response)
+    result_raw = response.get("result", response)
+    if not isinstance(result_raw, dict):
+        raise click.ClickException("Invalid response from daemon")
+    result: dict[str, object] = result_raw
 
     if "error" in result:
-        error_msg = result["error"]
-        matches = result.get("matches", [])
+        error_msg = str(result["error"])
+        matches_raw = result.get("matches", [])
+        matches = matches_raw if isinstance(matches_raw, list) else []
 
         if matches:
             lines = [error_msg]
-            for m in matches:
+            for m_raw in matches:
+                if not isinstance(m_raw, dict):
+                    continue
+                m: dict[str, object] = m_raw
                 container = f" in {m['container']}" if m.get("container") else ""
                 kind = f"[{m['kind']}] " if m.get("kind") else ""
                 detail = f" ({m['detail']})" if m.get("detail") else ""
@@ -194,7 +201,8 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
                 lines.append(f"  {ref}")
                 lines.append(f"    {m['path']}:{m['line']} {kind}{m['name']}{detail}{container}")
 
-            total = result.get("total_matches", len(matches))
+            total_raw = result.get("total_matches")
+            total = int(total_raw) if isinstance(total_raw, int) else len(matches)
             if total > len(matches):
                 lines.append(f"  ... and {total - len(matches)} more")
 
@@ -202,13 +210,20 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
         else:
             raise click.ClickException(error_msg)
 
+    path_val = result["path"]
+    line_val = result["line"]
+    column_val = result.get("column", 0)
+    range_start = result.get("range_start_line")
+    range_end = result.get("range_end_line")
+    kind_val = result.get("kind")
+
     return ResolvedSymbol(
-        path=Path(result["path"]),
-        line=result["line"],
-        column=result.get("column", 0),
-        range_start_line=result.get("range_start_line"),
-        range_end_line=result.get("range_end_line"),
-        kind=result.get("kind"),
+        path=Path(str(path_val)),
+        line=int(line_val) if isinstance(line_val, int) else int(str(line_val)),
+        column=int(column_val) if isinstance(column_val, int) else 0,
+        range_start_line=int(range_start) if isinstance(range_start, int) else None,
+        range_end_line=int(range_end) if isinstance(range_end, int) else None,
+        kind=str(kind_val) if kind_val else None,
     )
 
 
