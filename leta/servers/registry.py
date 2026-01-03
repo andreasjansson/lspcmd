@@ -214,12 +214,15 @@ SERVERS: dict[str, list[ServerConfig]] = {
 }
 
 
-def get_server_for_file(path: str | Path, config: dict[str, object] | None = None) -> ServerConfig | None:
+from typing import Any, Mapping
+
+
+def get_server_for_file(path: str | Path, config: Mapping[str, Any] | None = None) -> ServerConfig | None:
     language_id = get_language_id(path)
     return get_server_for_language(language_id, config)
 
 
-def get_server_for_language(language_id: str, config: dict[str, object] | None = None) -> ServerConfig | None:
+def get_server_for_language(language_id: str, config: Mapping[str, Any] | None = None) -> ServerConfig | None:
     language_to_key = {
         "python": "python",
         "rust": "rust",
