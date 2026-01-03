@@ -6,11 +6,30 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Any, TypeVar, TypedDict, cast
 
 import click
+from pydantic import BaseModel
 
 from .daemon.pidfile import is_daemon_running
-from .output.formatters import format_output
+from .daemon.rpc import (
+    CallsResult,
+    DeclarationResult,
+    DescribeSessionResult,
+    FilesResult,
+    GrepResult,
+    ImplementationsResult,
+    MoveFileResult,
+    ReferencesResult,
+    RemoveWorkspaceResult,
+    RenameResult,
+    ResolveSymbolResult,
+    RestartWorkspaceResult,
+    ShowResult,
+    SubtypesResult,
+    SupertypesResult,
+)
+from .output.formatters import format_result
 from .utils.config import (
     Config,
     get_socket_path,
@@ -24,8 +43,7 @@ from .utils.config import (
     remove_workspace_root,
 )
 
-
-from typing import Any, TypedDict, cast
+T = TypeVar("T", bound=BaseModel)
 
 
 class CliContext(TypedDict):
