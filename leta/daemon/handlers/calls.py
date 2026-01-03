@@ -449,7 +449,6 @@ async def _find_call_path(
 
 
 async def _bfs_call_path(
-    ctx: HandlerContext,
     workspace: "Workspace",
     workspace_root: Path,
     start_item: CallHierarchyItem,
