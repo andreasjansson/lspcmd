@@ -154,6 +154,13 @@ def get_workspace_root_for_cwd(config: Config) -> Path:
 
 
 class ResolvedSymbol:
+    path: Path
+    line: int
+    column: int
+    range_start_line: int | None
+    range_end_line: int | None
+    kind: str | None
+
     def __init__(self, path: Path, line: int, column: int,
                  range_start_line: int | None = None, range_end_line: int | None = None,
                  kind: str | None = None):
