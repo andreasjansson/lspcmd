@@ -2,7 +2,7 @@
 
 from collections import deque
 from pathlib import Path
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
 from ..rpc import CallsParams, CallsResult, CallNode
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
@@ -16,6 +16,9 @@ from ...lsp.types import (
 )
 from ...utils.uri import uri_to_path
 from .base import HandlerContext
+
+if TYPE_CHECKING:
+    from ..session import Workspace
 
 
 class FormattedCallItem(TypedDict, total=False):
@@ -38,6 +41,8 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
     include_non_workspace = params.include_non_workspace
 
     if mode == "outgoing":
+        if params.from_path is None or params.from_line is None or params.from_column is None:
+            return CallsResult(error="from_path, from_line, and from_column are required for outgoing mode")
         path = Path(params.from_path).resolve()
         line = params.from_line
         column = params.from_column
@@ -50,6 +55,8 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             return CallsResult(error=str(result["error"]))
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     elif mode == "incoming":
+        if params.to_path is None or params.to_line is None or params.to_column is None:
+            return CallsResult(error="to_path, to_line, and to_column are required for incoming mode")
         path = Path(params.to_path).resolve()
         line = params.to_line
         column = params.to_column
@@ -62,6 +69,9 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             return CallsResult(error=str(result["error"]))
         return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
     else:
+        if (params.from_path is None or params.from_line is None or params.from_column is None or
+            params.to_path is None or params.to_line is None or params.to_column is None):
+            return CallsResult(error="from_path, from_line, from_column, to_path, to_line, and to_column are required for path mode")
         from_path = Path(params.from_path).resolve()
         from_line = params.from_line
         from_column = params.from_column
@@ -77,8 +87,10 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             max_depth, include_non_workspace
         )
         if result.get("found") and result.get("path"):
+            path_items = result["path"]
+            assert isinstance(path_items, list)
             return CallsResult(
-                path=[_dict_to_call_node(item) for item in result["path"]]
+                path=[_dict_to_call_node(item) for item in path_items]
             )
         return CallsResult(message=str(result.get("message")) if result.get("message") else None)
 
