@@ -35,6 +35,148 @@ def format_result(result: BaseModel, output_format: str = "plain") -> str:
     return format_model(result)
 
 
+def format_output(data: object, output_format: str = "plain") -> str:
+    """Legacy format function for backwards compatibility with tests.
+    
+    Handles both Pydantic models and raw dicts/lists.
+    New code should use format_result with typed models instead.
+    """
+    if output_format == "json":
+        if isinstance(data, BaseModel):
+            return json.dumps(data.model_dump(exclude_none=True), indent=2)
+        return json.dumps(data, indent=2)
+    
+    if isinstance(data, BaseModel):
+        return format_model(data)
+    
+    if data is None:
+        return ""
+    
+    if isinstance(data, str):
+        return data
+    
+    if isinstance(data, dict):
+        return _format_dict_legacy(data)
+    
+    if isinstance(data, list):
+        return _format_list_legacy(data)
+    
+    return str(data)
+
+
+def _format_dict_legacy(data: dict[str, object]) -> str:
+    """Format a dict using legacy duck-typing logic."""
+    if "error" in data and data["error"]:
+        if "matches" in data:
+            return _format_ambiguous_error_legacy(data)
+        return f"Error: {data['error']}"
+    
+    if "symbols" in data and isinstance(data.get("symbols"), list):
+        if data.get("warning"):
+            return f"Warning: {data['warning']}"
+        symbols = [SymbolInfo.model_validate(s) for s in data["symbols"]]
+        return _format_symbols(symbols)
+    
+    if "locations" in data and isinstance(data.get("locations"), list):
+        locations = [LocationInfo.model_validate(loc) for loc in data["locations"]]
+        return _format_locations(locations)
+    
+    if "warning" in data:
+        return f"Warning: {data['warning']}"
+    
+    if "files_changed" in data and "imports_updated" not in data:
+        files = data["files_changed"]
+        if isinstance(files, list):
+            return f"Renamed in {len(files)} file(s):\n" + "\n".join(f"  {f}" for f in files)
+    
+    if "files_changed" in data and "imports_updated" in data:
+        files = data["files_changed"]
+        imports_updated = data["imports_updated"]
+        if isinstance(files, list):
+            if imports_updated:
+                return f"Moved file and updated imports in {len(files)} file(s):\n" + "\n".join(f"  {f}" for f in files)
+            return f"Moved file (imports not updated):\n  {files[0]}" if files else "File moved"
+    
+    if "restarted" in data:
+        restarted = data["restarted"]
+        if isinstance(restarted, list):
+            return f"Restarted {len(restarted)} server(s): {', '.join(str(s) for s in restarted)}"
+    
+    if "content" in data and "path" in data:
+        result = ShowResult.model_validate(data)
+        return format_model(result)
+    
+    if "files" in data and "total_files" in data and "total_bytes" in data:
+        result = FilesResult.model_validate(data)
+        return format_model(result)
+    
+    if "root" in data and data["root"]:
+        root = CallNode.model_validate(data["root"])
+        return _format_call_tree(root)
+    
+    if "calls" in data or "called_by" in data:
+        node = CallNode.model_validate(data)
+        return _format_call_tree(node)
+    
+    if "path" in data and isinstance(data.get("path"), list) and data["path"]:
+        nodes = [CallNode.model_validate(n) for n in data["path"]]
+        return _format_call_path(nodes)
+    
+    if "message" in data and data["message"]:
+        return str(data["message"])
+    
+    if "workspaces" in data:
+        result = DescribeSessionResult.model_validate(data)
+        return format_model(result)
+    
+    return json.dumps(data, indent=2)
+
+
+def _format_list_legacy(data: list[object]) -> str:
+    """Format a list using legacy duck-typing logic."""
+    if not data:
+        return ""
+    
+    first = data[0]
+    if not isinstance(first, dict):
+        return "\n".join(str(item) for item in data)
+    
+    if "error" in first:
+        return f"Error: {first['error']}"
+    
+    if "path" in first and "line" in first and "kind" not in first:
+        locations = [LocationInfo.model_validate(loc) for loc in data]
+        return _format_locations(locations)
+    
+    if "kind" in first:
+        symbols = [SymbolInfo.model_validate(s) for s in data]
+        return _format_symbols(symbols)
+    
+    return "\n".join(format_output(item, "plain") for item in data)
+
+
+def _format_ambiguous_error_legacy(data: dict[str, object]) -> str:
+    """Format an ambiguous symbol error with match details."""
+    lines = [f"Error: {data['error']}"]
+    matches = data.get("matches", [])
+    
+    if isinstance(matches, list):
+        for m in matches:
+            if isinstance(m, dict):
+                container = f" in {m['container']}" if m.get("container") else ""
+                kind = f"[{m['kind']}] " if m.get("kind") else ""
+                detail = f" ({m['detail']})" if m.get("detail") else ""
+                ref = m.get("ref", "")
+                lines.append(f"  {ref}")
+                lines.append(f"    {m['path']}:{m['line']} {kind}{m['name']}{detail}{container}")
+    
+    total = data.get("total_matches")
+    if isinstance(total, int) and isinstance(matches, list) and total > len(matches):
+        lines.append(f"  ... and {total - len(matches)} more")
+    
+    return "\n".join(lines)
+
+
 @singledispatch
 def format_model(result: BaseModel) -> str:
     return json.dumps(result.model_dump(exclude_none=True), indent=2)
