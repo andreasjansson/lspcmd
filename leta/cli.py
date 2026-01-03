@@ -955,7 +955,7 @@ def grep(ctx: click.Context, pattern: str, path: str | None, kind: str, exclude:
     if " " in pattern:
         click.echo(
             "Warning: Pattern contains a space. leta grep searches symbol names, "
-            "not file contents. Use ripgrep or grep for text search.",
+            + "not file contents. Use ripgrep or grep for text search.",
             err=True,
         )
     config = load_config()
