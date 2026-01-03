@@ -28,6 +28,8 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     new_name = params.new_name
     workspace_root = Path(params.workspace_root).resolve()
 
+    assert workspace.client is not None
+
     result = await workspace.client.send_request(
         "textDocument/rename",
         RenameParams(
