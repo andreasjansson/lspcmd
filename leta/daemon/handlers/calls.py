@@ -307,7 +307,7 @@ async def _get_incoming_calls_tree(
 
 async def _expand_incoming_calls(
     ctx: HandlerContext,
-    workspace: object,
+    workspace: "Workspace",
     workspace_root: Path,
     item: CallHierarchyItem,
     depth: int,
@@ -322,6 +322,8 @@ async def _expand_incoming_calls(
     if item_key in visited:
         return []
     visited.add(item_key)
+
+    assert workspace.client is not None
 
     try:
         result = await workspace.client.send_request(
