@@ -64,6 +64,7 @@ class LSPClient:
         self._active_progress_tokens: set[str | int] = set()
         self._indexing_done = asyncio.Event()
         self._indexing_done.set()
+        self._stderr_task: asyncio.Task[None] | None = None
 
     @property
     def stdin(self) -> asyncio.StreamWriter:
