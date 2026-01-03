@@ -183,8 +183,8 @@ class CallTreeResult(TypedDict, total=False):
     path: str
     line: int
     column: int
-    calls: list[FormattedCallItem]
-    called_by: list[FormattedCallItem]
+    calls: list[FormattedCallItemWithCalls]
+    called_by: list[FormattedCallItemWithCalls]
     from_ranges: list[dict[str, int]]
     call_sites: list[dict[str, int]]
     error: str
