@@ -231,10 +231,10 @@ def expand_path_pattern(pattern: str) -> list[Path]:
 
 
 CLI_HELP = """\
-leta is a command line LSP client. It can quickly search for symbols across
-large code bases with regular expressions, print full function and method bodies,
-find references, implementations, subtypes, etc. It also has refactoring tools,
-like renaming symbols across the entire code base.
+Leta (LSP Enabled Tools for Agents) is a command line LSP client. It can quickly
+search for symbols across large code bases with regular expressions, print full
+function and method bodies, find references, implementations, subtypes, etc. It
+also has refactoring tools, like renaming symbols across the entire code base.
 
 `leta grep` can be much better than naive text search tools when you want to
 understand a code base. Note that `leta grep` only exposes symbols that are
