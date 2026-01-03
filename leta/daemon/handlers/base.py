@@ -271,7 +271,8 @@ class HandlerContext:
             cache_key = (str(file_path), line, column, file_sha)
 
             if cache_key in self.hover_cache:
-                return self.hover_cache[cache_key] or None
+                cached = cast(str, self.hover_cache[cache_key])
+                return cached or None
 
             doc = await workspace.ensure_document_open(file_path)
             result = await workspace.client.send_request(
