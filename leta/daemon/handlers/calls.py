@@ -239,7 +239,7 @@ async def _expand_outgoing_calls(
     visited: set[tuple[str, int]],
     include_non_workspace: bool = False,
     is_root: bool = False,
-) -> list[FormattedCallItem]:
+) -> list[FormattedCallItemWithCalls]:
     if depth <= 0:
         return []
 
@@ -337,7 +337,7 @@ async def _expand_incoming_calls(
     visited: set[tuple[str, int]],
     include_non_workspace: bool = False,
     is_root: bool = False,
-) -> list[FormattedCallItem]:
+) -> list[FormattedCallItemWithCalls]:
     if depth <= 0:
         return []
 
