@@ -363,6 +363,15 @@ async def _expand_incoming_calls(
     return callers
 
 
+class CallPathResult(TypedDict, total=False):
+    found: bool
+    path: list[FormattedCallItem]
+    from_: FormattedCallItem
+    to: FormattedCallItem
+    message: str
+    error: str
+
+
 async def _find_call_path(
     ctx: HandlerContext,
     workspace_root: Path,
@@ -376,7 +385,7 @@ async def _find_call_path(
     to_symbol: str,
     max_depth: int,
     include_non_workspace: bool = False,
-) -> dict[str, object]:
+) -> CallPathResult:
     workspace = await ctx.session.get_or_create_workspace(from_path, workspace_root)
     if not workspace or not workspace.client:
         raise ValueError(f"No language server available for {from_path}")
@@ -386,18 +395,18 @@ async def _find_call_path(
     from_item = await _prepare_call_hierarchy(ctx, workspace, from_path, from_line, from_column)
     if not from_item:
         rel_path = ctx.relative_path(from_path, workspace_root)
-        return {
-            "error": f"No callable symbol found at {rel_path}:{from_line}:{from_column} for '{from_symbol}'. "
-                     "The symbol may not be a function/method, or the position may be incorrect."
-        }
+        return CallPathResult(
+            error=f"No callable symbol found at {rel_path}:{from_line}:{from_column} for '{from_symbol}'. "
+                  "The symbol may not be a function/method, or the position may be incorrect."
+        )
 
     to_item = await _prepare_call_hierarchy(ctx, workspace, to_path, to_line, to_column)
     if not to_item:
         rel_path = ctx.relative_path(to_path, workspace_root)
-        return {
-            "error": f"No callable symbol found at {rel_path}:{to_line}:{to_column} for '{to_symbol}'. "
-                     "The symbol may not be a function/method, or the position may be incorrect."
-        }
+        return CallPathResult(
+            error=f"No callable symbol found at {rel_path}:{to_line}:{to_column} for '{to_symbol}'. "
+                  "The symbol may not be a function/method, or the position may be incorrect."
+        )
 
     to_key = (to_item.uri, to_item.selectionRange.start.line)
 
@@ -407,17 +416,17 @@ async def _find_call_path(
     )
 
     if not path:
-        return {
-            "found": False,
-            "from": _format_call_hierarchy_item(from_item, workspace_root, ctx),
-            "to": _format_call_hierarchy_item(to_item, workspace_root, ctx),
-            "message": f"No call path found from '{from_symbol}' to '{to_symbol}' within depth {max_depth}",
-        }
+        return CallPathResult(
+            found=False,
+            from_=_format_call_hierarchy_item(from_item, workspace_root, ctx),
+            to=_format_call_hierarchy_item(to_item, workspace_root, ctx),
+            message=f"No call path found from '{from_symbol}' to '{to_symbol}' within depth {max_depth}",
+        )
 
-    return {
-        "found": True,
-        "path": [_format_call_hierarchy_item(item, workspace_root, ctx) for item in path],
-    }
+    return CallPathResult(
+        found=True,
+        path=[_format_call_hierarchy_item(item, workspace_root, ctx) for item in path],
+    )
 
 
 async def _bfs_call_path(
