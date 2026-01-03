@@ -208,7 +208,7 @@ async def _get_outgoing_calls_tree(
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
             error=f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. "
-                  "The symbol may not be a function/method, or the position may be incorrect."
+                  + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     formatted = _format_call_hierarchy_item(item, workspace_root, ctx)
@@ -306,7 +306,7 @@ async def _get_incoming_calls_tree(
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
             error=f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. "
-                  "The symbol may not be a function/method, or the position may be incorrect."
+                  + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     formatted = _format_call_hierarchy_item(item, workspace_root, ctx)
