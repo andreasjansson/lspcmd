@@ -113,9 +113,11 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
 
     loc = locations[0]
     workspace_root = Path(params.workspace_root).resolve()
-    rel_path = loc["path"]
-    file_path = workspace_root / rel_path
-    target_line = loc["line"] - 1
+    path_val = loc.get("path")
+    line_val = loc.get("line")
+    assert path_val is not None and line_val is not None
+    file_path = workspace_root / path_val
+    target_line = line_val - 1
     context = params.context
     head = params.head or 200
     symbol_name = params.symbol_name
@@ -124,6 +126,8 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
         "path": str(file_path),
         "workspace_root": params.workspace_root,
     })
+
+    assert workspace.client is not None
 
     result = await workspace.client.send_request(
         "textDocument/documentSymbol",
