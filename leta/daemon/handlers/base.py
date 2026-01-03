@@ -345,7 +345,7 @@ class HandlerContext:
 
             if context > 0 and file_path.exists():
                 content = read_file_content(file_path)
-                lines, start, end = get_lines_around(content, start_line, context)
+                lines, start, _ = get_lines_around(content, start_line, context)
                 location["context_lines"] = lines
                 location["context_start"] = start + 1
 
@@ -381,7 +381,7 @@ class HandlerContext:
 
             if context > 0 and file_path.exists():
                 content = read_file_content(file_path)
-                lines, start, end = get_lines_around(content, start_line, context)
+                lines, start, _ = get_lines_around(content, start_line, context)
                 location["context_lines"] = lines
                 location["context_start"] = start + 1
 
