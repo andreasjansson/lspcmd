@@ -164,11 +164,12 @@ class DaemonServer:
             writer.close()
             await writer.wait_closed()
 
-    async def _handle_request(self, request: dict) -> dict:
+    async def _handle_request(self, request: dict[str, Any]) -> dict[str, Any]:
         method = request.get("method")
         params = request.get("params", {})
 
-        handlers: dict[str, tuple[type[BaseModel], Callable]] = {
+        HandlerFunc = Callable[[HandlerContext, Any], Coroutine[Any, Any, BaseModel]]
+        handlers: dict[str, tuple[type[BaseModel], HandlerFunc]] = {
             "shutdown": (ShutdownParams, self._handle_shutdown_wrapper),
             "describe-session": (DescribeSessionParams, handle_describe_session),
             "show": (ShowParams, handle_show),
