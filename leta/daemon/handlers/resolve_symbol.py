@@ -29,7 +29,7 @@ async def handle_resolve_symbol(
 
     parts = symbol_path.split(".")
 
-    all_symbols = await ctx.collect_all_workspace_symbols(workspace_root, "")
+    all_symbols = await ctx.collect_all_workspace_symbols(workspace_root)
 
     if path_filter:
         def matches_path(rel_path: str) -> bool:
