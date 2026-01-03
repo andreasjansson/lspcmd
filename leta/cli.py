@@ -93,11 +93,11 @@ def get_daemon_log_tail(num_lines: int = 10) -> str | None:
         return None
 
 
-def run_request(method: str, params: dict[str, Any]) -> dict[str, Any]:
+def run_request(method: str, params: dict[str, object]) -> dict[str, object]:
     ensure_daemon_running()
     response = asyncio.run(send_request(method, params))
     if "error" in response:
-        error_msg = response["error"]
+        error_msg = str(response["error"])
         if "Internal error" in error_msg or "internal error" in error_msg.lower():
             log_dir = get_log_dir()
             tail = get_daemon_log_tail(15)
