@@ -633,7 +633,7 @@ def show_cmd(ctx: click.Context, symbol: str, context: int, head: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request(
+    result = make_request(
         "show",
         {
             "path": str(resolved.path),
@@ -649,9 +649,10 @@ def show_cmd(ctx: click.Context, symbol: str, context: int, head: int) -> None:
             "symbol": symbol,
             "kind": resolved.kind,
         },
+        ShowResult,
     )
     output_format = "json" if cast(CliContext, ctx.obj)["json"] else "plain"
-    output_result(response["result"], output_format)
+    output_result(result, output_format)
 
 
 @cli.command("declaration")
