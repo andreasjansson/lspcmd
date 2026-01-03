@@ -86,12 +86,12 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
             to_path, to_line, to_column, to_symbol,
             max_depth, include_non_workspace
         )
-        if result.get("found") and result.get("path"):
-            path_items = result["path"]
-            assert isinstance(path_items, list)
-            return CallsResult(
-                path=[_dict_to_call_node(item) for item in path_items]
-            )
+        if result.get("found"):
+            path_items = result.get("path")
+            if path_items:
+                return CallsResult(
+                    path=[_dict_to_call_node(item) for item in path_items]
+                )
         return CallsResult(message=str(result.get("message")) if result.get("message") else None)
 
 
