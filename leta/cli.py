@@ -870,16 +870,17 @@ def mv(ctx: click.Context, old_path: str, new_path: str) -> None:
     config = load_config()
     workspace_root = get_workspace_root_for_path(old_path_resolved, config)
 
-    response = run_request(
+    result = make_request(
         "move-file",
         {
             "old_path": str(old_path_resolved),
             "new_path": str(new_path_resolved),
             "workspace_root": str(workspace_root),
         },
+        MoveFileResult,
     )
     output_format = "json" if cast(CliContext, ctx.obj)["json"] else "plain"
-    output_result(response["result"], output_format)
+    output_result(result, output_format)
 
 
 VALID_SYMBOL_KINDS = {
