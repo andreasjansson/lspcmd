@@ -25,13 +25,19 @@ from .utils.config import (
 )
 
 
-from typing import Any
+from typing import Any, TypedDict, cast
+
+
+class CliContext(TypedDict):
+    json: bool
 
 
 class OrderedGroup(click.Group):
     commands_order: list[str]
 
-    def __init__(self, *args: Any, commands_order: list[str] | None = None, **kwargs: Any):  # noqa: ANN401
+    def __init__(
+        self, *args: Any, commands_order: list[str] | None = None, **kwargs: Any
+    ):  # noqa: ANN401
         super().__init__(*args, **kwargs)
         self.commands_order = commands_order or []
 
@@ -120,11 +126,11 @@ def output_result(result: object, output_format: str) -> None:
         if "warning" in result:
             click.echo(f"Warning: {result['warning']}", err=True)
             return
-    
+
     if isinstance(result, list) and not result:
         click.echo("No results", err=True)
         return
-    
+
     formatted = format_output(result, output_format)
     if formatted:
         click.echo(formatted)
@@ -163,9 +169,15 @@ class ResolvedSymbol:
     range_end_line: int | None
     kind: str | None
 
-    def __init__(self, path: Path, line: int, column: int,
-                 range_start_line: int | None = None, range_end_line: int | None = None,
-                 kind: str | None = None):
+    def __init__(
+        self,
+        path: Path,
+        line: int,
+        column: int,
+        range_start_line: int | None = None,
+        range_end_line: int | None = None,
+        kind: str | None = None,
+    ):
         self.path = path
         self.line = line
         self.column = column
@@ -175,10 +187,13 @@ class ResolvedSymbol:
 
 
 def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
-    response = run_request("resolve-symbol", {
-        "workspace_root": str(workspace_root),
-        "symbol_path": symbol_path,
-    })
+    response = run_request(
+        "resolve-symbol",
+        {
+            "workspace_root": str(workspace_root),
+            "symbol_path": symbol_path,
+        },
+    )
 
     result_raw = response.get("result", response)
     if not isinstance(result_raw, dict):
@@ -201,7 +216,9 @@ def resolve_symbol(symbol_path: str, workspace_root: Path) -> ResolvedSymbol:
                 detail = f" ({m['detail']})" if m.get("detail") else ""
                 ref = m.get("ref", "")
                 lines.append(f"  {ref}")
-                lines.append(f"    {m['path']}:{m['line']} {kind}{m['name']}{detail}{container}")
+                lines.append(
+                    f"    {m['path']}:{m['line']} {kind}{m['name']}{detail}{container}"
+                )
 
             total_raw = result.get("total_matches")
             total = int(total_raw) if isinstance(total_raw, int) else len(matches)
@@ -237,7 +254,9 @@ def expand_path_pattern(pattern: str) -> list[Path]:
             if path.is_dir():
                 matches = glob.glob(str(path / "**" / "*"), recursive=True)
                 if matches:
-                    return [Path(m).resolve() for m in sorted(matches) if Path(m).is_file()]
+                    return [
+                        Path(m).resolve() for m in sorted(matches) if Path(m).is_file()
+                    ]
                 raise click.ClickException(f"No files found in directory: {pattern}")
             return [path]
         if "/" not in pattern:
@@ -359,14 +378,14 @@ def daemon_restart(ctx: click.Context) -> None:
     """Restart the leta daemon."""
     _ = ctx
     socket_path = get_socket_path()
-    
+
     if is_daemon_running(get_pid_path()):
         run_request("shutdown", {})
         for _ in range(50):
             if not socket_path.exists():
                 break
             time.sleep(0.1)
-    
+
     ensure_daemon_running()
     click.echo("Daemon restarted")
 
@@ -424,7 +443,11 @@ def workspace_add(ctx: click.Context, root: str | None) -> None:
             )
 
     workspaces_config = config.get("workspaces", {})
-    roots = workspaces_config.get("roots", []) if isinstance(workspaces_config, dict) else []
+    roots = (
+        workspaces_config.get("roots", [])
+        if isinstance(workspaces_config, dict)
+        else []
+    )
     if str(workspace_root) in roots:
         click.echo(f"Workspace already added: {workspace_root}")
         return
@@ -450,15 +473,20 @@ def workspace_remove(ctx: click.Context, path: str | None) -> None:
         raise click.ClickException(f"Workspace not found: {workspace_root}")
 
     if is_daemon_running(get_pid_path()):
-        response = run_request("remove-workspace", {
-            "workspace_root": str(workspace_root),
-        })
+        response = run_request(
+            "remove-workspace",
+            {
+                "workspace_root": str(workspace_root),
+            },
+        )
         result = response.get("result")
         if isinstance(result, dict):
             servers_stopped = result.get("servers_stopped", [])
             if isinstance(servers_stopped, list) and servers_stopped:
                 click.echo(f"Removed workspace: {workspace_root}")
-                click.echo(f"Stopped servers: {', '.join(str(s) for s in servers_stopped)}")
+                click.echo(
+                    f"Stopped servers: {', '.join(str(s) for s in servers_stopped)}"
+                )
                 return
         click.echo(f"Removed workspace: {workspace_root}")
     else:
@@ -477,9 +505,12 @@ def workspace_restart(ctx: click.Context, path: str | None) -> None:
     else:
         workspace_root = get_workspace_root_for_cwd(config)
 
-    response = run_request("restart-workspace", {
-        "workspace_root": str(workspace_root),
-    })
+    response = run_request(
+        "restart-workspace",
+        {
+            "workspace_root": str(workspace_root),
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response.get("result"), output_format)
 
@@ -507,15 +538,15 @@ def help_all(ctx: click.Context) -> None:
     click.echo("LETA - Command Line LSP Client")
     click.echo("=" * 70)
     click.echo()
-    
+
     with click.Context(cli, info_name="leta") as main_ctx:
         click.echo(cli.get_help(main_ctx))
-    
+
     click.echo()
     click.echo("=" * 70)
     click.echo("COMMAND DETAILS")
     click.echo("=" * 70)
-    
+
     def print_command_help(cmd: click.Command, name: str, prefix: str = "") -> None:
         full_name = f"{prefix}{name}" if prefix else name
         click.echo()
@@ -523,16 +554,16 @@ def help_all(ctx: click.Context) -> None:
         click.echo(f"leta {full_name}")
         click.echo("-" * 70)
         click.echo()
-        
+
         with click.Context(cmd, info_name=f"leta {full_name}") as cmd_ctx:
             click.echo(cmd.get_help(cmd_ctx))
-        
+
         if isinstance(cmd, click.Group):
             for subname in cmd.list_commands(cmd_ctx):
                 subcmd = cmd.get_command(cmd_ctx, subname)
                 if subcmd:
                     print_command_help(subcmd, subname, prefix=f"{full_name} ")
-    
+
     for name in cli.list_commands(ctx):
         if name == "help-all":
             continue
@@ -587,20 +618,23 @@ def show_cmd(ctx: click.Context, symbol: str, context: int, head: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("show", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-        "body": True,
-        "direct_location": True,
-        "range_start_line": resolved.range_start_line,
-        "range_end_line": resolved.range_end_line,
-        "head": head,
-        "symbol": symbol,
-        "kind": resolved.kind,
-    })
+    response = run_request(
+        "show",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+            "body": True,
+            "direct_location": True,
+            "range_start_line": resolved.range_start_line,
+            "range_end_line": resolved.range_end_line,
+            "head": head,
+            "symbol": symbol,
+            "kind": resolved.kind,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -617,13 +651,16 @@ def declaration(ctx: click.Context, symbol: str, context: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("declaration", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-    })
+    response = run_request(
+        "declaration",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -647,13 +684,16 @@ def refs(ctx: click.Context, symbol: str, context: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("references", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-    })
+    response = run_request(
+        "references",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -676,13 +716,16 @@ def implementations(ctx: click.Context, symbol: str, context: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("implementations", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-    })
+    response = run_request(
+        "implementations",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -703,13 +746,16 @@ def subtypes(ctx: click.Context, symbol: str, context: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("subtypes", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-    })
+    response = run_request(
+        "subtypes",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -729,13 +775,16 @@ def supertypes(ctx: click.Context, symbol: str, context: int) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("supertypes", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "context": context,
-    })
+    response = run_request(
+        "supertypes",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "context": context,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -759,13 +808,16 @@ def rename(ctx: click.Context, symbol: str, new_name: str) -> None:
 
     resolved = resolve_symbol(symbol, workspace_root)
 
-    response = run_request("rename", {
-        "path": str(resolved.path),
-        "workspace_root": str(workspace_root),
-        "line": resolved.line,
-        "column": resolved.column,
-        "new_name": new_name,
-    })
+    response = run_request(
+        "rename",
+        {
+            "path": str(resolved.path),
+            "workspace_root": str(workspace_root),
+            "line": resolved.line,
+            "column": resolved.column,
+            "new_name": new_name,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -796,11 +848,14 @@ def mv(ctx: click.Context, old_path: str, new_path: str) -> None:
     config = load_config()
     workspace_root = get_workspace_root_for_path(old_path_resolved, config)
 
-    response = run_request("move-file", {
-        "old_path": str(old_path_resolved),
-        "new_path": str(new_path_resolved),
-        "workspace_root": str(workspace_root),
-    })
+    response = run_request(
+        "move-file",
+        {
+            "old_path": str(old_path_resolved),
+            "new_path": str(new_path_resolved),
+            "workspace_root": str(workspace_root),
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -948,10 +1003,22 @@ COMPARISON WITH ripgrep:
     multiple=True,
     help="Exclude files matching glob pattern or directory (repeatable)",
 )
-@click.option("-d", "--docs", is_flag=True, help="Include documentation for each symbol")
-@click.option("-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching")
+@click.option(
+    "-d", "--docs", is_flag=True, help="Include documentation for each symbol"
+)
+@click.option(
+    "-C", "--case-sensitive", is_flag=True, help="Case-sensitive pattern matching"
+)
 @click.pass_context
-def grep(ctx: click.Context, pattern: str, path: str | None, kind: str, exclude: tuple[str, ...], docs: bool, case_sensitive: bool) -> None:
+def grep(
+    ctx: click.Context,
+    pattern: str,
+    path: str | None,
+    kind: str,
+    exclude: tuple[str, ...],
+    docs: bool,
+    case_sensitive: bool,
+) -> None:
     if " " in pattern:
         click.echo(
             "Warning: Pattern contains a space. leta grep searches symbol names, "
@@ -973,15 +1040,18 @@ def grep(ctx: click.Context, pattern: str, path: str | None, kind: str, exclude:
         paths = None
         workspace_root = get_workspace_root_for_cwd(config)
 
-    response = run_request("grep", {
-        "workspace_root": str(workspace_root),
-        "pattern": pattern,
-        "kinds": kinds,
-        "case_sensitive": case_sensitive,
-        "include_docs": docs,
-        "paths": paths,
-        "exclude_patterns": exclude_patterns,
-    })
+    response = run_request(
+        "grep",
+        {
+            "workspace_root": str(workspace_root),
+            "pattern": pattern,
+            "kinds": kinds,
+            "case_sensitive": case_sensitive,
+            "include_docs": docs,
+            "paths": paths,
+            "exclude_patterns": exclude_patterns,
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -1001,7 +1071,12 @@ def grep(ctx: click.Context, pattern: str, path: str | None, kind: str, exclude:
     help="Include default-excluded directories (e.g., -i .git -i node_modules)",
 )
 @click.pass_context
-def files(ctx: click.Context, path: str | None, exclude: tuple[str, ...], include: tuple[str, ...]) -> None:
+def files(
+    ctx: click.Context,
+    path: str | None,
+    exclude: tuple[str, ...],
+    include: tuple[str, ...],
+) -> None:
     """Show source file tree with symbol and line counts.
 
     Lists all files in the workspace (or PATH if specified) with line counts.
@@ -1024,7 +1099,7 @@ def files(ctx: click.Context, path: str | None, exclude: tuple[str, ...], includ
       leta --json files                # JSON output
     """
     config = load_config()
-    
+
     if path:
         target_path = Path(path).resolve()
         workspace_root = get_workspace_root_for_path(target_path, config)
@@ -1033,12 +1108,15 @@ def files(ctx: click.Context, path: str | None, exclude: tuple[str, ...], includ
         workspace_root = get_workspace_root_for_cwd(config)
         subpath = None
 
-    response = run_request("files", {
-        "workspace_root": str(workspace_root),
-        "subpath": subpath,
-        "exclude_patterns": list(exclude),
-        "include_patterns": list(include),
-    })
+    response = run_request(
+        "files",
+        {
+            "workspace_root": str(workspace_root),
+            "subpath": subpath,
+            "exclude_patterns": list(exclude),
+            "include_patterns": list(include),
+        },
+    )
     output_format = "json" if ctx.obj["json"] else "plain"
     output_result(response["result"], output_format)
 
@@ -1072,12 +1150,24 @@ SYMBOL formats:
 
 
 @cli.command("calls", help=CALLS_HELP)
-@click.option("--from", "from_symbol", default=None, help="Starting symbol (outgoing calls)")
+@click.option(
+    "--from", "from_symbol", default=None, help="Starting symbol (outgoing calls)"
+)
 @click.option("--to", "to_symbol", default=None, help="Target symbol (incoming calls)")
 @click.option("--max-depth", default=3, help="Maximum recursion depth (default: 3)")
-@click.option("--include-non-workspace", is_flag=True, help="Include calls to symbols outside the workspace (stdlib, dependencies)")
+@click.option(
+    "--include-non-workspace",
+    is_flag=True,
+    help="Include calls to symbols outside the workspace (stdlib, dependencies)",
+)
 @click.pass_context
-def calls(ctx: click.Context, from_symbol: str | None, to_symbol: str | None, max_depth: int, include_non_workspace: bool) -> None:
+def calls(
+    ctx: click.Context,
+    from_symbol: str | None,
+    to_symbol: str | None,
+    max_depth: int,
+    include_non_workspace: bool,
+) -> None:
     if not from_symbol and not to_symbol:
         raise click.ClickException("At least one of --from or --to must be specified")
 
@@ -1127,10 +1217,15 @@ def calls(ctx: click.Context, from_symbol: str | None, to_symbol: str | None, ma
 @click.argument("method")
 @click.argument("params", required=False)
 @click.option(
-    "-l", "--language", default="python", help="Language server to use (python, go, typescript, etc.)"
+    "-l",
+    "--language",
+    default="python",
+    help="Language server to use (python, go, typescript, etc.)",
 )
 @click.pass_context
-def raw_lsp_request(ctx: click.Context, method: str, params: str | None, language: str) -> None:
+def raw_lsp_request(
+    ctx: click.Context, method: str, params: str | None, language: str
+) -> None:
     """Send a raw LSP request.
 
     METHOD is the LSP method (e.g. textDocument/documentSymbol).
@@ -1152,12 +1247,15 @@ def raw_lsp_request(ctx: click.Context, method: str, params: str | None, languag
     except json.JSONDecodeError as e:
         raise click.ClickException(f"Invalid JSON params: {e}")
 
-    response = run_request("raw-lsp-request", {
-        "workspace_root": str(workspace_root),
-        "method": method,
-        "params": lsp_params,
-        "language": language,
-    })
+    response = run_request(
+        "raw-lsp-request",
+        {
+            "workspace_root": str(workspace_root),
+            "method": method,
+            "params": lsp_params,
+            "language": language,
+        },
+    )
     click.echo(json.dumps(response["result"], indent=2))
 
 
