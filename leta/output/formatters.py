@@ -120,8 +120,9 @@ def _format_dict_legacy(data: dict[str, object]) -> str:
         node = CallNode.model_validate(data)
         return _format_call_tree(node)
     
-    if "path" in data and isinstance(data.get("path"), list) and data["path"]:
-        nodes = [CallNode.model_validate(n) for n in data["path"]]
+    path_list = data.get("path")
+    if isinstance(path_list, list) and path_list:
+        nodes = [CallNode.model_validate(n) for n in path_list]
         return _format_call_path(nodes)
     
     if "message" in data and data["message"]:
