@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import Any
 
 from ..rpc import FilesParams, FilesResult, FileInfo
 from .base import HandlerContext, DEFAULT_EXCLUDE_DIRS, BINARY_EXTENSIONS, is_excluded
