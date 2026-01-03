@@ -109,7 +109,7 @@ def save_config(config: Config) -> None:
         tomli_w.dump(config, f)
 
 
-def _merge_config(base: dict, override: dict) -> None:
+def _merge_config(base: dict[str, Any], override: dict[str, Any]) -> None:
     for key, value in override.items():
         if key in base and isinstance(base[key], dict) and isinstance(value, dict):
             _merge_config(base[key], value)
