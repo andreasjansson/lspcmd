@@ -39,11 +39,29 @@ REQUEST_TIMEOUT = float(os.environ.get("LETA_REQUEST_TIMEOUT", "30"))
 
 
 class LSPClient:
+    process: asyncio.subprocess.Process
+    workspace_root: str
+    init_options: dict[str, object]
+    server_name: str | None
+    log_file: Path | None
+    _request_id: int
+    _pending_requests: dict[int, asyncio.Future[object]]
+    _reader_task: asyncio.Task[None] | None
+    _initialized: bool
+    _server_capabilities: dict[str, object]
+    _notification_handlers: dict[str, Callable[..., object]]
+    _log_handle: TextIO | None
+    _service_ready: asyncio.Event
+    _needs_service_ready: bool
+    _active_progress_tokens: set[str | int]
+    _indexing_done: asyncio.Event
+    _stderr_task: asyncio.Task[None] | None
+
     def __init__(
         self,
         process: asyncio.subprocess.Process,
         workspace_root: str,
-        init_options: dict[str, Any] | None = None,
+        init_options: dict[str, object] | None = None,
         server_name: str | None = None,
         log_file: Path | None = None,
     ):
@@ -53,18 +71,18 @@ class LSPClient:
         self.server_name = server_name
         self.log_file = log_file
         self._request_id = 0
-        self._pending_requests: dict[int, asyncio.Future[Any]] = {}
-        self._reader_task: asyncio.Task[None] | None = None
+        self._pending_requests = {}
+        self._reader_task = None
         self._initialized = False
-        self._server_capabilities: dict[str, Any] = {}
-        self._notification_handlers: dict[str, Callable[..., Any]] = {}
-        self._log_handle: Any | None = None
+        self._server_capabilities = {}
+        self._notification_handlers = {}
+        self._log_handle = None
         self._service_ready = asyncio.Event()
         self._needs_service_ready = server_name == "jdtls"
-        self._active_progress_tokens: set[str | int] = set()
+        self._active_progress_tokens = set()
         self._indexing_done = asyncio.Event()
         self._indexing_done.set()
-        self._stderr_task: asyncio.Task[None] | None = None
+        self._stderr_task = None
 
     @property
     def stdin(self) -> asyncio.StreamWriter:
