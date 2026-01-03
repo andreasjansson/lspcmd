@@ -26,11 +26,14 @@ from .utils.config import (
 )
 
 
+from typing import Any
+
+
 class OrderedGroup(click.Group):
     commands_order: list[str]
 
-    def __init__(self, *args: object, commands_order: list[str] | None = None, **kwargs: object):
-        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
+    def __init__(self, *args: Any, commands_order: list[str] | None = None, **kwargs: Any):  # noqa: ANN401
+        super().__init__(*args, **kwargs)
         self.commands_order = commands_order or []
 
     def list_commands(self, ctx: click.Context) -> list[str]:
