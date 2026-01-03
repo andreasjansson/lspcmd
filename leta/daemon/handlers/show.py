@@ -20,7 +20,7 @@ from .base import (
 
 async def handle_show(
     ctx: HandlerContext, params: ShowParams
-) -> Union[list[LocationDict], dict[str, object]]:
+) -> list[LocationDict] | dict[str, object]:
     """Handle show command, returning either locations or definition content."""
     body = params.body
 
@@ -35,7 +35,7 @@ async def handle_show(
 
 async def _handle_direct_definition(
     ctx: HandlerContext, params: ShowParams, body: bool
-) -> Union[list[LocationDict], dict[str, object]]:
+) -> list[LocationDict] | dict[str, object]:
     path = Path(params.path).resolve()
     workspace_root = Path(params.workspace_root).resolve()
     line = params.line
