@@ -164,15 +164,15 @@ class Diagnostic(BaseModel):
 
 
 class CodeActionKind:
-    Empty = ""
-    QuickFix = "quickfix"
-    Refactor = "refactor"
-    RefactorExtract = "refactor.extract"
-    RefactorInline = "refactor.inline"
-    RefactorRewrite = "refactor.rewrite"
-    Source = "source"
-    SourceOrganizeImports = "source.organizeImports"
-    SourceFixAll = "source.fixAll"
+    Empty: ClassVar[str] = ""
+    QuickFix: ClassVar[str] = "quickfix"
+    Refactor: ClassVar[str] = "refactor"
+    RefactorExtract: ClassVar[str] = "refactor.extract"
+    RefactorInline: ClassVar[str] = "refactor.inline"
+    RefactorRewrite: ClassVar[str] = "refactor.rewrite"
+    Source: ClassVar[str] = "source"
+    SourceOrganizeImports: ClassVar[str] = "source.organizeImports"
+    SourceFixAll: ClassVar[str] = "source.fixAll"
 
 
 class CodeAction(BaseModel):
