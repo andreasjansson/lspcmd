@@ -6,7 +6,8 @@ import logging
 import os
 import signal
 from pathlib import Path
-from typing import Any, Callable, Coroutine
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -52,8 +53,20 @@ from .rpc import (
 )
 from .session import Session
 from ..cache import LMDBCache
-from ..lsp.protocol import LSPResponseError, LSPMethodNotSupported, LanguageServerNotFound
-from ..utils.config import get_socket_path, get_pid_path, get_log_dir, get_cache_dir, load_config, cleanup_stale_workspace_roots, Config
+from ..lsp.protocol import (
+    LSPResponseError,
+    LSPMethodNotSupported,
+    LanguageServerNotFound,
+)
+from ..utils.config import (
+    get_socket_path,
+    get_pid_path,
+    get_log_dir,
+    get_cache_dir,
+    load_config,
+    cleanup_stale_workspace_roots,
+    Config,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -177,7 +190,9 @@ class DaemonServer:
         method = request.get("method")
         params = request.get("params", {})
 
-        handlers: dict[str, tuple[type[BaseModel], Callable[..., Coroutine[Any, Any, Any]]]] = {
+        handlers: dict[
+            str, tuple[type[BaseModel], Callable[..., Coroutine[Any, Any, Any]]]
+        ] = {
             "shutdown": (ShutdownParams, self._handle_shutdown_wrapper),
             "describe-session": (DescribeSessionParams, handle_describe_session),
             "show": (ShowParams, handle_show),
@@ -199,7 +214,7 @@ class DaemonServer:
 
         if method is None:
             return {"error": "No method specified"}
-        
+
         handler_info = handlers.get(method)
         if not handler_info:
             return {"error": f"Unknown method: {method}"}
@@ -224,7 +239,9 @@ class DaemonServer:
             logger.exception(f"Error in handler {method}")
             return {"error": str(e)}
 
-    async def _handle_shutdown_wrapper(self, ctx: HandlerContext, params: ShutdownParams):
+    async def _handle_shutdown_wrapper(
+        self, ctx: HandlerContext, params: ShutdownParams
+    ):
         return await handle_shutdown(
             ctx, params, lambda: asyncio.create_task(self._shutdown())
         )
@@ -245,7 +262,9 @@ async def run_daemon() -> None:
     config = load_config()
     daemon_config = config.get("daemon", {})
     hover_cache_bytes = daemon_config.get("hover_cache_size", DEFAULT_CACHE_SIZE_BYTES)
-    symbol_cache_bytes = daemon_config.get("symbol_cache_size", DEFAULT_CACHE_SIZE_BYTES)
+    symbol_cache_bytes = daemon_config.get(
+        "symbol_cache_size", DEFAULT_CACHE_SIZE_BYTES
+    )
 
     daemon = DaemonServer(
         hover_cache_bytes=hover_cache_bytes,
