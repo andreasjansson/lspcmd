@@ -795,8 +795,8 @@ def mv(ctx: click.Context, old_path: str, new_path: str) -> None:
     workspace_root = get_workspace_root_for_path(old_path_resolved, config)
 
     response = run_request("move-file", {
-        "old_path": str(old_path),
-        "new_path": str(new_path),
+        "old_path": str(old_path_resolved),
+        "new_path": str(new_path_resolved),
         "workspace_root": str(workspace_root),
     })
     output_format = "json" if ctx.obj["json"] else "plain"
