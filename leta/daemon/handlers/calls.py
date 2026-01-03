@@ -417,7 +417,7 @@ async def _find_call_path(
         rel_path = ctx.relative_path(from_path, workspace_root)
         return CallPathResult(
             error=f"No callable symbol found at {rel_path}:{from_line}:{from_column} for '{from_symbol}'. "
-                  "The symbol may not be a function/method, or the position may be incorrect."
+                  + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     to_item = await _prepare_call_hierarchy(ctx, workspace, to_path, to_line, to_column)
@@ -425,7 +425,7 @@ async def _find_call_path(
         rel_path = ctx.relative_path(to_path, workspace_root)
         return CallPathResult(
             error=f"No callable symbol found at {rel_path}:{to_line}:{to_column} for '{to_symbol}'. "
-                  "The symbol may not be a function/method, or the position may be incorrect."
+                  + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     to_key = (to_item.uri, to_item.selectionRange.start.line)
