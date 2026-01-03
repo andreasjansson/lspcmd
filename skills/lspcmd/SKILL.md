@@ -41,6 +41,11 @@ If you're tempted to do this, ask yourself: *What symbol am I actually looking f
 - `lspcmd grep ".*" path/to/file -k function,method` to see what functions exist in a file
 - `lspcmd refs <symbol>` to find where something is used
 
+### ⚠️ Anti-pattern: "I want to see where this is imported/wired up"
+
+When you think "I want to see where this function is imported" or "how is this view wired into URL routes" - that's just finding references! Don't use ripgrep to search for the function name. Use:
+- `lspcmd refs <function_name>` - shows imports, URL configs, everywhere it's used
+
 ## When to Use lspcmd vs ripgrep-like tools
 
 **Use lspcmd for:**
