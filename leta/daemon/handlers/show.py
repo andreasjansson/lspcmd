@@ -175,7 +175,7 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
 async def _handle_location_request(
     ctx: HandlerContext, params: ShowParams
 ) -> list[LocationDict]:
-    workspace, doc, path = await ctx.get_workspace_and_document({
+    workspace, doc, _ = await ctx.get_workspace_and_document({
         "path": params.path,
         "workspace_root": params.workspace_root,
     })

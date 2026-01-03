@@ -13,7 +13,7 @@ from .base import HandlerContext
 async def handle_references(
     ctx: HandlerContext, params: ReferencesParams
 ) -> ReferencesResult:
-    workspace, doc, path = await ctx.get_workspace_and_document({
+    workspace, doc, _ = await ctx.get_workspace_and_document({
         "path": params.path,
         "workspace_root": params.workspace_root,
     })

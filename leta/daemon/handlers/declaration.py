@@ -9,7 +9,7 @@ from .base import HandlerContext
 async def handle_declaration(
     ctx: HandlerContext, params: RPCDeclarationParams
 ) -> DeclarationResult:
-    workspace, doc, path = await ctx.get_workspace_and_document({
+    workspace, doc, _ = await ctx.get_workspace_and_document({
         "path": params.path,
         "workspace_root": params.workspace_root,
     })

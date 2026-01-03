@@ -14,7 +14,7 @@ from .base import HandlerContext
 async def handle_subtypes(
     ctx: HandlerContext, params: SubtypesParams
 ) -> SubtypesResult:
-    workspace, doc, path = await ctx.get_workspace_and_document({
+    workspace, doc, _ = await ctx.get_workspace_and_document({
         "path": params.path,
         "workspace_root": params.workspace_root,
     })
