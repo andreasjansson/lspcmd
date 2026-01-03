@@ -365,7 +365,7 @@ async def _expand_incoming_calls(
     if not result:
         return []
 
-    callers: list[FormattedCallItem] = []
+    callers: list[FormattedCallItemWithCalls] = []
     for call in result:
         from_item = call.from_
 
