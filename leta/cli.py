@@ -19,7 +19,6 @@ from .utils.config import (
     get_log_dir,
     load_config,
     detect_workspace_root,
-    get_known_workspace_root,
     get_best_workspace_root,
     add_workspace_root,
     remove_workspace_root,
@@ -140,7 +139,7 @@ def get_workspace_root_for_path(path: Path, config: Config) -> Path:
         return workspace_root
 
     raise click.ClickException(
-        f"No workspace found for {path}\n" f"Run: leta workspace add"
+        f"No workspace found for {path}\nRun: leta workspace add"
     )
 
 
@@ -152,7 +151,7 @@ def get_workspace_root_for_cwd(config: Config) -> Path:
         return workspace_root
 
     raise click.ClickException(
-        f"No workspace found for current directory\n" f"Run: leta workspace add"
+        "No workspace found for current directory\n" "Run: leta workspace add"
     )
 
 
@@ -955,8 +954,8 @@ COMPARISON WITH ripgrep:
 def grep(ctx: click.Context, pattern: str, path: str | None, kind: str, exclude: tuple[str, ...], docs: bool, case_sensitive: bool) -> None:
     if " " in pattern:
         click.echo(
-            f"Warning: Pattern contains a space. leta grep searches symbol names, "
-            f"not file contents. Use ripgrep or grep for text search.",
+            "Warning: Pattern contains a space. leta grep searches symbol names, "
+            "not file contents. Use ripgrep or grep for text search.",
             err=True,
         )
     config = load_config()
