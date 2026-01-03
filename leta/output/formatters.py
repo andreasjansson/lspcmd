@@ -1,6 +1,47 @@
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
+
+
+class LocationDict(TypedDict, total=False):
+    path: str
+    line: int
+    column: int
+    context_lines: list[str]
+    context_start: int
+    name: str
+    kind: str
+    detail: str
+
+
+class SymbolDict(TypedDict, total=False):
+    name: str
+    kind: str
+    path: str
+    line: int
+    column: int
+    container: str
+    detail: str
+    documentation: str
+
+
+class FileInfoDict(TypedDict, total=False):
+    path: str
+    lines: int
+    bytes: int
+    size: int
+    symbols: dict[str, int]
+
+
+class CallItemDict(TypedDict, total=False):
+    name: str
+    kind: str
+    detail: str
+    path: str
+    line: int
+    column: int
+    calls: list["CallItemDict"]
+    called_by: list["CallItemDict"]
 
 
 def format_output(data: Any, output_format: str = "plain") -> str:
