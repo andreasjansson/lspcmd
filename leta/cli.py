@@ -1233,9 +1233,9 @@ def calls(
         params["to_symbol"] = to_symbol
         params["mode"] = "incoming"
 
-    response = run_request("calls", params)
+    result = make_request("calls", params, CallsResult)
     output_format = "json" if cast(CliContext, ctx.obj)["json"] else "plain"
-    output_result(response["result"], output_format)
+    output_result(result, output_format)
 
 
 @cli.command("raw-lsp-request")
