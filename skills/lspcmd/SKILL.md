@@ -134,9 +134,9 @@ lspcmd files src/
 lspcmd files -x tests -x vendor
 ```
 
-### `lspcmd refs` - Find All References
+### `lspcmd refs` - Find All References ⭐ USE THIS INSTEAD OF RIPGREP FOR USAGES
 
-Find everywhere a symbol is used across the codebase.
+**This is the correct way to find where a symbol is used.** Don't use ripgrep to search for a function name - use `lspcmd refs` instead. It understands code structure and won't give you false positives from comments or similarly-named symbols.
 
 ```bash
 # Find all usages of a function
@@ -144,6 +144,9 @@ lspcmd refs validate_email
 
 # Find with context lines
 lspcmd refs UserRepository.save -n 2
+
+# Find where a class is instantiated or referenced
+lspcmd refs UserRepository
 ```
 
 ### `lspcmd calls` - Call Hierarchy
