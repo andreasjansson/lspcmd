@@ -163,17 +163,17 @@ def _is_path_in_workspace(uri: str, workspace_root: Path) -> bool:
 
 def _format_call_hierarchy_item(
     item: CallHierarchyItem, workspace_root: Path, ctx: HandlerContext
-) -> FormattedCallItem:
+) -> FormattedCallItemWithCalls:
     file_path = uri_to_path(item.uri)
     sel_range = item.selectionRange
-    return {
-        "name": item.name,
-        "kind": SymbolKind(item.kind).name,
-        "detail": item.detail,
-        "path": ctx.relative_path(file_path, workspace_root),
-        "line": sel_range.start.line + 1,
-        "column": sel_range.start.character,
-    }
+    return FormattedCallItemWithCalls(
+        name=item.name,
+        kind=SymbolKind(item.kind).name,
+        detail=item.detail,
+        path=ctx.relative_path(file_path, workspace_root),
+        line=sel_range.start.line + 1,
+        column=sel_range.start.character,
+    )
 
 
 class CallTreeResult(TypedDict, total=False):
