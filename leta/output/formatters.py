@@ -533,7 +533,7 @@ def format_call_tree(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def _render_calls_tree(items: list[dict], lines: list[str], prefix: str, is_outgoing: bool) -> None:
+def _render_calls_tree(items: list[dict[str, Any]], lines: list[str], prefix: str, is_outgoing: bool) -> None:
     for i, item in enumerate(items):
         is_last = i == len(items) - 1
         connector = "└── " if is_last else "├── "
