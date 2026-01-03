@@ -548,7 +548,12 @@ SYMBOL formats:
   path:line:Symbol      exact file + line number + symbol (for edge cases)"""
 
 
-def with_symbol_help(func):
+from typing import TypeVar, Callable
+
+F = TypeVar("F", bound=Callable[..., object])
+
+
+def with_symbol_help(func: F) -> F:
     """Decorator that appends SYMBOL format help to a command's docstring."""
     if func.__doc__:
         func.__doc__ = func.__doc__.rstrip() + "\n\n" + SYMBOL_FORMATS
