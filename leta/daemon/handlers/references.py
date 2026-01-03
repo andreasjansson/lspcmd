@@ -20,6 +20,8 @@ async def handle_references(
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
+    assert workspace.client is not None
+
     result = await workspace.client.send_request(
         "textDocument/references",
         ReferenceParams(
