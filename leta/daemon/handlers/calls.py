@@ -419,7 +419,7 @@ async def _find_call_path(
                   + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
-    to_item = await _prepare_call_hierarchy(ctx, workspace, to_path, to_line, to_column)
+    to_item = await _prepare_call_hierarchy(workspace, to_path, to_line, to_column)
     if not to_item:
         rel_path = ctx.relative_path(to_path, workspace_root)
         return CallPathResult(
