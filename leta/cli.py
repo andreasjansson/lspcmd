@@ -371,9 +371,9 @@ def daemon_restart(ctx: click.Context) -> None:
 
 @cli.group()
 @click.pass_context
-def workspace(ctx):
+def workspace(ctx: click.Context) -> None:
     """Manage workspaces."""
-    pass
+    _ = ctx
 
 
 def _is_interactive() -> bool:
@@ -392,8 +392,9 @@ def _is_interactive() -> bool:
 @workspace.command("add")
 @click.option("--root", type=click.Path(exists=True), help="Workspace root directory")
 @click.pass_context
-def workspace_add(ctx, root):
+def workspace_add(ctx: click.Context, root: str | None) -> None:
     """Add a workspace for LSP operations."""
+    _ = ctx
     config = load_config()
 
     if root:
@@ -408,19 +409,20 @@ def workspace_add(ctx, root):
             default_root = cwd
 
         if _is_interactive():
-            workspace_root = click.prompt(
+            workspace_root_str: str = click.prompt(
                 "Workspace root",
                 default=str(default_root),
                 type=click.Path(exists=True),
             )
-            workspace_root = Path(workspace_root).resolve()
+            workspace_root = Path(workspace_root_str).resolve()
         else:
             raise click.ClickException(
                 f"Cannot prompt for workspace root in non-interactive mode.\n"
                 f"Use: leta workspace add --root {default_root}"
             )
 
-    roots = config.get("workspaces", {}).get("roots", [])
+    workspaces_config = config.get("workspaces", {})
+    roots = workspaces_config.get("roots", []) if isinstance(workspaces_config, dict) else []
     if str(workspace_root) in roots:
         click.echo(f"Workspace already added: {workspace_root}")
         return
@@ -432,8 +434,9 @@ def workspace_add(ctx, root):
 @workspace.command("remove")
 @click.argument("path", type=click.Path(exists=True), required=False)
 @click.pass_context
-def workspace_remove(ctx, path):
+def workspace_remove(ctx: click.Context, path: str | None) -> None:
     """Remove a workspace and stop its language servers."""
+    _ = ctx
     config = load_config()
 
     if path:
@@ -448,12 +451,14 @@ def workspace_remove(ctx, path):
         response = run_request("remove-workspace", {
             "workspace_root": str(workspace_root),
         })
-        servers_stopped = response.get("result", {}).get("servers_stopped", [])
-        if servers_stopped:
-            click.echo(f"Removed workspace: {workspace_root}")
-            click.echo(f"Stopped servers: {', '.join(servers_stopped)}")
-        else:
-            click.echo(f"Removed workspace: {workspace_root}")
+        result = response.get("result")
+        if isinstance(result, dict):
+            servers_stopped = result.get("servers_stopped", [])
+            if isinstance(servers_stopped, list) and servers_stopped:
+                click.echo(f"Removed workspace: {workspace_root}")
+                click.echo(f"Stopped servers: {', '.join(str(s) for s in servers_stopped)}")
+                return
+        click.echo(f"Removed workspace: {workspace_root}")
     else:
         click.echo(f"Removed workspace: {workspace_root}")
 
@@ -461,7 +466,7 @@ def workspace_remove(ctx, path):
 @workspace.command("restart")
 @click.argument("path", type=click.Path(exists=True), required=False)
 @click.pass_context
-def workspace_restart(ctx, path):
+def workspace_restart(ctx: click.Context, path: str | None) -> None:
     """Restart the language server for a workspace."""
     config = load_config()
 
@@ -474,7 +479,7 @@ def workspace_restart(ctx, path):
         "workspace_root": str(workspace_root),
     })
     output_format = "json" if ctx.obj["json"] else "plain"
-    output_result(response["result"], output_format)
+    output_result(response.get("result"), output_format)
 
 
 @cli.command()
