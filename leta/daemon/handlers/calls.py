@@ -206,16 +206,16 @@ async def _get_outgoing_calls_tree(
     item = await _prepare_call_hierarchy(ctx, workspace, path, line, column)
     if not item:
         rel_path = ctx.relative_path(path, workspace_root)
-        return CallTreeResult(
+        return CallTreeError(
             error=f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. "
                   "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     formatted = _format_call_hierarchy_item(item, workspace_root, ctx)
-    root: CallTreeResult = CallTreeResult(
+    root: CallTreeSuccess = CallTreeSuccess(
         name=formatted["name"],
-        kind=formatted.get("kind"),
-        detail=formatted.get("detail"),
+        kind=formatted["kind"],
+        detail=formatted["detail"],
         path=formatted["path"],
         line=formatted["line"],
         column=formatted["column"],
