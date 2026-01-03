@@ -503,7 +503,7 @@ class LSPClient:
             return False
 
     @property
-    def capabilities(self) -> dict[str, Any]:
+    def capabilities(self) -> ServerCapabilities:
         return self._server_capabilities
 
 
