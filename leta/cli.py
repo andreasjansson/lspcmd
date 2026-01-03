@@ -354,9 +354,9 @@ def daemon(_ctx: click.Context) -> None:
 @click.pass_context
 def daemon_info(ctx: click.Context) -> None:
     """Show current daemon state."""
-    response = run_request("describe-session", {})
+    result = make_request("describe-session", {}, DescribeSessionResult)
     output_format = "json" if cast(CliContext, ctx.obj)["json"] else "plain"
-    output_result(response.get("result"), output_format)
+    output_result(result, output_format)
 
 
 @daemon.command("start")
