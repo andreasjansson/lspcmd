@@ -7,7 +7,7 @@ from .base import HandlerContext
 
 
 async def handle_shutdown(
-    _ctx: HandlerContext, _params: ShutdownParams, shutdown_callback: Callable[[], None]
+    _ctx: HandlerContext, _params: ShutdownParams, shutdown_callback: Callable[[], object]
 ) -> ShutdownResult:
     shutdown_callback()
     return ShutdownResult(status="shutting_down")
