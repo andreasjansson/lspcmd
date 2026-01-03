@@ -323,8 +323,7 @@ See `leta COMMAND --help` for more documentation and command-specific options.
 @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
 @click.pass_context
 def cli(ctx: click.Context, json_output: bool) -> None:
-    ctx.ensure_object(dict)
-    ctx.obj["json"] = json_output
+    ctx.obj = CliContext(json=json_output)
 
 
 @cli.group()
