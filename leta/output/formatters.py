@@ -395,7 +395,7 @@ def format_size(size: int) -> str:
         return f"{size / (1024 * 1024):.1f}MB"
 
 
-def format_tree(data: dict) -> str:
+def format_tree(data: dict[str, Any]) -> str:
     from pathlib import Path as P
     
     files = data["files"]
@@ -406,7 +406,7 @@ def format_tree(data: dict) -> str:
     if not files:
         return "0 files, 0B"
     
-    tree: dict = {}
+    tree: dict[str, Any] = {}
     for rel_path, info in files.items():
         # Handle both dict and FileInfo-like objects
         if hasattr(info, "model_dump"):
