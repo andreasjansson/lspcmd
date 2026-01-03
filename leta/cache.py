@@ -28,10 +28,12 @@ class CacheEntry:
 
     @classmethod
     def from_dict(cls, data: dict[str, object]) -> "CacheEntry":
+        access_time_raw = data.get("access_time", 0)
+        size_raw = data.get("size", 0)
         return cls(
             value=data["value"],
-            access_time=float(data.get("access_time", 0) or 0),
-            size=int(data.get("size", 0) or 0),
+            access_time=float(access_time_raw) if access_time_raw else 0.0,
+            size=int(size_raw) if size_raw else 0,
         )
 
 
