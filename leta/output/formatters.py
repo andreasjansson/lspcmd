@@ -470,7 +470,7 @@ def format_tree(data: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def format_ambiguous_symbol_error(data: dict) -> str:
+def format_ambiguous_symbol_error(data: dict[str, Any]) -> str:
     """Format an ambiguous symbol error with match details."""
     lines = [f"Error: {data['error']}"]
     matches = data.get("matches", [])
