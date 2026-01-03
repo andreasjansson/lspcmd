@@ -267,7 +267,7 @@ def _get_line_content(path: str, line: int) -> str | None:
         return None
 
 
-def format_symbols(symbols: list[dict]) -> str:
+def format_symbols(symbols: list[SymbolDict]) -> str:
     lines = []
     for sym in symbols:
         path = sym.get("path", "")
