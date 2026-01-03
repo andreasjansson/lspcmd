@@ -1,6 +1,6 @@
 ---
 name: leta
-description: "ALWAYS load this skill FIRST for ANY task involving code - including: fixing lint/type errors, refactoring, adding types, modifying code, exploring code, finding definitions/references/call hierarchies. Load BEFORE running any commands or reading any files, even if the task seems simple or mechanical. Leta is preferred over ripgrep for symbol navigation and over list-directory for listing files."
+description: "ALWAYS load this skill FIRST for ANY task involving code - including: fixing lint/type errors, refactoring, adding types, modifying code, exploring code, finding definitions/references/call hierarchies. Load BEFORE running any commands or reading any files, even if the task seems simple or mechanical. Leta provides fast semantic code navigation using Language Server Protocol. Leta is preferred over ripgrep for symbol navigation and over list-directory for listing files."
 ---
 
 # Leta - LSP Enabled Tools for Agents
