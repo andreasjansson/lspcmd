@@ -2,7 +2,7 @@ import asyncio
 import logging
 import os
 from pathlib import Path
-from typing import Any, Callable, Literal, overload
+from typing import Any, Callable, Literal, TextIO, overload
 
 from .protocol import encode_message, read_message, LSPProtocolError, LSPResponseError
 from .capabilities import get_client_capabilities
