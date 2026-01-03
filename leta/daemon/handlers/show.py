@@ -1,7 +1,6 @@
 """Handler for show command."""
 
 from pathlib import Path
-from typing import Union
 
 from ..rpc import ShowParams
 from ...lsp.types import (
@@ -11,7 +10,12 @@ from ...lsp.types import (
     Position,
 )
 from ...utils.text import read_file_content, get_lines_around
-from .base import HandlerContext, find_symbol_at_line, expand_variable_range, LocationDict
+from .base import (
+    HandlerContext,
+    find_symbol_at_line,
+    expand_variable_range,
+    LocationDict,
+)
 
 
 async def handle_show(
@@ -25,7 +29,7 @@ async def handle_show(
 
     if body:
         return await _handle_definition_body(ctx, params)
-    
+
     return await _handle_location_request(ctx, params)
 
 
@@ -106,7 +110,9 @@ async def _handle_direct_definition(
         return [location]
 
 
-async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> dict[str, object]:
+async def _handle_definition_body(
+    ctx: HandlerContext, params: ShowParams
+) -> dict[str, object]:
     locations = await _handle_location_request(ctx, params)
     if not locations:
         return {"error": "Definition not found"}
@@ -122,10 +128,12 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
     head = params.head or 200
     symbol_name = params.symbol_name
 
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": str(file_path),
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": str(file_path),
+            "workspace_root": params.workspace_root,
+        }
+    )
 
     assert workspace.client is not None
 
@@ -175,10 +183,12 @@ async def _handle_definition_body(ctx: HandlerContext, params: ShowParams) -> di
 async def _handle_location_request(
     ctx: HandlerContext, params: ShowParams
 ) -> list[LocationDict]:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
