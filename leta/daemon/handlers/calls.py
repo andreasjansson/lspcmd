@@ -267,7 +267,7 @@ async def _expand_outgoing_calls(
     if not result:
         return []
 
-    calls: list[FormattedCallItem] = []
+    calls: list[FormattedCallItemWithCalls] = []
     for call in result:
         to_item = call.to
 
