@@ -411,7 +411,7 @@ async def _find_call_path(
 
     await workspace.client.wait_for_service_ready()
 
-    from_item = await _prepare_call_hierarchy(ctx, workspace, from_path, from_line, from_column)
+    from_item = await _prepare_call_hierarchy(workspace, from_path, from_line, from_column)
     if not from_item:
         rel_path = ctx.relative_path(from_path, workspace_root)
         return CallPathResult(
