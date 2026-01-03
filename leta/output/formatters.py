@@ -312,7 +312,7 @@ def format_code_actions(actions: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
-def format_session(data: dict) -> str:
+def format_session(data: dict[str, Any]) -> str:
     lines = []
     
     daemon_pid = data.get("daemon_pid")
