@@ -120,7 +120,7 @@ def _dict_to_call_node(d: FormattedCallItemWithCalls) -> CallNode:
 
 
 async def _prepare_call_hierarchy(
-    ctx: HandlerContext,
+    _ctx: HandlerContext,
     workspace: "Workspace",
     path: Path,
     line: int,
