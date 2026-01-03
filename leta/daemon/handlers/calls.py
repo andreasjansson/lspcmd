@@ -430,7 +430,7 @@ async def _find_call_path(
     to_key = (to_item.uri, to_item.selectionRange.start.line)
 
     path = await _bfs_call_path(
-        ctx, workspace, workspace_root, from_item, to_key, max_depth,
+        workspace, workspace_root, from_item, to_key, max_depth,
         include_non_workspace
     )
 
