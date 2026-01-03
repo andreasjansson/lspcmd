@@ -297,7 +297,7 @@ def format_symbols(symbols: list[SymbolDict]) -> str:
     return "\n".join(lines)
 
 
-def format_code_actions(actions: list[dict]) -> str:
+def format_code_actions(actions: list[dict[str, Any]]) -> str:
     lines = []
     for action in actions:
         title = action.get("title", "")
