@@ -215,9 +215,6 @@ SERVERS: dict[str, list[ServerConfig]] = {
 }
 
 
-from typing import Any, Mapping
-
-
 def get_server_for_file(path: str | Path, config: Mapping[str, Any] | None = None) -> ServerConfig | None:
     language_id = get_language_id(path)
     return get_server_for_language(language_id, config)
