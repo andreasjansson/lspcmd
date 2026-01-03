@@ -112,7 +112,7 @@ def run_request(method: str, params: dict[str, object]) -> dict[str, object]:
     return response
 
 
-def output_result(result: Any, output_format: str) -> None:
+def output_result(result: object, output_format: str) -> None:
     """Output a result, writing errors/warnings/empty results to stderr."""
     if isinstance(result, dict):
         if "warning" in result:
