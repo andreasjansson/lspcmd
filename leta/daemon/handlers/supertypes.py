@@ -21,6 +21,8 @@ async def handle_supertypes(
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
+    assert workspace.client is not None
+
     await workspace.client.wait_for_service_ready()
 
     try:
