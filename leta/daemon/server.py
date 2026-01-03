@@ -61,13 +61,22 @@ DEFAULT_CACHE_SIZE_BYTES = 256 * 1024 * 1024  # 256MB
 
 
 class DaemonServer:
+    session: Session
+    server: asyncio.Server | None
+    _shutdown_event: asyncio.Event
+    _hover_cache_bytes: int
+    _symbol_cache_bytes: int
+    _hover_cache: LMDBCache
+    _symbol_cache: LMDBCache
+    _ctx: HandlerContext
+
     def __init__(
         self,
         hover_cache_bytes: int | None = None,
         symbol_cache_bytes: int | None = None,
     ):
         self.session = Session()
-        self.server: asyncio.Server | None = None
+        self.server = None
         self._shutdown_event = asyncio.Event()
         self._hover_cache_bytes = hover_cache_bytes or DEFAULT_CACHE_SIZE_BYTES
         self._symbol_cache_bytes = symbol_cache_bytes or DEFAULT_CACHE_SIZE_BYTES
