@@ -6,20 +6,35 @@ Uses pytest-xdist for parallel execution to test concurrent daemon access.
 Run with: pytest test/integration/ -v
 """
 
-import asyncio
-import json
 import os
 import shutil
 import tempfile
 import time
 from pathlib import Path
+from typing import TypeVar
 
 import click
 import pytest
+from pydantic import BaseModel
 
 from leta.cli import run_request as cli_run_request, ensure_daemon_running
-from leta.output.formatters import format_output as _format_output
-from leta.utils.config import add_workspace_root, load_config
+from leta.daemon.rpc import (
+    CallsResult,
+    DeclarationResult,
+    DescribeSessionResult,
+    FilesResult,
+    GrepResult,
+    ImplementationsResult,
+    MoveFileResult,
+    ReferencesResult,
+    RemoveWorkspaceResult,
+    RenameResult,
+    RestartWorkspaceResult,
+    ShowResult,
+    SubtypesResult,
+    SupertypesResult,
+)
+from leta.output.formatters import format_result
 
 from ..conftest import (
     FIXTURES_DIR,
@@ -37,29 +52,53 @@ from ..conftest import (
 
 os.environ["LETA_REQUEST_TIMEOUT"] = "60"
 
+METHOD_TO_RESULT_TYPE: dict[str, type[BaseModel]] = {
+    "grep": GrepResult,
+    "files": FilesResult,
+    "show": ShowResult,
+    "declaration": DeclarationResult,
+    "references": ReferencesResult,
+    "implementations": ImplementationsResult,
+    "subtypes": SubtypesResult,
+    "supertypes": SupertypesResult,
+    "calls": CallsResult,
+    "rename": RenameResult,
+    "move-file": MoveFileResult,
+    "restart-workspace": RestartWorkspaceResult,
+    "remove-workspace": RemoveWorkspaceResult,
+    "describe-session": DescribeSessionResult,
+}
 
-def run_request(method: str, params: dict, raise_on_error: bool = False) -> dict:
-    """Run a request against the daemon and return the result.
-    
-    Wraps the CLI run_request to handle click exceptions and return
-    a dict with either 'result' or 'error'.
-    
+T = TypeVar("T", bound=BaseModel)
+
+
+def run_request(method: str, params: dict[str, object], raise_on_error: bool = False) -> BaseModel:
+    """Run a request against the daemon and return a typed result model.
+
+    The result type is inferred from the method name.
+
     Args:
         method: The daemon method to call
         params: Parameters for the method
         raise_on_error: If True, re-raise click.ClickException instead of returning error dict
     """
     try:
-        return cli_run_request(method, params)
+        response = cli_run_request(method, params)
     except click.ClickException as e:
         if raise_on_error:
             raise
-        return {"error": str(e.message)}
+        raise AssertionError(f"Request failed: {e.message}")
+
+    result_type = METHOD_TO_RESULT_TYPE.get(method)
+    if result_type is None:
+        raise ValueError(f"Unknown method: {method}")
+
+    return result_type.model_validate(response["result"])
 
 
-def format_output(data, output_format: str = "plain") -> str:
-    """Format output for tests."""
-    return _format_output(data, output_format)
+def format_output(result: BaseModel, output_format: str = "plain") -> str:
+    """Format a result model for display."""
+    return format_result(result, output_format)
 
 
 @pytest.fixture(scope="class")
@@ -94,6 +133,6 @@ def class_daemon(class_isolated_config):
     time.sleep(0.5)
     yield
     try:
-        run_request("shutdown", {})
+        cli_run_request("shutdown", {})
     except Exception:
         pass
