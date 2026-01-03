@@ -27,11 +27,13 @@ from .utils.config import (
 
 
 class OrderedGroup(click.Group):
-    def __init__(self, *args, commands_order: list[str] | None = None, **kwargs):
-        super().__init__(*args, **kwargs)
+    commands_order: list[str]
+
+    def __init__(self, *args: object, commands_order: list[str] | None = None, **kwargs: object):
+        super().__init__(*args, **kwargs)  # type: ignore[arg-type]
         self.commands_order = commands_order or []
 
-    def list_commands(self, ctx):
+    def list_commands(self, ctx: click.Context) -> list[str]:
         commands = super().list_commands(ctx)
         if self.commands_order:
             ordered = [c for c in self.commands_order if c in commands]
