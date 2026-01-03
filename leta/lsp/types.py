@@ -186,8 +186,8 @@ class CodeAction(BaseModel):
 
 
 class MarkupKind:
-    PlainText = "plaintext"
-    Markdown = "markdown"
+    PlainText: ClassVar[str] = "plaintext"
+    Markdown: ClassVar[str] = "markdown"
 
 
 class MarkupContent(BaseModel):
