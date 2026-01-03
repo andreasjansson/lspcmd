@@ -250,16 +250,16 @@ lspcmd grep "Repository$\|Service$\|Handler$" -k class -d
 ### Understanding a Function
 
 ```bash
-# 1. See the implementation
-lspcmd show process_request
-
-# 2. Find all callers
-lspcmd calls --to process_request
-
-# 3. See what it calls
+# 1. Get the high-level overview: what does it call?
 lspcmd calls --from process_request
 
-# 4. Find all usages
+# 2. Who calls this function?
+lspcmd calls --to process_request
+
+# 3. NOW read the implementation (with context from steps 1-2)
+lspcmd show process_request
+
+# 4. Find all usages/references
 lspcmd refs process_request
 ```
 
