@@ -6,7 +6,7 @@ import logging
 import os
 import signal
 from pathlib import Path
-from typing import Callable
+from typing import Any, Callable, Coroutine
 
 from pydantic import BaseModel
 
@@ -53,7 +53,7 @@ from .rpc import (
 from .session import Session
 from ..cache import LMDBCache
 from ..lsp.protocol import LSPResponseError, LSPMethodNotSupported, LanguageServerNotFound
-from ..utils.config import get_socket_path, get_pid_path, get_log_dir, get_cache_dir, load_config, cleanup_stale_workspace_roots
+from ..utils.config import get_socket_path, get_pid_path, get_log_dir, get_cache_dir, load_config, cleanup_stale_workspace_roots, Config
 
 logger = logging.getLogger(__name__)
 
