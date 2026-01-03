@@ -202,7 +202,7 @@ async def _get_outgoing_calls_tree(
 
     await workspace.client.wait_for_service_ready()
 
-    item = await _prepare_call_hierarchy(ctx, workspace, path, line, column)
+    item = await _prepare_call_hierarchy(workspace, path, line, column)
     if not item:
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
@@ -300,7 +300,7 @@ async def _get_incoming_calls_tree(
 
     await workspace.client.wait_for_service_ready()
 
-    item = await _prepare_call_hierarchy(ctx, workspace, path, line, column)
+    item = await _prepare_call_hierarchy(workspace, path, line, column)
     if not item:
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
