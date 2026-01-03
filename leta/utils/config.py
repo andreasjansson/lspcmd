@@ -91,14 +91,14 @@ DEFAULT_CONFIG: Config = {
 
 def load_config() -> Config:
     config_path = get_config_path()
-    config: Config = dict(DEFAULT_CONFIG)  # type: ignore[assignment]
+    config: dict[str, Any] = dict(DEFAULT_CONFIG)
 
     if config_path.exists():
         with open(config_path, "rb") as f:
             user_config = tomli.load(f)
             _merge_config(config, user_config)
 
-    return config
+    return Config(**{k: v for k, v in config.items()})
 
 
 def save_config(config: Config) -> None:
