@@ -1,0 +1,14 @@
+==================
+grep exclude multiple patterns
+==================
+leta grep "." --kind function --exclude "editable*" --exclude "utils.go" -C
+---
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
+main.go:149 [Function] createSampleUser (func() *User)
+main.go:159 [Function] ValidateUser (func(user *User) error)
+main.go:172 [Function] main (func())
+errors.go:4 [Function] ErrorFunc (func())
+errors.go:17 [Function] TypeErrorFunc (func() int)
