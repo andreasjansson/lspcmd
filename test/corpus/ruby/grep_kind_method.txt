@@ -1,9 +1,8 @@
 ==================
 grep kind filter method
 ==================
-leta grep "." --kind method main.rb
+leta grep "^save$" --kind method user.rb -C
 ---
-main.rb:8 [Method] create_sample_user
-main.rb:16 [Method] validate_user
-main.rb:26 [Method] process_users
-main.rb:31 [Method] main
+user.rb:42 [Method] save in Storage
+user.rb:79 [Method] save in MemoryStorage
+user.rb:123 [Method] save in FileStorage
