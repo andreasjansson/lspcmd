@@ -50,6 +50,15 @@ class LSPResponseError(Exception):
         msg = self.message.lower()
         return "unsupported" in msg or ("internal error" in msg and self.code == -32603)
 
+    def is_retryable(self) -> bool:
+        """Check if this error is transient and the request should be retried.
+        
+        rust-analyzer returns "content modified" errors when it's still indexing
+        or when file contents change during a request. These are transient.
+        """
+        msg = self.message.lower()
+        return "content modified" in msg
+
 
 class LSPMethodNotSupported(Exception):
     method: str
