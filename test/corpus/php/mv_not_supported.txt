@@ -1,0 +1,6 @@
+==================
+move file not supported
+==================
+leta mv src/User.php src/Person.php
+---
+Error: move-file is not supported by intelephense
