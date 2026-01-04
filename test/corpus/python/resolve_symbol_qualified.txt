@@ -1,0 +1,9 @@
+==================
+show qualified name
+==================
+leta show MemoryStorage.save
+---
+main.py:55-56
+
+    def save(self, key: str, value: str) -> None:
+        self._data[key] = value
