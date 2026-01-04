@@ -1,0 +1,9 @@
+==================
+grep kind filter method
+==================
+leta grep "." --kind method main.rb
+---
+main.rb:8 [Method] create_sample_user
+main.rb:16 [Method] validate_user
+main.rb:26 [Method] process_users
+main.rb:31 [Method] main
