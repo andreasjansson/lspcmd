@@ -68,5 +68,11 @@ def get_client_capabilities() -> dict[str, Any]:
             "publishDiagnostics": {
                 "relatedInformation": True,
             },
+            "callHierarchy": {
+                "dynamicRegistration": False,
+            },
+            "typeHierarchy": {
+                "dynamicRegistration": False,
+            },
         },
     }
