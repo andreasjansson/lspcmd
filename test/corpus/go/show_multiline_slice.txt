@@ -1,0 +1,14 @@
+==================
+show multiline slice variable
+==================
+leta show DefaultPorts
+---
+utils.go:111-117
+
+var DefaultPorts = []int{
+	80,
+	443,
+	8080,
+	8443,
+	3000,
+}
