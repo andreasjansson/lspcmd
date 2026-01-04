@@ -1,0 +1,8 @@
+==================
+calls excludes stdlib by default
+==================
+leta calls --from User.displayName
+---
+user.hpp:26 [Method] displayName
+
+Outgoing calls:
