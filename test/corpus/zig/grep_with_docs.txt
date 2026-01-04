@@ -1,0 +1,19 @@
+==================
+grep with docs
+==================
+leta grep "^User$" --kind constant --docs -C
+---
+src/user.zig:4 [Constant] User
+    ```zig
+    const User = struct {
+        name: []const u8,
+        email: []const u8,
+        age: i32,
+    }
+    ```
+    ```zig
+    (type)
+    ```
+    
+    Represents a user in the system.
+
