@@ -1,0 +1,14 @@
+==================
+resolve ambiguous symbol shows matches
+==================
+leta show Save
+---
+Error: Symbol 'Save' is ambiguous (4 matches)
+  EditableStorage.Save
+    editable.go:50 [Method] (*EditableStorage).Save
+  Storage.Save
+    main.go:32 [Method] Save in Storage
+  MemoryStorage.Save
+    main.go:49 [Method] (*MemoryStorage).Save
+  FileStorage.Save
+    main.go:95 [Method] (*FileStorage).Save
