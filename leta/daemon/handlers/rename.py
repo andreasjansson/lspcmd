@@ -94,7 +94,7 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
                 )
                 # Delay to ensure index is fully updated
                 # ruby-lsp's index update can take a moment after processing
-                await asyncio.sleep(2.0)
+                await asyncio.sleep(0.2)
             except Exception:
                 pass  # Just want to ensure notifications are processed
 
