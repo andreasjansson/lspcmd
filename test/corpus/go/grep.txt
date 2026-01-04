@@ -1,0 +1,123 @@
+==================
+grep pattern filter functions
+==================
+leta grep "^New" --kind function main.go -C
+---
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
+
+==================
+grep kind filter struct
+==================
+leta grep "." --kind struct main.go -C
+---
+main.go:9 [Struct] User (struct{...})
+main.go:39 [Struct] MemoryStorage (struct{...})
+main.go:85 [Struct] FileStorage (struct{...})
+main.go:119 [Struct] UserRepository (struct{...})
+
+==================
+grep kind filter interface
+==================
+leta grep "." --kind interface main.go -C
+---
+main.go:31 [Interface] Storage (interface{...})
+main.go:154 [Interface] Validator (interface{...})
+
+==================
+grep case sensitive finds User
+==================
+leta grep "^User$" -C
+---
+main.go:9 [Struct] User (struct{...})
+
+==================
+grep case sensitive lowercase no match
+==================
+leta grep "^user$" -C
+---
+
+==================
+grep combined filters Storage structs
+==================
+leta grep "Storage" --kind struct main.go -C
+---
+main.go:39 [Struct] MemoryStorage (struct{...})
+main.go:85 [Struct] FileStorage (struct{...})
+
+==================
+grep multiple files via glob
+==================
+leta grep "^New" --kind function "*.go" -C
+---
+editable.go:15 [Function] NewEditablePerson (func(name, email string) *EditablePerson)
+editable.go:45 [Function] NewEditableStorage (func() *EditableStorage)
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
+utils.go:31 [Function] NewCounter (func(initial int) *Counter)
+utils.go:64 [Function] NewResult (func(value T) *Result[T])
+utils.go:69 [Function] NewError (func(err error) *Result[T])
+
+==================
+grep workspace wide Validate functions
+==================
+leta grep "Validate" --kind function --exclude "editable*" -C
+---
+utils.go:9 [Function] ValidateEmail (func(email string) bool)
+utils.go:16 [Function] ValidateAge (func(age int) bool)
+main.go:159 [Function] ValidateUser (func(user *User) error)
+
+==================
+grep all functions excluding editable
+==================
+leta grep "." --kind function --exclude "editable*" -C
+---
+utils.go:9 [Function] ValidateEmail (func(email string) bool)
+utils.go:16 [Function] ValidateAge (func(age int) bool)
+utils.go:21 [Function] FormatName (func(first, last string) string)
+utils.go:31 [Function] NewCounter (func(initial int) *Counter)
+utils.go:64 [Function] NewResult (func(value T) *Result[T])
+utils.go:69 [Function] NewError (func(err error) *Result[T])
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
+main.go:149 [Function] createSampleUser (func() *User)
+main.go:159 [Function] ValidateUser (func(user *User) error)
+main.go:172 [Function] main (func())
+errors.go:4 [Function] ErrorFunc (func())
+errors.go:17 [Function] TypeErrorFunc (func() int)
+
+==================
+grep exclude multiple patterns
+==================
+leta grep "." --kind function --exclude "editable*" --exclude "utils.go" -C
+---
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
+main.go:149 [Function] createSampleUser (func() *User)
+main.go:159 [Function] ValidateUser (func(user *User) error)
+main.go:172 [Function] main (func())
+errors.go:4 [Function] ErrorFunc (func())
+errors.go:17 [Function] TypeErrorFunc (func() int)
+
+==================
+grep with docs
+==================
+leta grep "^NewUser$" --kind function --docs main.go -C
+---
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+    ```go
+    func NewUser(name string, email string, age int) *User
+    ```
+    
+    ---
+    
+    NewUser creates a new User instance.
+
