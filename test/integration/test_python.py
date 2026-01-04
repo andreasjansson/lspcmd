@@ -379,7 +379,9 @@ main.py:113 [Function] create_sample_user
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
+
+
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -389,49 +391,6 @@ main.py:113 [Function] create_sample_user
                 "line": 130,
                 "column": 11,
                 "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "main.py:113 def create_sample_user() -> User:"
-
-    def test_definition_with_context(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.py"),
-                "workspace_root": str(workspace),
-                "line": 130,
-                "column": 11,
-                "context": 2,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-main.py:111-115
-
-
-def create_sample_user() -> User:
-    \"\"\"Create a sample user for testing.\"\"\"
-    return User(name="John Doe", email="john@example.com", age=30)
-"""
-        )
-
-    def test_definition_with_body(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.py"),
-                "workspace_root": str(workspace),
-                "line": 130,
-                "column": 11,
-                "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -445,7 +404,7 @@ def create_sample_user() -> User:
     return User(name="John Doe", email="john@example.com", age=30)"""
         )
 
-    def test_definition_with_body_and_context(self, workspace):
+    def test_definition_with_context(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -455,7 +414,6 @@ def create_sample_user() -> User:
                 "line": 130,
                 "column": 11,
                 "context": 2,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -808,7 +766,6 @@ editable.py:30 class EditableStorage:"""
                 "line": 130,
                 "column": 0,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 130,
                 "range_end_line": 130,
@@ -843,7 +800,6 @@ COUNTRY_CODES = {
                 "line": 140,
                 "column": 0,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 140,
                 "range_end_line": 140,

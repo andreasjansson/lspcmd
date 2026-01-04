@@ -247,23 +247,8 @@ src/main.zig:2 [Constant] user"""
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "src" / "main.zig"),
-                "workspace_root": str(workspace),
-                "line": 12,
-                "column": 24,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "src/main.zig:22 pub fn createSampleUser() user.User {"
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -273,7 +258,6 @@ src/main.zig:2 [Constant] user"""
                 "line": 12,
                 "column": 24,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -390,7 +374,6 @@ pub fn createSampleUser() user.User {
                 "line": 146,
                 "column": 10,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 146,
                 "range_end_line": 152,

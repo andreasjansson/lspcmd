@@ -297,7 +297,9 @@ main.go:16 [Function] NewUser (func(name, email string, age int) *User)
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
+
+
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -307,50 +309,6 @@ main.go:16 [Function] NewUser (func(name, email string, age int) *User)
                 "line": 174,
                 "column": 9,
                 "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == "main.go:124 func NewUserRepository(storage Storage) *UserRepository {"
-        )
-
-    def test_definition_with_context(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.go"),
-                "workspace_root": str(workspace),
-                "line": 174,
-                "column": 9,
-                "context": 1,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-main.go:123-125
-// NewUserRepository creates a new repository with the given storage.
-func NewUserRepository(storage Storage) *UserRepository {
-\treturn &UserRepository{storage: storage}
-"""
-        )
-
-    def test_definition_with_body(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.go"),
-                "workspace_root": str(workspace),
-                "line": 174,
-                "column": 9,
-                "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -364,7 +322,7 @@ func NewUserRepository(storage Storage) *UserRepository {
 }"""
         )
 
-    def test_definition_with_body_and_context(self, workspace):
+    def test_definition_with_context(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -374,7 +332,6 @@ func NewUserRepository(storage Storage) *UserRepository {
                 "line": 174,
                 "column": 9,
                 "context": 1,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -687,7 +644,6 @@ Renamed in 1 file(s):
                 "line": 100,
                 "column": 4,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 100,
                 "range_end_line": 108,
@@ -722,7 +678,6 @@ var CountryCodes = map[string]string{
                 "line": 111,
                 "column": 4,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 111,
                 "range_end_line": 117,

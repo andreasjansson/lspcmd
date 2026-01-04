@@ -270,23 +270,8 @@ src/main.ts:6 [Function] createSampleUser
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "src" / "main.ts"),
-                "workspace_root": str(workspace),
-                "line": 58,
-                "column": 18,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "src/main.ts:6 function createSampleUser(): User {"
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -296,7 +281,6 @@ src/main.ts:6 [Function] createSampleUser
                 "line": 58,
                 "column": 18,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -310,6 +294,7 @@ function createSampleUser(): User {
 }"""
         )
 
+
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
         result = run_request(
@@ -320,31 +305,6 @@ function createSampleUser(): User {
                 "line": 58,
                 "column": 18,
                 "context": 1,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-src/main.ts:5-7
- */
-function createSampleUser(): User {
-    return new User("John Doe", "john@example.com", 30);
-"""
-        )
-
-    def test_definition_with_body_and_context(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "src" / "main.ts"),
-                "workspace_root": str(workspace),
-                "line": 58,
-                "column": 18,
-                "context": 1,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -736,7 +696,6 @@ Moved file and updated imports in 2 file(s):
                 "line": 135,
                 "column": 13,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 135,
                 "range_end_line": 143,
@@ -771,7 +730,6 @@ export const COUNTRY_CODES: Record<string, string> = {
                 "line": 148,
                 "column": 13,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 148,
                 "range_end_line": 153,

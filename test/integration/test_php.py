@@ -253,23 +253,8 @@ src/Main.php:17 [Method] createSampleUser (static) in Main
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "src" / "Main.php"),
-                "workspace_root": str(workspace),
-                "line": 63,
-                "column": 22,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert "createSampleUser" in output
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -279,7 +264,6 @@ src/Main.php:17 [Method] createSampleUser (static) in Main
                 "line": 63,
                 "column": 22,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -426,7 +410,6 @@ src/Main.php:17 [Method] createSampleUser (static) in Main
                 "line": 15,
                 "column": 17,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 15,
                 "range_end_line": 23,

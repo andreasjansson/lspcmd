@@ -275,23 +275,8 @@ src/main.rs:10 [Function] create_sample_user (fn() -> User)
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        response = self._run_request_with_retry(
-            "show",
-            {
-                "path": str(workspace / "src" / "main.rs"),
-                "workspace_root": str(workspace),
-                "line": 25,
-                "column": 16,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "src/main.rs:10 fn create_sample_user() -> User {"
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         response = self._run_request_with_retry(
             "show",
@@ -301,7 +286,6 @@ src/main.rs:10 [Function] create_sample_user (fn() -> User)
                 "line": 25,
                 "column": 16,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -316,7 +300,7 @@ fn create_sample_user() -> User {
 }"""
         )
 
-    def test_definition_with_body_and_context(self, workspace):
+    def test_definition_with_context(self, workspace):
         os.chdir(workspace)
         response = self._run_request_with_retry(
             "show",
@@ -326,7 +310,6 @@ fn create_sample_user() -> User {
                 "line": 25,
                 "column": 16,
                 "context": 1,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -343,29 +326,6 @@ fn create_sample_user() -> User {
 """
         )
 
-    def test_definition_with_context(self, workspace):
-        os.chdir(workspace)
-        response = self._run_request_with_retry(
-            "show",
-            {
-                "path": str(workspace / "src" / "main.rs"),
-                "workspace_root": str(workspace),
-                "line": 25,
-                "column": 16,
-                "context": 1,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-src/main.rs:9-11
-/// Creates a sample user for testing.
-fn create_sample_user() -> User {
-    User::new("John Doe".to_string(), "john@example.com".to_string(), 30)
-"""
-        )
 
     # =========================================================================
     # references tests
@@ -586,7 +546,6 @@ Moved file and updated imports in 3 file(s):
                 "line": 92,
                 "column": 10,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 91,
                 "range_end_line": 98,

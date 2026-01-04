@@ -281,23 +281,8 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.cpp"),
-                "workspace_root": str(workspace),
-                "line": 11,
-                "column": 16,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "user.hpp:135 inline User createSampleUser() {"
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -307,7 +292,6 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
                 "line": 11,
                 "column": 16,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -321,31 +305,8 @@ inline User createSampleUser() {
 }"""
         )
 
-    def test_definition_with_context(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.cpp"),
-                "workspace_root": str(workspace),
-                "line": 11,
-                "column": 16,
-                "context": 1,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-user.hpp:134-136
-/// Creates a sample user for testing.
-inline User createSampleUser() {
-    return User("John Doe", "john@example.com", 30);
-"""
-        )
 
-    def test_definition_with_body_and_context(self, workspace):
+    def test_definition_with_context(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -355,7 +316,6 @@ inline User createSampleUser() {
                 "line": 11,
                 "column": 25,
                 "context": 1,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -578,7 +538,6 @@ inline User createSampleUser() {
                 "line": 162,
                 "column": 22,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 162,
                 "range_end_line": 170,

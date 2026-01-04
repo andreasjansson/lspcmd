@@ -307,34 +307,8 @@ src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in 
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(
-                    workspace
-                    / "src"
-                    / "main"
-                    / "java"
-                    / "com"
-                    / "example"
-                    / "Main.java"
-                ),
-                "workspace_root": str(workspace),
-                "line": 50,
-                "column": 21,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == "src/main/java/com/example/Main.java:15     public static User createSampleUser() {"
-        )
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -352,7 +326,6 @@ src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in 
                 "line": 50,
                 "column": 21,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -370,6 +343,7 @@ src/main/java/com/example/Main.java:10-17
         return new User("John Doe", "john@example.com", 30);
     }"""
         )
+
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
@@ -389,39 +363,6 @@ src/main/java/com/example/Main.java:10-17
                 "line": 50,
                 "column": 21,
                 "context": 1,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-src/main/java/com/example/Main.java:14-16
-     */
-    public static User createSampleUser() {
-        return new User("John Doe", "john@example.com", 30);
-"""
-        )
-
-    def test_definition_with_body_and_context(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(
-                    workspace
-                    / "src"
-                    / "main"
-                    / "java"
-                    / "com"
-                    / "example"
-                    / "Main.java"
-                ),
-                "workspace_root": str(workspace),
-                "line": 50,
-                "column": 21,
-                "context": 1,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -802,7 +743,6 @@ src/main/java/com/example/UserRepository.java:54-56
                 "line": 13,
                 "column": 44,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 10,
                 "range_end_line": 21,

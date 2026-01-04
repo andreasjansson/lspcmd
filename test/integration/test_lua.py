@@ -234,23 +234,8 @@ main.lua:8 [Function] createSampleUser (function ())
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.lua"),
-                "workspace_root": str(workspace),
-                "line": 40,
-                "column": 23,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert output == "main.lua:8 local function createSampleUser()"
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -260,7 +245,6 @@ main.lua:8 [Function] createSampleUser (function ())
                 "line": 40,
                 "column": 23,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -362,7 +346,6 @@ end"""
                 "line": 199,
                 "column": 2,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 199,
                 "range_end_line": 207,
@@ -397,7 +380,6 @@ M.COUNTRY_CODES = {
                 "line": 210,
                 "column": 2,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 210,
                 "range_end_line": 215,

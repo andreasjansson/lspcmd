@@ -253,28 +253,8 @@ user.rb:163 [Class] UserRepository"""
     # definition tests
     # =========================================================================
 
-    def test_definition_basic(self, workspace):
-        os.chdir(workspace)
-        result = run_request(
-            "show",
-            {
-                "path": str(workspace / "main.rb"),
-                "workspace_root": str(workspace),
-                "line": 35,
-                "column": 9,
-                "context": 0,
-                "body": False,
-            },
-        )
-        output = format_output(result, "plain")
-        assert (
-            output
-            == """\
-main.rb:8 def create_sample_user
-main.rb:8 def create_sample_user"""
-        )
 
-    def test_definition_with_body(self, workspace):
+    def test_definition(self, workspace):
         os.chdir(workspace)
         result = run_request(
             "show",
@@ -284,7 +264,6 @@ main.rb:8 def create_sample_user"""
                 "line": 35,
                 "column": 9,
                 "context": 0,
-                "body": True,
             },
         )
         output = format_output(result, "plain")
@@ -404,7 +383,6 @@ user.rb:8 class User"""
                 "line": 144,
                 "column": 0,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 144,
                 "range_end_line": 152,
@@ -439,7 +417,6 @@ COUNTRY_CODES = {
                 "line": 155,
                 "column": 0,
                 "context": 0,
-                "body": True,
                 "direct_location": True,
                 "range_start_line": 155,
                 "range_end_line": 160,
