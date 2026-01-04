@@ -1,7 +1,7 @@
 ==================
-grep with pattern filter
+grep with pattern filter (case sensitive)
 ==================
-leta grep main.py "^User"
+leta grep "^User" main.py -C
 ---
 main.py:27 [Class] User
-main.py:80 [Class] UserRepository
+main.py:81 [Class] UserRepository
