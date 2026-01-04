@@ -4,4 +4,3 @@ subtypes not supported
 leta subtypes Storage
 ---
 Error: textDocument/prepareTypeHierarchy is not supported by intelephense
-Error: textDocument/prepareTypeHierarchy is not supported by intelephense
