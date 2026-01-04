@@ -49,6 +49,8 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
     files_modified, renamed_files = await _apply_workspace_edit(ctx, result, workspace_root)
 
+    logger.info(f"Rename: files_modified={files_modified}, renamed_files={renamed_files}")
+
     # Close old documents FIRST (before notifying about file changes)
     # This is important for servers like ruby-lsp that check if files are managed by client
     for old_path, new_path in renamed_files:
