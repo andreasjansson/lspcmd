@@ -176,9 +176,6 @@ def _normalize_symbol_name(name: str) -> str:
     # Handle Lua colon method syntax: "User:isAdult" -> "isAdult"
     if ":" in name:
         return name.split(":")[-1]
-    # Handle dot-qualified names: "User.new" -> "new"
-    if "." in name:
-        return name.split(".")[-1]
     return name
 
 
