@@ -1,0 +1,32 @@
+==================
+show struct definition
+==================
+leta show User
+---
+src/user.zig:4-28
+
+pub const User = struct {
+    name: []const u8,
+    email: []const u8,
+    age: i32,
+
+    /// Creates a new User instance.
+    pub fn init(name: []const u8, email: []const u8, age: i32) User {
+        return User{
+            .name = name,
+            .email = email,
+            .age = age,
+        };
+    }
+
+    /// Checks if the user is 18 or older.
+    pub fn isAdult(self: User) bool {
+        return self.age >= 18;
+    }
+
+    /// Returns a formatted display name.
+    pub fn displayName(self: User) []const u8 {
+        _ = self;
+        return "User Display Name";
+    }
+};
