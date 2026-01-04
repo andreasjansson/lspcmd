@@ -1,8 +1,8 @@
 ==================
 grep functions only
 ==================
-leta grep main.py --kind function
+leta grep . main.py --kind function
 ---
-main.py:113 [Function] create_sample_user
-main.py:118 [Function] process_users
-main.py:127 [Function] main
+main.py:114 [Function] create_sample_user
+main.py:119 [Function] process_users
+main.py:128 [Function] main
