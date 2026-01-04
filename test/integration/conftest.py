@@ -74,7 +74,12 @@ METHOD_TO_RESULT_TYPE: dict[str, type[BaseModel]] = {
 T = TypeVar("T", bound=BaseModel)
 
 
-def run_request(method: str, params: dict[str, object], raise_on_error: bool = False) -> BaseModel:
+class ErrorResult(BaseModel):
+    """Result type for tests that expect errors."""
+    error: str
+
+
+def run_request(method: str, params: dict[str, object], expect_error: bool = False) -> BaseModel:
     """Run a request against the daemon and return a typed result model.
 
     The result type is inferred from the method name.
@@ -82,13 +87,13 @@ def run_request(method: str, params: dict[str, object], raise_on_error: bool = F
     Args:
         method: The daemon method to call
         params: Parameters for the method
-        raise_on_error: If True, re-raise click.ClickException instead of returning error dict
+        expect_error: If True, return ErrorResult instead of raising on error
     """
     try:
         response = cli_run_request(method, params)
     except click.ClickException as e:
-        if raise_on_error:
-            raise
+        if expect_error:
+            return ErrorResult(error=e.message)
         raise AssertionError(f"Request failed: {e.message}")
 
     result_type = METHOD_TO_RESULT_TYPE.get(method)
