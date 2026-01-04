@@ -1,0 +1,29 @@
+==================
+check class exists before rename
+==================
+grep "class.*Person" editable.py
+---
+class EditablePerson:
+
+==================
+rename EditablePerson to RenamedPerson
+==================
+leta rename EditablePerson RenamedPerson
+---
+Renamed in 2 file(s):
+  editable.py
+  editable_consumer.py
+
+==================
+verify class was renamed
+==================
+grep "class.*Person" editable.py
+---
+class RenamedPerson:
+
+==================
+verify import was updated
+==================
+grep "from editable import" editable_consumer.py
+---
+from editable import RenamedPerson, editable_create_sample
