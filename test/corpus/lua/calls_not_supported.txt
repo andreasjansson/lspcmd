@@ -1,0 +1,6 @@
+==================
+calls not supported
+==================
+leta calls --from main.lua:36:main
+---
+Error: textDocument/prepareCallHierarchy is not supported by lua-language-server
