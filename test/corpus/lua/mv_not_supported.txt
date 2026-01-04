@@ -1,0 +1,6 @@
+==================
+move file not supported
+==================
+leta mv user.lua person.lua
+---
+Error: move-file is not supported by lua-language-server
