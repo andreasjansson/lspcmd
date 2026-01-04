@@ -1,0 +1,10 @@
+==================
+implementations with context
+==================
+leta implementations Storage -n 1
+---
+user.lua:42-44
+-- @class Storage
+local Storage = {}
+Storage.__index = Storage
+
