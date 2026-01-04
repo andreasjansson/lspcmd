@@ -1,0 +1,6 @@
+==================
+grep workspace wide validate functions
+==================
+leta grep "validate" --kind function --exclude "errors.zig" -C
+---
+src/main.zig:27 [Function] validateUser (fn validateUser(u: user.User) !void)
