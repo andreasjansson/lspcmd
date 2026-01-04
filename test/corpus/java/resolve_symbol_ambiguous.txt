@@ -1,0 +1,12 @@
+==================
+show ambiguous symbol shows options
+==================
+leta show save
+---
+Error: Symbol 'save' is ambiguous (3 matches)
+  Storage.save
+    src/main/java/com/example/Storage.java:14 [Method] save(User) in Storage
+  FileStorage.save
+    src/main/java/com/example/FileStorage.java:39 [Method] save(User) in FileStorage
+  MemoryStorage.save
+    src/main/java/com/example/MemoryStorage.java:26 [Method] save(User) in MemoryStorage
