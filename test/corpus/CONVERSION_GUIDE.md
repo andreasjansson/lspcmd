@@ -478,7 +478,7 @@ Every language MUST have all of these test cases. Use `*_not_supported.txt` nami
 | `rename.txt` | Rename symbol (verify → rename → verify → restore) |
 | `mv.txt` or `mv_not_supported.txt` | Move file (verify → move → verify → restore) |
 
-**Total: ~35 test files per language**
+**Total: 37 test files per language** (plus any language-specific additions)
 
 ### Language-specific additions
 
