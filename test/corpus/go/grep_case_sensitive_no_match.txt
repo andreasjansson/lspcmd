@@ -1,0 +1,5 @@
+==================
+grep case sensitive lowercase no match
+==================
+leta grep "^user$" -C
+---
