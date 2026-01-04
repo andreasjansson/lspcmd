@@ -1,0 +1,6 @@
+==================
+move file not supported
+==================
+leta mv utils.go helpers.go
+---
+Error: move-file is not supported by gopls
