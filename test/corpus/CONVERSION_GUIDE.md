@@ -401,16 +401,99 @@ def MyFunc():
 - Needs compile_commands.json
 - Header/source separation matters
 
+## Canonical Test Cases
+
+Every language should have the following test cases. Some may have different expected outputs (e.g., error messages for unsupported features), but every language needs a test file for each case.
+
+### grep tests
+| File | Description |
+|------|-------------|
+| `grep_pattern.txt` | Filter symbols by regex pattern |
+| `grep_kind_class.txt` | Filter by kind (class/struct) |
+| `grep_kind_function.txt` | Filter by kind (function) |
+| `grep_case_sensitive.txt` | Case-sensitive matching (finds match) |
+| `grep_case_insensitive.txt` | Case-insensitive matching (default) |
+| `grep_combined_filters.txt` | Pattern + kind filter together |
+| `grep_multiple_files.txt` | Glob pattern for multiple files |
+| `grep_workspace_wide.txt` | Search entire workspace |
+| `grep_exclude.txt` | Exclude pattern |
+| `grep_exclude_multiple.txt` | Multiple exclude patterns |
+| `grep_with_docs.txt` | Include documentation |
+
+### show tests
+| File | Description |
+|------|-------------|
+| `show_function.txt` | Show function/method definition |
+| `show_class.txt` | Show class/struct definition |
+| `show_with_context.txt` | Show with `-n` context lines |
+| `show_multiline_var.txt` | Multi-line variable/constant |
+
+### refs tests
+| File | Description |
+|------|-------------|
+| `refs_basic.txt` | Find all references |
+| `refs_with_context.txt` | References with context lines |
+
+### implementations tests
+| File | Description |
+|------|-------------|
+| `implementations_basic.txt` | Find implementations of interface/protocol |
+| `implementations_with_context.txt` | Implementations with context lines |
+
+### calls tests
+| File | Description |
+|------|-------------|
+| `calls_outgoing.txt` | Outgoing calls from function |
+| `calls_incoming.txt` | Incoming calls to function |
+| `calls_path.txt` | Find call path between functions |
+| `calls_path_not_found.txt` | Call path not found |
+| `calls_include_non_workspace.txt` | Include stdlib/external calls |
+| `calls_excludes_stdlib.txt` | Verify stdlib excluded by default |
+
+### resolve_symbol tests
+| File | Description |
+|------|-------------|
+| `resolve_symbol_unique.txt` | Resolve unique symbol |
+| `resolve_symbol_ambiguous.txt` | Ambiguous symbol shows matches |
+| `resolve_symbol_qualified.txt` | Container.name qualified lookup |
+| `resolve_symbol_file_filter.txt` | file.ext:symbol filter |
+
+### type hierarchy tests
+| File | Description |
+|------|-------------|
+| `subtypes.txt` | Find subtypes (or `subtypes_not_supported.txt`) |
+| `supertypes.txt` | Find supertypes (or `supertypes_not_supported.txt`) |
+
+### declaration tests
+| File | Description |
+|------|-------------|
+| `declaration.txt` | Find declaration (or `declaration_not_supported.txt`) |
+
+### mutation tests (multi-step)
+| File | Description |
+|------|-------------|
+| `rename.txt` | Rename symbol with verification and restore |
+| `mv.txt` | Move file (or `mv_not_supported.txt`) |
+
+### Language-specific tests
+
+Some languages may have additional tests for language-specific features:
+- Go: `resolve_symbol_value_receiver.txt` (method receivers)
+- Go: `grep_kind_struct.txt`, `grep_kind_interface.txt`
+- TypeScript: `grep_kind_interface.txt`
+- etc.
+
 ## Checklist for Each Language
 
 - [ ] Read entire original test file
 - [ ] Create corpus directory structure
 - [ ] Copy fixture (without .venv)
-- [ ] Convert each test methodically
+- [ ] Add workspace with `leta workspace add --root $(pwd)`
+- [ ] Create ALL canonical test cases (see list above)
+- [ ] Add language-specific tests as needed
 - [ ] Verify outputs make sense (watch for bugs!)
 - [ ] Handle mutation tests with state restoration
 - [ ] Run corpus tests successfully
-- [ ] Verify test count matches original
 - [ ] Commit with descriptive message
 
 ## Running Tests
