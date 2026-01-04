@@ -1,0 +1,8 @@
+==================
+grep case insensitive (default)
+==================
+leta grep "storage" --kind object user.lua
+---
+user.lua:43 [Object] Storage
+user.lua:72 [Object] MemoryStorage
+user.lua:122 [Object] FileStorage
