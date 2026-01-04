@@ -1,0 +1,9 @@
+==================
+find implementations of protocol
+==================
+leta implementations StorageProtocol
+---
+main.py:14 class StorageProtocol(Protocol):
+main.py:49 class MemoryStorage:
+main.py:62 class FileStorage:
+editable.py:31 class EditableStorage:
