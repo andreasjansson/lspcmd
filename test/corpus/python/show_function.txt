@@ -3,7 +3,7 @@ show function definition
 ==================
 leta show create_sample_user
 ---
-main.py:113-115
+main.py:114-116
 
 def create_sample_user() -> User:
     """Create a sample user for testing."""
