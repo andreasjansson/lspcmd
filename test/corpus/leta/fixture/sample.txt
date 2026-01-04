@@ -1,0 +1,2 @@
+# This is a minimal fixture for testing leta commands
+# No language server is needed for these tests
