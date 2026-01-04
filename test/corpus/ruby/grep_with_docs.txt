@@ -1,6 +1,6 @@
 ==================
-grep with docs (solargraph does not return docs)
+grep with docs
 ==================
-leta grep "^User$" --kind class --docs user.rb
+leta grep "^adult" --kind method --docs user.rb
 ---
-user.rb:8 [Class] User
+user.rb:25 [Method] adult? in User
