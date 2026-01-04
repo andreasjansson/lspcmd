@@ -166,38 +166,28 @@ async def _prepare_call_hierarchy(
     path: Path,
     line: int,
     column: int,
-    max_retries: int = 3,
 ) -> CallHierarchyItem | None:
     doc = await workspace.ensure_document_open(path)
     assert workspace.client is not None
 
-    last_error: LSPResponseError | None = None
-    for attempt in range(max_retries):
-        try:
-            result = await workspace.client.send_request(
-                "textDocument/prepareCallHierarchy",
-                TextDocumentPositionParams(
-                    textDocument=TextDocumentIdentifier(uri=doc.uri),
-                    position=Position(line=line - 1, character=column),
-                ),
+    try:
+        result = await workspace.client.send_request(
+            "textDocument/prepareCallHierarchy",
+            TextDocumentPositionParams(
+                textDocument=TextDocumentIdentifier(uri=doc.uri),
+                position=Position(line=line - 1, character=column),
+            ),
+        )
+    except LSPResponseError as e:
+        if e.is_method_not_found():
+            raise LSPMethodNotSupported(
+                "textDocument/prepareCallHierarchy", workspace.server_config.name
             )
-            if not result:
-                return None
-            return result[0]
-        except LSPResponseError as e:
-            if e.is_method_not_found():
-                raise LSPMethodNotSupported(
-                    "textDocument/prepareCallHierarchy", workspace.server_config.name
-                )
-            if e.is_retryable() and attempt < max_retries - 1:
-                last_error = e
-                await asyncio.sleep(0.5 * (attempt + 1))
-                continue
-            raise
+        raise
 
-    if last_error:
-        raise last_error
-    return None
+    if not result:
+        return None
+    return result[0]
 
 
 def _is_path_in_workspace(uri: str, workspace_root: Path) -> bool:
@@ -375,7 +365,6 @@ async def _get_incoming_calls_tree(
         raise ValueError(f"No language server available for {path}")
 
     await workspace.client.wait_for_service_ready()
-    await workspace.client.wait_for_indexing()
 
     item = await _prepare_call_hierarchy(workspace, path, line, column)
     if not item:
@@ -500,7 +489,6 @@ async def _find_call_path(
         raise ValueError(f"No language server available for {from_path}")
 
     await workspace.client.wait_for_service_ready()
-    await workspace.client.wait_for_indexing()
 
     from_item = await _prepare_call_hierarchy(
         workspace, from_path, from_line, from_column
