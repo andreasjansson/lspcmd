@@ -1,0 +1,6 @@
+==================
+grep workspace wide
+==================
+leta grep "main" --kind function -C
+---
+main.lua:36 [Function] main (function ())
