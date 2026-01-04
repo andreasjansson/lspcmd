@@ -315,19 +315,26 @@ async def _expand_outgoing_calls(
 
     assert workspace.client is not None
 
-    try:
-        result = await workspace.client.send_request(
-            "callHierarchy/outgoingCalls",
-            CallHierarchyItemParams(item=item),
-        )
-    except LSPResponseError as e:
-        if e.is_method_not_found():
-            if is_root:
-                raise LSPMethodNotSupported(
-                    "callHierarchy/outgoingCalls", workspace.server_config.name
-                )
-            return []
-        raise
+    result = None
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            result = await workspace.client.send_request(
+                "callHierarchy/outgoingCalls",
+                CallHierarchyItemParams(item=item),
+            )
+            break
+        except LSPResponseError as e:
+            if e.is_method_not_found():
+                if is_root:
+                    raise LSPMethodNotSupported(
+                        "callHierarchy/outgoingCalls", workspace.server_config.name
+                    )
+                return []
+            if e.is_retryable() and attempt < max_retries - 1:
+                await asyncio.sleep(0.5 * (attempt + 1))
+                continue
+            raise
 
     if not result:
         return []
