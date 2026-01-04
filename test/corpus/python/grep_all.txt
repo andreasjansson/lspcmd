@@ -1,7 +1,7 @@
 ==================
 grep all symbols in main.py
 ==================
-leta grep main.py
+leta grep . main.py
 ---
 main.py:14 [Class] StorageProtocol
 main.py:17 [Method] save in StorageProtocol
