@@ -13,6 +13,7 @@ from ...lsp.types import (
     CreateFile,
     RenameFile,
     DeleteFile,
+    FileChangeType,
 )
 from ...utils.text import read_file_content
 from ...utils.uri import uri_to_path
@@ -46,7 +47,21 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
     files_modified, renamed_files = await _apply_workspace_edit(ctx, result, workspace_root)
 
-    # Sync the LSP with the changes so subsequent operations see the updated state
+    # Build list of file changes for didChangeWatchedFiles notification
+    file_changes: list[tuple[Path, FileChangeType]] = []
+    for old_path, new_path in renamed_files:
+        file_changes.append((old_path, FileChangeType.Deleted))
+        file_changes.append((new_path, FileChangeType.Created))
+    for rel_path in files_modified:
+        abs_path = workspace_root / rel_path
+        if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
+            file_changes.append((abs_path, FileChangeType.Changed))
+
+    # Notify LSP about file changes (needed for jdtls and other file-watching servers)
+    if file_changes:
+        await workspace.notify_files_changed(file_changes)
+
+    # Sync open documents with the LSP
     for old_path, new_path in renamed_files:
         await workspace.close_document(old_path)
         await workspace.ensure_document_open(new_path)
