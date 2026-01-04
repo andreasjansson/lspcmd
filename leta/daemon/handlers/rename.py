@@ -25,6 +25,7 @@ from .base import HandlerContext
 
 
 async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameResult:
+    logger.info(f"Rename request: {params.path}:{params.line}:{params.column} -> {params.new_name}")
     workspace, doc, _ = await ctx.get_workspace_and_document(
         {
             "path": params.path,
