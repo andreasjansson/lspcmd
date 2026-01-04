@@ -61,6 +61,8 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     logger.debug(f"Rename: files_modified={files_modified}, renamed_files={renamed_files}")
 
     # Build list of file changes for didChangeWatchedFiles notification
+    # For modified files, we MUST send DELETE first to remove old index entries,
+    # then CREATE to add new ones. ruby-lsp's index_single doesn't delete old entries.
     file_changes: list[tuple[Path, FileChangeType]] = []
     for old_path, new_path in renamed_files:
         file_changes.append((old_path, FileChangeType.Deleted))
@@ -68,8 +70,7 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     for rel_path in files_modified:
         abs_path = workspace_root / rel_path
         if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
-            # Send CREATED to trigger reindex - ruby-lsp will call index_single
-            # since we closed the document before
+            file_changes.append((abs_path, FileChangeType.Deleted))
             file_changes.append((abs_path, FileChangeType.Created))
 
     # Notify LSP about file changes (needed for servers that watch files)
