@@ -1,0 +1,9 @@
+==================
+calls outgoing
+==================
+leta calls --from createSampleUser
+---
+main.go:149 [Function] createSampleUser (sample_project • main.go)
+
+Outgoing calls:
+  └── main.go:16 [Function] NewUser (sample_project • main.go)
