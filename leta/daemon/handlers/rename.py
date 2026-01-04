@@ -93,8 +93,9 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
                     WorkspaceSymbolParams(query="__leta_sync__"),
                     timeout=5.0,
                 )
-                # Small additional delay to ensure index is fully updated
-                await asyncio.sleep(0.1)
+                # Delay to ensure index is fully updated
+                # ruby-lsp's index update can take a moment after processing
+                await asyncio.sleep(0.5)
             except Exception:
                 pass  # Just want to ensure notifications are processed
 
