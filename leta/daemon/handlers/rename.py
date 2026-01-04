@@ -88,20 +88,25 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
         import asyncio
         from ...lsp.types import WorkspaceSymbolParams, DocumentSymbolParams
         
+        logger.info("ruby-lsp: starting sync sequence")
+        
         # Wait for didChangeWatchedFiles to be processed
         try:
+            logger.info("ruby-lsp: sending workspace/symbol sync")
             await workspace.client.send_request(
                 "workspace/symbol",
                 WorkspaceSymbolParams(query="__sync__"),
                 timeout=5.0,
             )
-        except Exception:
-            pass
+            logger.info("ruby-lsp: workspace/symbol sync complete")
+        except Exception as e:
+            logger.warning(f"ruby-lsp: workspace/symbol sync failed: {e}")
         
         # Reopen documents and force reindexing via documentSymbol
         for rel_path in files_modified:
             abs_path = workspace_root / rel_path
             if abs_path.exists():
+                logger.info(f"ruby-lsp: reprocessing {abs_path}")
                 # Ensure document is closed first
                 await workspace.close_document(abs_path)
                 # Small delay to ensure close is processed  
@@ -111,13 +116,15 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
                 # Force reindex via documentSymbol request - this triggers run_combined_requests
                 # which calls index.handle_change with a block that deletes old entries
                 try:
+                    logger.info(f"ruby-lsp: sending documentSymbol for {doc.uri}")
                     await workspace.client.send_request(
                         "textDocument/documentSymbol",
                         DocumentSymbolParams(textDocument=TextDocumentIdentifier(uri=doc.uri)),
                         timeout=5.0,
                     )
-                except Exception:
-                    pass
+                    logger.info(f"ruby-lsp: documentSymbol complete for {doc.uri}")
+                except Exception as e:
+                    logger.warning(f"ruby-lsp: documentSymbol failed: {e}")
     else:
         # For other servers, just reopen documents
         for old_path, new_path in renamed_files:
