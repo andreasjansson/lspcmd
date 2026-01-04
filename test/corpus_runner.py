@@ -235,7 +235,11 @@ def run_corpus_file(file_path: Path, work_dir: Path, suite: str, template_vars: 
 def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult:
     """Run all corpus tests in a suite directory.
     
-    Test files are run in alphabetical order.
+    Special files:
+      - _setup.txt: Runs first. If it fails, other tests are skipped.
+      - _teardown.txt: Always runs last, regardless of success/failure.
+    
+    Other test files are run in alphabetical order.
     If a fixture/ directory exists, it's copied to a temp dir and {{ FIXTURE_DIR }} is available.
     """
     start_time = time.time()
@@ -256,24 +260,36 @@ def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult
         else:
             work_dir = suite_dir
         
-        # Run all test files in alphabetical order
-        corpus_files = sorted(suite_dir.glob("*.txt"))
+        # Run _setup.txt first if it exists
+        setup_file = suite_dir / "_setup.txt"
+        if setup_file.exists():
+            file_result = run_corpus_file(setup_file, work_dir, suite_name, template_vars)
+            result.file_results.append(file_result)
+            if not file_result.passed:
+                result.setup_error = "Setup failed"
+                result.elapsed = time.time() - start_time
+                return result
+        
+        # Run all other test files in alphabetical order (excluding _ prefixed files)
+        corpus_files = sorted(f for f in suite_dir.glob("*.txt") if not f.name.startswith("_"))
         
         for corpus_file in corpus_files:
             if filter_pattern and filter_pattern not in corpus_file.stem:
                 continue
             file_result = run_corpus_file(corpus_file, work_dir, suite_name, template_vars)
             result.file_results.append(file_result)
-            # Stop on first failure in setup files (files starting with _)
-            if corpus_file.name.startswith("_") and not file_result.passed:
-                result.setup_error = f"Setup failed in {corpus_file.name}"
-                result.elapsed = time.time() - start_time
-                return result
         
         result.elapsed = time.time() - start_time
         return result
     
     finally:
+        # Always run _teardown.txt if it exists
+        teardown_file = suite_dir / "_teardown.txt"
+        if teardown_file.exists() and temp_dir:
+            work_dir = temp_dir if temp_dir.exists() else suite_dir
+            file_result = run_corpus_file(teardown_file, work_dir, suite_name, template_vars)
+            result.file_results.append(file_result)
+        
         if temp_dir and temp_dir.exists():
             shutil.rmtree(temp_dir, ignore_errors=True)
 
