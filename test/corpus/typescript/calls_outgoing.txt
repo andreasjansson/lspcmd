@@ -1,0 +1,9 @@
+==================
+calls outgoing
+==================
+leta calls --from createSampleUser
+---
+src/main.ts:6 [Function] createSampleUser
+
+Outgoing calls:
+  └── src/user.ts:4 [Class] User
