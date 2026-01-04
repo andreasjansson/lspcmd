@@ -78,13 +78,33 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
         logger.info(f"Notifying LSP about {len(file_changes)} file changes: {file_changes}")
         await workspace.notify_files_changed(file_changes)
 
-    # For ruby-lsp, we need to restart the server after rename to force a full reindex.
-    # This is a workaround for a ruby-lsp bug where the index doesn't properly update
-    # after didChangeWatchedFiles notifications - the old symbol names remain in the
-    # index, causing "name already in use" errors on consecutive renames.
+    # WORKAROUND: Restart ruby-lsp after rename to force a full reindex.
+    #
+    # ruby-lsp has a bug where the index doesn't properly update after rename operations.
+    # When we rename a symbol (e.g., Storage → StorageInterface), the old name remains
+    # in the index even after we send didChangeWatchedFiles notifications. This causes
+    # "The new name is already in use by X" errors on consecutive renames.
+    #
+    # The root cause is in how ruby-lsp processes didChangeWatchedFiles:
+    # https://github.com/Shopify/ruby-lsp/blob/main/lib/ruby_lsp/server.rb
+    #
+    # In workspace_did_change_watched_files(), ruby-lsp calls handle_ruby_file_change()
+    # which should update the index via index.delete() and index.index_single().
+    # However, the index entries for the OLD symbol name are not being deleted.
+    #
+    # The index.delete() method uses the URI as a key to find entries to remove:
+    # https://github.com/Shopify/ruby-lsp/blob/main/lib/ruby_indexer/lib/ruby_indexer/index.rb
+    #
+    # We've tried several approaches that didn't work:
+    # - Sending DELETED + CREATED file change notifications
+    # - Sending CHANGED notifications  
+    # - Reopening documents and triggering documentSymbol (which calls run_combined_requests)
+    # - Adding delays between operations
+    #
+    # The only reliable fix is to restart ruby-lsp, which forces a complete reindex
+    # from disk. This is slower but guarantees correct behavior.
     if workspace.client and workspace.client.server_name == "ruby-lsp":
         logger.info("ruby-lsp: restarting server to refresh index after rename")
-        # Restart ruby-lsp to force a full reindex
         await ctx.session.restart_workspace(workspace.root)
     else:
         # For other servers, just reopen documents
