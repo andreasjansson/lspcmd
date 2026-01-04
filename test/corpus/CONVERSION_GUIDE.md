@@ -311,6 +311,46 @@ Note how the mv test explicitly restores the file so the test is idempotent.
 
 ## Common Patterns
 
+### Testing Unsupported Features
+
+**IMPORTANT:** Every canonical test case must exist for every language, even if the feature is not supported. When a feature is unsupported, create a test that asserts the error message or empty output.
+
+Naming convention: `<feature>_not_supported.txt`
+
+**Example: Feature returns an error**
+```
+==================
+implementations basic not supported
+==================
+leta implementations Storage
+---
+Error: Server 'zls' does not support implementations (may require a license)
+```
+
+**Example: Feature returns empty (no error)**
+```
+==================
+subtypes returns empty
+==================
+leta subtypes User
+---
+```
+
+**Example: Call hierarchy not supported (error on symbol resolution)**
+```
+==================
+calls outgoing not supported
+==================
+leta calls --from main
+---
+Error: No callable symbol found at src/main.zig:4:7 for 'main'. The symbol may not be a function/method, or the position may be incorrect.
+```
+
+This ensures:
+1. We document which features each language server supports
+2. We catch regressions if a language server adds support for a feature
+3. We have consistent test coverage across all languages
+
 ### Testing Error Messages
 
 ```
