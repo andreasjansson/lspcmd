@@ -213,22 +213,13 @@ class Workspace:
             doc = self.open_documents[uri]
             current_content = read_file_content(path)
             if current_content != doc.content:
-                import sys
-                print(f"DEBUG ensure_document_open: syncing {uri} (content changed)", file=sys.stderr)
-                doc.version += 1
-                doc.content = current_content
-                assert self.client is not None
-                await self.client.send_notification(
-                    "textDocument/didChange",
-                    {
-                        "textDocument": {"uri": uri, "version": doc.version},
-                        "contentChanges": [{"text": current_content}],
-                    },
-                )
+                # Close and reopen the document to force a full refresh
+                # This is more reliable than didChange for servers that use incremental sync
+                # (like ruby-lsp) since we don't track the exact edits made
+                await self.close_document(path)
+                # Fall through to reopen below
             else:
-                import sys
-                print(f"DEBUG ensure_document_open: {uri} already open, content unchanged", file=sys.stderr)
-            return doc
+                return doc
 
         content = read_file_content(path)
         language_id = get_language_id(path)
