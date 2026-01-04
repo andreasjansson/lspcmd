@@ -1,0 +1,7 @@
+==================
+grep with pattern filter
+==================
+leta grep main.py "^User"
+---
+main.py:27 [Class] User
+main.py:80 [Class] UserRepository
