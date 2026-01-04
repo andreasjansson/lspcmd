@@ -1,0 +1,12 @@
+==================
+show object with context
+==================
+leta show Storage -n 2
+---
+user.lua:41-45
+
+--- Interface for user storage backends.
+-- @class Storage
+local Storage = {}
+Storage.__index = Storage
+
