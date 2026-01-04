@@ -1,0 +1,23 @@
+==================
+resolve with file filter
+==================
+leta show src/main.zig:main
+---
+src/main.zig:4-19
+
+pub fn main() !void {
+    const allocator = std.heap.page_allocator;
+
+    var storage = user.MemoryStorage.init(allocator);
+    defer storage.deinit();
+
+    var repo = user.UserRepository.init(&storage);
+
+    const sample_user = createSampleUser();
+    try repo.addUser(sample_user);
+
+    if (repo.getUser("john@example.com")) |found| {
+        std.debug.print("Found user: {s}\n", .{found.displayName()});
+        std.debug.print("Is adult: {}\n", .{found.isAdult()});
+    }
+}
