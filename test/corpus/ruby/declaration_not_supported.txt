@@ -1,6 +1,6 @@
 ==================
 declaration not supported
 ==================
-leta declaration user
+leta declaration User
 ---
-Error: Symbol 'user' not found
+Error: textDocument/declaration is not supported by solargraph
