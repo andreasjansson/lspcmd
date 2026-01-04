@@ -1,0 +1,12 @@
+==================
+show function with context
+==================
+leta show NewUserRepository -n 1
+---
+main.go:123-127
+
+// NewUserRepository creates a new repository with the given storage.
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{storage: storage}
+}
+
