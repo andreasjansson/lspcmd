@@ -231,18 +231,23 @@ def add_workspace_root(root: Path, config: Config | None = None) -> None:
             save_config(current_config)
 
 
-def remove_workspace_root(root: Path, config: Config) -> bool:
-    """Remove a workspace root from the config.
+def remove_workspace_root(root: Path, config: Config | None = None) -> bool:
+    """Remove a workspace root atomically with file locking.
 
+    The config parameter is ignored - we always reload under lock to avoid races.
     Returns True if the root was found and removed, False otherwise.
     """
-    roots = config.get("workspaces", {}).get("roots", [])
+    _ = config  # Kept for API compatibility
     root_str = str(root.resolve())
-    if root_str in roots:
-        roots.remove(root_str)
-        save_config(config)
-        return True
-    return False
+    
+    with _config_lock():
+        current_config = load_config()
+        roots = current_config.get("workspaces", {}).get("roots", [])
+        if root_str in roots:
+            roots.remove(root_str)
+            save_config(current_config)
+            return True
+        return False
 
 
 def cleanup_stale_workspace_roots(config: Config) -> list[str]:
