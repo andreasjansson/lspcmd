@@ -225,7 +225,8 @@ class DaemonServer:
 
             if isinstance(result, BaseModel):
                 return {"result": result.model_dump(exclude_none=True)}
-            return {"result": result}
+            # For raw-lsp-request, result may contain nested Pydantic objects
+            return {"result": self._serialize_result(result)}
         except LanguageServerNotFound as e:
             return {"error": str(e)}
         except LSPMethodNotSupported as e:
