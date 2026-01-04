@@ -1,0 +1,20 @@
+==================
+refs with context
+==================
+leta refs createSampleUser -n 1
+---
+src/main.zig:11-13
+
+    const sample_user = createSampleUser();
+    try repo.addUser(sample_user);
+
+src/main.zig:21-23
+/// Creates a sample user for testing.
+pub fn createSampleUser() user.User {
+    return user.User.init("John Doe", "john@example.com", 30);
+
+src/main.zig:39-41
+test "createSampleUser returns valid user" {
+    const u = createSampleUser();
+    try std.testing.expectEqualStrings("John Doe", u.name);
+
