@@ -3,6 +3,9 @@ refs basic
 ==================
 leta refs User
 ---
+src/main.ts:1 import { User, UserRepository, MemoryStorage, validateUser } from './user';
+src/main.ts:6 function createSampleUser(): User {
+src/main.ts:7     return new User("John Doe", "john@example.com", 30);
 src/user.ts:4 export class User {
 src/user.ts:30     save(user: User): void;
 src/user.ts:31     load(email: string): User | undefined;
@@ -19,6 +22,3 @@ src/user.ts:95     addUser(user: User): void {
 src/user.ts:99     getUser(email: string): User | undefined {
 src/user.ts:107     listUsers(): User[] {
 src/user.ts:119 export function validateUser(user: User): string | null {
-src/main.ts:1 import { User, UserRepository, MemoryStorage, validateUser } from './user';
-src/main.ts:6 function createSampleUser(): User {
-src/main.ts:7     return new User("John Doe", "john@example.com", 30);
