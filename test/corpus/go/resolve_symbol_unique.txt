@@ -1,0 +1,12 @@
+==================
+resolve unique symbol
+==================
+leta show User
+---
+main.go:9-13
+
+type User struct {
+	Name  string
+	Email string
+	Age   int
+}
