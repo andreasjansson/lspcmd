@@ -60,8 +60,13 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
 async def _apply_workspace_edit(
     ctx: HandlerContext, edit: WorkspaceEdit, workspace_root: Path
-) -> list[str]:
+) -> tuple[list[str], list[tuple[Path, Path]]]:
+    """Apply a workspace edit and return (files_modified, renamed_files).
+    
+    renamed_files is a list of (old_path, new_path) tuples for file renames.
+    """
     files_modified: list[str] = []
+    renamed_files: list[tuple[Path, Path]] = []
 
     if edit.changes:
         for uri, text_edits in edit.changes.items():
@@ -81,6 +86,7 @@ async def _apply_workspace_edit(
                 new_path.parent.mkdir(parents=True, exist_ok=True)
                 old_path.rename(new_path)
                 files_modified.append(ctx.relative_path(new_path, workspace_root))
+                renamed_files.append((old_path, new_path))
             elif isinstance(change, DeleteFile):
                 file_path = uri_to_path(change.uri)
                 file_path.unlink(missing_ok=True)
@@ -90,7 +96,7 @@ async def _apply_workspace_edit(
                 await _apply_text_edits(file_path, change.edits)
                 files_modified.append(ctx.relative_path(file_path, workspace_root))
 
-    return files_modified
+    return files_modified, renamed_files
 
 
 async def _apply_text_edits(file_path: Path, edits: list[TextEdit]) -> None:
