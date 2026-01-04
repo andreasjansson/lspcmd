@@ -5,8 +5,8 @@ leta show save
 ---
 Error: Symbol 'save' is ambiguous (3 matches)
   Storage.save
-    user.rb:42 [Method] save in Storage
+    person.rb:42 [Method] save in Storage
   MemoryStorage.save
-    user.rb:79 [Method] save in MemoryStorage
+    person.rb:79 [Method] save in MemoryStorage
   FileStorage.save
-    user.rb:123 [Method] save in FileStorage
+    person.rb:123 [Method] save in FileStorage

@@ -3,4 +3,5 @@ supertypes not supported
 ==================
 leta supertypes MemoryStorage
 ---
-Error: textDocument/prepareTypeHierarchy is not supported by solargraph
+person.rb:38 [Class] Storage (person.rb)
+user.rb:38 [Class] Storage (user.rb)

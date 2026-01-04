@@ -3,33 +3,4 @@ resolve unique symbol
 ==================
 leta show User
 ---
-user.rb:8-35
-
-class User
-  attr_reader :name, :email, :age
-
-  # Creates a new User instance.
-  #
-  # @param name [String] The user's name
-  # @param email [String] The user's email
-  # @param age [Integer] The user's age
-  def initialize(name, email, age)
-    @name = name
-    @email = email
-    @age = age
-  end
-
-  # Checks if the user is 18 or older.
-  #
-  # @return [Boolean] True if the user is an adult
-  def adult?
-    @age >= 18
-  end
-
-  # Returns a formatted display name.
-  #
-  # @return [String] The display name in format "name <email>"
-  def display_name
-    "#{@name} <#{@email}>"
-  end
-end
+Error: Symbol 'User' not found

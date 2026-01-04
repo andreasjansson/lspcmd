@@ -3,7 +3,7 @@ show multiline array constant
 ==================
 leta show DEFAULT_CONFIG
 ---
-user.rb:155-160
+person.rb:155-160
 
 DEFAULT_CONFIG = [
   'debug=false',
