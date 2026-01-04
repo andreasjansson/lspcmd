@@ -1,0 +1,10 @@
+==================
+show function definition
+==================
+leta show createSampleUser
+---
+user.hpp:135-137
+
+inline User createSampleUser() {
+    return User("John Doe", "john@example.com", 30);
+}
