@@ -14,10 +14,12 @@ from .base import HandlerContext
 async def handle_subtypes(
     ctx: HandlerContext, params: SubtypesParams
 ) -> SubtypesResult:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
@@ -58,6 +60,4 @@ async def handle_subtypes(
         raise
 
     locations = ctx.format_type_hierarchy_items(result, workspace.root, context)
-    return SubtypesResult(
-        locations=[LocationInfo(**loc) for loc in locations]
-    )
+    return SubtypesResult(locations=[LocationInfo(**loc) for loc in locations])

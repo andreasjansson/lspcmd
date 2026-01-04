@@ -13,10 +13,12 @@ from .base import HandlerContext
 async def handle_references(
     ctx: HandlerContext, params: ReferencesParams
 ) -> ReferencesResult:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
@@ -32,6 +34,4 @@ async def handle_references(
     )
 
     locations = ctx.format_locations(result, workspace.root, context)
-    return ReferencesResult(
-        locations=[LocationInfo(**loc) for loc in locations]
-    )
+    return ReferencesResult(locations=[LocationInfo(**loc) for loc in locations])

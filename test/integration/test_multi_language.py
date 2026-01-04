@@ -35,46 +35,64 @@ class TestMultiLanguageIntegration:
         requires_basedpyright()
         os.chdir(workspace)
 
-        run_request("grep", {
-            "paths": [str(workspace / "app.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "app.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            },
+        )
         time.sleep(0.5)
 
-        response = run_request("grep", {
-            "paths": [str(workspace / "app.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "app.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 app.py:10 [Class] ServiceProtocol
 app.py:19 [Class] PythonUser
 app.py:25 [Class] PythonService"""
+        )
 
     def test_go_grep(self, workspace):
         requires_gopls()
         os.chdir(workspace)
 
-        run_request("grep", {
-            "paths": [str(workspace / "main.go")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.go")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            },
+        )
         time.sleep(0.5)
 
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.go")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["struct"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.go")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["struct"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.go:6 [Struct] GoUser (struct{...})
 main.go:12 [Struct] GoService (struct{...})"""
+        )
 
     def test_both_languages_workspace_wide(self, workspace):
         requires_basedpyright()
@@ -82,25 +100,34 @@ main.go:12 [Struct] GoService (struct{...})"""
         os.chdir(workspace)
 
         # Warm up both servers
-        run_request("grep", {
-            "paths": [str(workspace / "app.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-        })
-        run_request("grep", {
-            "paths": [str(workspace / "main.go")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "app.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            },
+        )
+        run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.go")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            },
+        )
         time.sleep(0.5)
 
         # Now do workspace-wide search
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": "Service",
-            "kinds": ["struct", "class"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": "Service",
+                "kinds": ["struct", "class"],
+            },
+        )
+        output = format_output(result, "plain")
         # Order may vary, check both are present
         assert "app.py:10 [Class] ServiceProtocol" in output
         assert "app.py:25 [Class] PythonService" in output

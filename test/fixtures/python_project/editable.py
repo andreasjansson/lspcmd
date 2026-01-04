@@ -10,6 +10,7 @@ from dataclasses import dataclass
 @dataclass
 class EditablePerson:
     """Editable person class for testing rename operations."""
+
     name: str
     email: str
 

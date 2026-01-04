@@ -34,11 +34,14 @@ class TestPythonIntegration:
         config = load_config()
         add_workspace_root(project, config)
         # Warm up the server
-        run_request("grep", {
-            "paths": [str(project / "main.py")],
-            "workspace_root": str(project),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(project / "main.py")],
+                "workspace_root": str(project),
+                "pattern": ".*",
+            },
+        )
         time.sleep(1.0)
         return project
 
@@ -48,13 +51,18 @@ class TestPythonIntegration:
 
     def test_grep_single_file(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:14 [Class] StorageProtocol
 main.py:17 [Method] save in StorageProtocol
 main.py:17 [Variable] key in save
@@ -106,69 +114,96 @@ main.py:127 [Function] main
 main.py:129 [Variable] repo in main
 main.py:130 [Variable] user in main
 main.py:138 [Variable] found in main"""
+        )
 
     def test_grep_pattern_filter(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": "^User",
-            "case_sensitive": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": "^User",
+                "case_sensitive": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:27 [Class] User
 main.py:80 [Class] UserRepository"""
+        )
 
     def test_grep_kind_filter(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:14 [Class] StorageProtocol
 main.py:27 [Class] User
 main.py:48 [Class] MemoryStorage
 main.py:61 [Class] FileStorage
 main.py:80 [Class] UserRepository"""
+        )
 
     def test_grep_function_kind(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:127 [Function] main"""
+        )
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": "user",
-            "case_sensitive": False,
-        })
-        insensitive_output = format_output(response["result"], "plain")
-        
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": "user",
-            "case_sensitive": True,
-        })
-        sensitive_output = format_output(response["result"], "plain")
-        
-        assert insensitive_output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": "user",
+                "case_sensitive": False,
+            },
+        )
+        insensitive_output = format_output(result, "plain")
+
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": "user",
+                "case_sensitive": True,
+            },
+        )
+        sensitive_output = format_output(result, "plain")
+
+        assert (
+            insensitive_output
+            == """\
 main.py:27 [Class] User
 main.py:80 [Class] UserRepository
 main.py:89 [Method] add_user in UserRepository
@@ -181,8 +216,11 @@ main.py:87 [Variable] _users in UserRepository
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:130 [Variable] user in main"""
-        
-        assert sensitive_output == """\
+        )
+
+        assert (
+            sensitive_output
+            == """\
 main.py:89 [Method] add_user in UserRepository
 main.py:89 [Variable] user in add_user
 main.py:93 [Method] get_user in UserRepository
@@ -193,31 +231,43 @@ main.py:87 [Variable] _users in UserRepository
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:130 [Variable] user in main"""
+        )
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:14 [Class] StorageProtocol
 main.py:48 [Class] MemoryStorage
 main.py:61 [Class] FileStorage"""
+        )
 
     def test_grep_multiple_files(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py"), str(workspace / "utils.py")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py"), str(workspace / "utils.py")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:127 [Function] main
@@ -227,39 +277,54 @@ utils.py:27 [Function] memoize
 utils.py:38 [Function] wrapper in memoize
 utils.py:48 [Function] fibonacci
 utils.py:125 [Function] format_name"""
+        )
 
     def test_grep_workspace_wide(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": "validate",
-            "kinds": ["function"],
-            "exclude_patterns": ["editable*"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": "validate",
+                "kinds": ["function"],
+                "exclude_patterns": ["editable*"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 utils.py:9 [Function] validate_email
 utils.py:22 [Function] validate_age"""
+        )
 
     def test_grep_exclude_pattern(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-            "exclude_patterns": ["editable*"],
-        })
-        all_output = format_output(response["result"], "plain")
-        
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-            "exclude_patterns": ["utils.py", "editable*"],
-        })
-        filtered_output = format_output(response["result"], "plain")
-        
-        assert all_output == """\
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+                "exclude_patterns": ["editable*"],
+            },
+        )
+        all_output = format_output(result, "plain")
+
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+                "exclude_patterns": ["utils.py", "editable*"],
+            },
+        )
+        filtered_output = format_output(result, "plain")
+
+        assert (
+            all_output
+            == """\
 utils.py:9 [Function] validate_email
 utils.py:22 [Function] validate_age
 utils.py:27 [Function] memoize
@@ -272,26 +337,35 @@ errors.py:15 [Function] missing_return
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:127 [Function] main"""
-        
-        assert filtered_output == """\
+        )
+
+        assert (
+            filtered_output
+            == """\
 errors.py:4 [Function] undefined_variable
 errors.py:9 [Function] type_error
 errors.py:15 [Function] missing_return
 main.py:113 [Function] create_sample_user
 main.py:118 [Function] process_users
 main.py:127 [Function] main"""
+        )
 
     def test_grep_with_docs(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.py")],
-            "workspace_root": str(workspace),
-            "pattern": "^create_sample_user$",
-            "kinds": ["function"],
-            "include_docs": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.py")],
+                "workspace_root": str(workspace),
+                "pattern": "^create_sample_user$",
+                "kinds": ["function"],
+                "include_docs": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113 [Function] create_sample_user
     ```python
     (function) def create_sample_user() -> User
@@ -299,6 +373,7 @@ main.py:113 [Function] create_sample_user
     ---
     Create a sample user for testing.
 """
+        )
 
     # =========================================================================
     # definition tests
@@ -306,29 +381,37 @@ main.py:113 [Function] create_sample_user
 
     def test_definition_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 130,
-            "column": 11,
-            "context": 0,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 130,
+                "column": 11,
+                "context": 0,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "main.py:113 def create_sample_user() -> User:"
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 130,
-            "column": 11,
-            "context": 2,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 130,
+                "column": 11,
+                "context": 2,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:111-115
 
 
@@ -336,37 +419,49 @@ def create_sample_user() -> User:
     \"\"\"Create a sample user for testing.\"\"\"
     return User(name="John Doe", email="john@example.com", age=30)
 """
+        )
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 130,
-            "column": 11,
-            "context": 0,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 130,
+                "column": 11,
+                "context": 0,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113-115
 
 def create_sample_user() -> User:
     \"\"\"Create a sample user for testing.\"\"\"
     return User(name="John Doe", email="john@example.com", age=30)"""
+        )
 
     def test_definition_with_body_and_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 130,
-            "column": 11,
-            "context": 2,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 130,
+                "column": 11,
+                "context": 2,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:111-117
 
 
@@ -376,6 +471,7 @@ def create_sample_user() -> User:
     return User(name="John Doe", email="john@example.com", age=30)
 
 """
+        )
 
     # =========================================================================
     # references tests
@@ -383,15 +479,20 @@ def create_sample_user() -> User:
 
     def test_references_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 27,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:27 class User:
 main.py:87         self._users: dict[str, User] = {}
 main.py:89     def add_user(self, user: User) -> None:
@@ -399,18 +500,24 @@ main.py:93     def get_user(self, email: str) -> Optional[User]:
 main.py:104     def list_users(self) -> list[User]:
 main.py:113 def create_sample_user() -> User:
 main.py:115     return User(name="John Doe", email="john@example.com", age=30)"""
+        )
 
     def test_references_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-            "context": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 27,
+                "column": 6,
+                "context": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:26-28
 @dataclass
 class User:
@@ -446,11 +553,11 @@ main.py:114-116
     return User(name="John Doe", email="john@example.com", age=30)
 
 """
+        )
 
     # =========================================================================
     # describe (hover) tests
     # =========================================================================
-
 
     # =========================================================================
     # rename tests (uses isolated editable files)
@@ -458,28 +565,34 @@ main.py:114-116
 
     def test_rename(self, workspace):
         os.chdir(workspace)
-        
+
         editable_path = workspace / "editable.py"
         consumer_path = workspace / "editable_consumer.py"
         original_editable = editable_path.read_text()
         original_consumer = consumer_path.read_text()
-        
+
         try:
             assert "class EditablePerson:" in original_editable
             assert "from editable import EditablePerson" in original_consumer
-            
-            response = run_request("rename", {
-                "path": str(editable_path),
-                "workspace_root": str(workspace),
-                "line": 11,
-                "column": 6,
-                "new_name": "RenamedPerson",
-            })
-            output = format_output(response["result"], "plain")
-            assert output == """\
+
+            result = run_request(
+                "rename",
+                {
+                    "path": str(editable_path),
+                    "workspace_root": str(workspace),
+                    "line": 11,
+                    "column": 6,
+                    "new_name": "RenamedPerson",
+                },
+            )
+            output = format_output(result, "plain")
+            assert (
+                output
+                == """\
 Renamed in 2 file(s):
   editable.py
   editable_consumer.py"""
+            )
 
             renamed_editable = editable_path.read_text()
             renamed_consumer = consumer_path.read_text()
@@ -497,14 +610,17 @@ Renamed in 2 file(s):
 
     def test_declaration_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("declaration", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 27,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "declaration",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 27,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "main.py:27 class User:"
 
     # =========================================================================
@@ -513,19 +629,25 @@ Renamed in 2 file(s):
 
     def test_implementations(self, workspace):
         os.chdir(workspace)
-        response = run_request("implementations", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 14,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "implementations",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 14,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:14 class StorageProtocol(Protocol):
 main.py:48 class MemoryStorage:
 main.py:61 class FileStorage:
 editable.py:30 class EditableStorage:"""
+        )
 
     # =========================================================================
     # subtypes/supertypes tests (not supported by pyright)
@@ -533,25 +655,31 @@ editable.py:30 class EditableStorage:"""
 
     def test_subtypes_not_supported(self, workspace):
         os.chdir(workspace)
-        response = run_request("subtypes", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 14,
-            "column": 6,
-            "context": 0,
-        })
+        result = run_request(
+            "subtypes",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 14,
+                "column": 6,
+                "context": 0,
+            },
+        )
         assert "error" in response
         assert "prepareTypeHierarchy" in response["error"]
 
     def test_supertypes_not_supported(self, workspace):
         os.chdir(workspace)
-        response = run_request("supertypes", {
-            "path": str(workspace / "main.py"),
-            "workspace_root": str(workspace),
-            "line": 48,
-            "column": 6,
-            "context": 0,
-        })
+        result = run_request(
+            "supertypes",
+            {
+                "path": str(workspace / "main.py"),
+                "workspace_root": str(workspace),
+                "line": 48,
+                "column": 6,
+                "context": 0,
+            },
+        )
         assert "error" in response
         assert "prepareTypeHierarchy" in response["error"]
 
@@ -561,32 +689,35 @@ editable.py:30 class EditableStorage:"""
 
     def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
-        
+
         editable_path = workspace / "editable.py"
         consumer_path = workspace / "editable_consumer.py"
         renamed_editable_path = workspace / "editable_renamed.py"
-        
+
         original_editable = editable_path.read_text()
         original_consumer = consumer_path.read_text()
-        
+
         try:
             assert editable_path.exists()
             assert "from editable import EditablePerson" in original_consumer
-            
-            response = run_request("move-file", {
-                "old_path": str(editable_path),
-                "new_path": str(renamed_editable_path),
-                "workspace_root": str(workspace),
-            })
-            output = format_output(response["result"], "plain")
-            
+
+            result = run_request(
+                "move-file",
+                {
+                    "old_path": str(editable_path),
+                    "new_path": str(renamed_editable_path),
+                    "workspace_root": str(workspace),
+                },
+            )
+            output = format_output(result, "plain")
+
             assert not editable_path.exists()
             assert renamed_editable_path.exists()
-            
+
             assert "Moved file and updated imports" in output
             assert "editable_consumer.py" in output
             assert "editable_renamed.py" in output
-            
+
             updated_consumer = consumer_path.read_text()
             assert "from editable_renamed import EditablePerson" in updated_consumer
             assert "from editable import EditablePerson" not in updated_consumer
@@ -603,51 +734,64 @@ editable.py:30 class EditableStorage:"""
     def test_resolve_symbol_unique_name(self, workspace):
         """Test resolving a unique symbol name."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "User",
-        })
-        result = response["result"]
-        assert result["name"] == "User"
-        assert result["line"] == 27
-        assert result["kind"] == "Class"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "User",
+            },
+        )
+        assert result.name == "User"
+        assert result.line == 27
+        assert result.kind == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous symbols show Container.name format in refs."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "save",
-        })
-        result = response["result"]
-        assert result["error"] == "Symbol 'save' is ambiguous (4 matches)"
-        assert result["total_matches"] == 4
-        refs = sorted([m["ref"] for m in result["matches"]])
-        assert refs == ["EditableStorage.save", "FileStorage.save", "MemoryStorage.save", "StorageProtocol.save"]
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "save",
+            },
+        )
+        assert result.error == "Symbol 'save' is ambiguous (4 matches)"
+        assert result.total_matches == 4
+        refs = sorted([m.ref for m in result.matches])
+        assert refs == [
+            "EditableStorage.save",
+            "FileStorage.save",
+            "MemoryStorage.save",
+            "StorageProtocol.save",
+        ]
 
     def test_resolve_symbol_qualified_name(self, workspace):
         """Test resolving Container.name format."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "MemoryStorage.save",
-        })
-        result = response["result"]
-        assert result["name"] == "save"
-        assert result["line"] == 54
-        assert result["kind"] == "Method"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "MemoryStorage.save",
+            },
+        )
+        assert result.name == "save"
+        assert result.line == 54
+        assert result.kind == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "main.py:User",
-        })
-        result = response["result"]
-        assert result["name"] == "User"
-        assert result["line"] == 27
-        assert result["path"].endswith("main.py")
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "main.py:User",
+            },
+        )
+        assert result.name == "User"
+        assert result.line == 27
+        assert result.path.endswith("main.py")
 
     # =========================================================================
     # show multi-line constant/variable tests
@@ -656,20 +800,25 @@ editable.py:30 class EditableStorage:"""
     def test_show_multiline_dict_constant(self, workspace):
         """Test that show expands multi-line dict constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "utils.py"),
-            "workspace_root": str(workspace),
-            "line": 130,
-            "column": 0,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 130,
-            "range_end_line": 130,
-            "kind": "Constant",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "utils.py"),
+                "workspace_root": str(workspace),
+                "line": 130,
+                "column": 0,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 130,
+                "range_end_line": 130,
+                "kind": "Constant",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 utils.py:130-138
 
 COUNTRY_CODES = {
@@ -681,24 +830,30 @@ COUNTRY_CODES = {
     "JP": "Japan",
     "AU": "Australia",
 }"""
+        )
 
     def test_show_multiline_list_constant(self, workspace):
         """Test that show expands multi-line list constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "utils.py"),
-            "workspace_root": str(workspace),
-            "line": 140,
-            "column": 0,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 140,
-            "range_end_line": 140,
-            "kind": "Constant",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "utils.py"),
+                "workspace_root": str(workspace),
+                "line": 140,
+                "column": 0,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 140,
+                "range_end_line": 140,
+                "kind": "Constant",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 utils.py:140-145
 
 DEFAULT_CONFIG = [
@@ -707,6 +862,7 @@ DEFAULT_CONFIG = [
     "max_retries=3",
     "log_level=INFO",
 ]"""
+        )
 
     # =========================================================================
     # calls tests
@@ -715,118 +871,154 @@ DEFAULT_CONFIG = [
     def test_calls_outgoing(self, workspace):
         """Test outgoing calls from create_sample_user (only calls User)."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "main.py"),
-            "from_line": 113,
-            "from_column": 4,
-            "from_symbol": "create_sample_user",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "main.py"),
+                "from_line": 113,
+                "from_column": 4,
+                "from_symbol": "create_sample_user",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113 [Function] create_sample_user
 
 Outgoing calls:
   └── main.py:27 [Class] User"""
+        )
 
     def test_calls_incoming(self, workspace):
         """Test incoming calls to create_sample_user function."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "incoming",
-            "to_path": str(workspace / "main.py"),
-            "to_line": 113,
-            "to_column": 4,
-            "to_symbol": "create_sample_user",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "incoming",
+                "to_path": str(workspace / "main.py"),
+                "to_line": 113,
+                "to_column": 4,
+                "to_symbol": "create_sample_user",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.py:113 [Function] create_sample_user
 
 Incoming calls:
   └── main.py:127 [Function] main"""
+        )
 
     def test_calls_path_found(self, workspace):
         """Test finding call path between two functions."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "path",
-            "from_path": str(workspace / "main.py"),
-            "from_line": 127,
-            "from_column": 4,
-            "from_symbol": "main",
-            "to_path": str(workspace / "main.py"),
-            "to_line": 113,
-            "to_column": 4,
-            "to_symbol": "create_sample_user",
-            "max_depth": 3,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "path",
+                "from_path": str(workspace / "main.py"),
+                "from_line": 127,
+                "from_column": 4,
+                "from_symbol": "main",
+                "to_path": str(workspace / "main.py"),
+                "to_line": 113,
+                "to_column": 4,
+                "to_symbol": "create_sample_user",
+                "max_depth": 3,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 Call path:
 main.py:127 [Function] main
   → main.py:113 [Function] create_sample_user"""
+        )
 
     def test_calls_path_not_found(self, workspace):
         """Test call path when no path exists."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "path",
-            "from_path": str(workspace / "main.py"),
-            "from_line": 113,
-            "from_column": 4,
-            "from_symbol": "create_sample_user",
-            "to_path": str(workspace / "main.py"),
-            "to_line": 127,
-            "to_column": 4,
-            "to_symbol": "main",
-            "max_depth": 3,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == "No call path found from 'create_sample_user' to 'main' within depth 3"
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "path",
+                "from_path": str(workspace / "main.py"),
+                "from_line": 113,
+                "from_column": 4,
+                "from_symbol": "create_sample_user",
+                "to_path": str(workspace / "main.py"),
+                "to_line": 127,
+                "to_column": 4,
+                "to_symbol": "main",
+                "max_depth": 3,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == "No call path found from 'create_sample_user' to 'main' within depth 3"
+        )
 
     def test_calls_outgoing_include_non_workspace(self, workspace):
         """Test outgoing calls with --include-non-workspace shows stdlib calls."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "utils.py"),
-            "from_line": 9,
-            "from_column": 4,
-            "from_symbol": "validate_email",
-            "max_depth": 1,
-            "include_non_workspace": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "utils.py"),
+                "from_line": 9,
+                "from_column": 4,
+                "from_symbol": "validate_email",
+                "max_depth": 1,
+                "include_non_workspace": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 utils.py:9 [Function] validate_email
 
 Outgoing calls:
   ├── [Class] bool
   ├── [Function] match
   └── [Function] match"""
+        )
 
     def test_calls_outgoing_excludes_stdlib_by_default(self, workspace):
         """Test outgoing calls without --include-non-workspace excludes stdlib."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "utils.py"),
-            "from_line": 9,
-            "from_column": 4,
-            "from_symbol": "validate_email",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "utils.py"),
+                "from_line": 9,
+                "from_column": 4,
+                "from_symbol": "validate_email",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 utils.py:9 [Function] validate_email
 
 Outgoing calls:"""
+        )

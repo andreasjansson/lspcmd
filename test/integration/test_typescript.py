@@ -32,11 +32,14 @@ class TestTypeScriptIntegration:
     def workspace(self, project, class_daemon, class_isolated_config):
         config = load_config()
         add_workspace_root(project, config)
-        run_request("grep", {
-            "paths": [str(project / "src" / "main.ts")],
-            "workspace_root": str(project),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(project / "src" / "main.ts")],
+                "workspace_root": str(project),
+                "pattern": ".*",
+            },
+        )
         time.sleep(1.0)
         return project
 
@@ -46,115 +49,162 @@ class TestTypeScriptIntegration:
 
     def test_grep_pattern_filter(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-            "kinds": ["class", "interface"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+                "kinds": ["class", "interface"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:62 [Class] FileStorage
 src/user.ts:39 [Class] MemoryStorage
 src/user.ts:29 [Interface] Storage"""
+        )
 
     def test_grep_kind_filter_class(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:62 [Class] FileStorage
 src/user.ts:39 [Class] MemoryStorage
 src/user.ts:4 [Class] User
 src/user.ts:92 [Class] UserRepository"""
+        )
 
     def test_grep_kind_filter_interface(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["interface"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["interface"],
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "src/user.ts:29 [Interface] Storage"
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "^User$",
-            "case_sensitive": False,
-        })
-        insensitive_output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": "^User$",
+                "case_sensitive": False,
+            },
+        )
+        insensitive_output = format_output(result, "plain")
         assert insensitive_output == "src/user.ts:4 [Class] User"
-        
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "^user$",
-            "case_sensitive": True,
-        })
-        lowercase_output = format_output(response["result"], "plain")
+
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": "^user$",
+                "case_sensitive": True,
+            },
+        )
+        lowercase_output = format_output(result, "plain")
         assert lowercase_output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "user.ts")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:62 [Class] FileStorage
 src/user.ts:39 [Class] MemoryStorage"""
+        )
 
     def test_grep_multiple_files(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "main.ts"), str(workspace / "src" / "user.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "^validate",
-            "case_sensitive": False,
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [
+                    str(workspace / "src" / "main.ts"),
+                    str(workspace / "src" / "user.ts"),
+                ],
+                "workspace_root": str(workspace),
+                "pattern": "^validate",
+                "case_sensitive": False,
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:20 [Function] validateEmail
 src/user.ts:119 [Function] validateUser"""
+        )
 
     def test_grep_workspace_wide(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": "validate",
-            "case_sensitive": False,
-            "kinds": ["function"],
-            "exclude_patterns": ["editable*"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": "validate",
+                "case_sensitive": False,
+                "kinds": ["function"],
+                "exclude_patterns": ["editable*"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:20 [Function] validateEmail
 src/user.ts:119 [Function] validateUser"""
+        )
 
     def test_grep_exclude_pattern(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-            "exclude_patterns": ["editable*"],
-        })
-        all_output = format_output(response["result"], "plain")
-        assert all_output == """\
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+                "exclude_patterns": ["editable*"],
+            },
+        )
+        all_output = format_output(result, "plain")
+        assert (
+            all_output
+            == """\
 src/main.ts:6 [Function] createSampleUser
 src/main.ts:55 [Function] main
 src/main.ts:75 [Function] names.forEach() callback in main
@@ -168,15 +218,21 @@ src/errors.ts:32 [Function] twoArgs
 src/errors.ts:11 [Function] typeError
 src/errors.ts:6 [Function] undefinedVariable
 src/user.ts:119 [Function] validateUser"""
-        
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-            "exclude_patterns": ["errors.ts", "editable*"],
-        })
-        filtered_output = format_output(response["result"], "plain")
-        assert filtered_output == """\
+        )
+
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+                "exclude_patterns": ["errors.ts", "editable*"],
+            },
+        )
+        filtered_output = format_output(result, "plain")
+        assert (
+            filtered_output
+            == """\
 src/main.ts:6 [Function] createSampleUser
 src/main.ts:55 [Function] main
 src/main.ts:75 [Function] names.forEach() callback in main
@@ -184,24 +240,31 @@ src/main.ts:13 [Function] processUsers
 src/main.ts:14 [Function] map() callback in processUsers
 src/main.ts:20 [Function] validateEmail
 src/user.ts:119 [Function] validateUser"""
+        )
 
     def test_grep_with_docs(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "src" / "main.ts")],
-            "workspace_root": str(workspace),
-            "pattern": "^createSampleUser$",
-            "kinds": ["function"],
-            "include_docs": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "src" / "main.ts")],
+                "workspace_root": str(workspace),
+                "pattern": "^createSampleUser$",
+                "kinds": ["function"],
+                "include_docs": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:6 [Function] createSampleUser
     ```typescript
     function createSampleUser(): User
     ```
     Creates a sample user for testing.
 """
+        )
 
     # =========================================================================
     # definition tests
@@ -209,65 +272,85 @@ src/main.ts:6 [Function] createSampleUser
 
     def test_definition_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "main.ts"),
-            "workspace_root": str(workspace),
-            "line": 58,
-            "column": 18,
-            "context": 0,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "main.ts"),
+                "workspace_root": str(workspace),
+                "line": 58,
+                "column": 18,
+                "context": 0,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "src/main.ts:6 function createSampleUser(): User {"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "main.ts"),
-            "workspace_root": str(workspace),
-            "line": 58,
-            "column": 18,
-            "context": 0,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "main.ts"),
+                "workspace_root": str(workspace),
+                "line": 58,
+                "column": 18,
+                "context": 0,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:6-8
 
 function createSampleUser(): User {
     return new User("John Doe", "john@example.com", 30);
 }"""
+        )
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "main.ts"),
-            "workspace_root": str(workspace),
-            "line": 58,
-            "column": 18,
-            "context": 1,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "main.ts"),
+                "workspace_root": str(workspace),
+                "line": 58,
+                "column": 18,
+                "context": 1,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:5-7
  */
 function createSampleUser(): User {
     return new User("John Doe", "john@example.com", 30);
 """
+        )
 
     def test_definition_with_body_and_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "main.ts"),
-            "workspace_root": str(workspace),
-            "line": 58,
-            "column": 18,
-            "context": 1,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "main.ts"),
+                "workspace_root": str(workspace),
+                "line": 58,
+                "column": 18,
+                "context": 1,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:5-9
 
  */
@@ -275,6 +358,7 @@ function createSampleUser(): User {
     return new User("John Doe", "john@example.com", 30);
 }
 """
+        )
 
     # =========================================================================
     # references tests
@@ -282,15 +366,20 @@ function createSampleUser(): User {
 
     def test_references_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 4,
+                "column": 13,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:4 export class User {
 src/user.ts:30     save(user: User): void;
 src/user.ts:31     load(email: string): User | undefined;
@@ -310,18 +399,24 @@ src/user.ts:119 export function validateUser(user: User): string | null {
 src/main.ts:1 import { User, UserRepository, MemoryStorage, validateUser } from './user';
 src/main.ts:6 function createSampleUser(): User {
 src/main.ts:7     return new User("John Doe", "john@example.com", 30);"""
+        )
 
     def test_references_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 4,
-            "column": 13,
-            "context": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 4,
+                "column": 13,
+                "context": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:3-5
  */
 export class User {
@@ -416,6 +511,7 @@ function createSampleUser(): User {
     return new User("John Doe", "john@example.com", 30);
 }
 """
+        )
 
     # =========================================================================
     # implementations tests
@@ -423,29 +519,40 @@ function createSampleUser(): User {
 
     def test_implementations_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("implementations", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 29,
-            "column": 17,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "implementations",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 29,
+                "column": 17,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:39 export class MemoryStorage implements Storage {
 src/user.ts:62 export class FileStorage implements Storage {"""
+        )
 
     def test_implementations_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("implementations", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 29,
-            "column": 17,
-            "context": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "implementations",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 29,
+                "column": 17,
+                "context": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:38-40
  */
 export class MemoryStorage implements Storage {
@@ -456,6 +563,7 @@ src/user.ts:61-63
 export class FileStorage implements Storage {
     private cache: Map<string, User> = new Map();
 """
+        )
 
     # =========================================================================
     # rename tests (uses isolated editable files)
@@ -463,24 +571,27 @@ export class FileStorage implements Storage {
 
     def test_rename(self, workspace):
         os.chdir(workspace)
-        
+
         editable_path = workspace / "src" / "editable.ts"
         consumer_path = workspace / "src" / "editable_consumer.ts"
         original_editable = editable_path.read_text()
         original_consumer = consumer_path.read_text()
-        
+
         try:
             assert "export class EditablePerson {" in original_editable
             assert "import { EditablePerson," in original_consumer
-            
-            response = run_request("rename", {
-                "path": str(editable_path),
-                "workspace_root": str(workspace),
-                "line": 10,
-                "column": 13,
-                "new_name": "RenamedPerson",
-            })
-            output = format_output(response["result"], "plain")
+
+            result = run_request(
+                "rename",
+                {
+                    "path": str(editable_path),
+                    "workspace_root": str(workspace),
+                    "line": 10,
+                    "column": 13,
+                    "new_name": "RenamedPerson",
+                },
+            )
+            output = format_output(result, "plain")
             lines = output.strip().split("\n")
             assert lines[0] == "Renamed in 2 file(s):"
             files_renamed = {line.strip() for line in lines[1:]}
@@ -502,35 +613,41 @@ export class FileStorage implements Storage {
 
     def test_move_file_updates_imports(self, workspace):
         os.chdir(workspace)
-        
+
         editable_path = workspace / "src" / "editable.ts"
         consumer_path = workspace / "src" / "editable_consumer.ts"
         models_dir = workspace / "src" / "models"
         moved_editable_path = models_dir / "editable.ts"
-        
+
         original_editable = editable_path.read_text()
         original_consumer = consumer_path.read_text()
-        
+
         try:
             models_dir.mkdir(exist_ok=True)
-            
+
             assert "from './editable'" in original_consumer
-            
-            response = run_request("move-file", {
-                "old_path": str(editable_path),
-                "new_path": str(moved_editable_path),
-                "workspace_root": str(workspace),
-            })
-            output = format_output(response["result"], "plain")
-            
+
+            result = run_request(
+                "move-file",
+                {
+                    "old_path": str(editable_path),
+                    "new_path": str(moved_editable_path),
+                    "workspace_root": str(workspace),
+                },
+            )
+            output = format_output(result, "plain")
+
             assert not editable_path.exists()
             assert moved_editable_path.exists()
-            
-            assert output == """\
+
+            assert (
+                output
+                == """\
 Moved file and updated imports in 2 file(s):
   src/editable_consumer.ts
   src/models/editable.ts"""
-            
+            )
+
             updated_consumer = consumer_path.read_text()
             assert "from './models/editable'" in updated_consumer
         finally:
@@ -548,48 +665,61 @@ Moved file and updated imports in 2 file(s):
     def test_resolve_symbol_unique_name(self, workspace):
         """Test resolving a unique symbol name."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "Counter",
-        })
-        result = response["result"]
-        assert result["name"] == "Counter"
-        assert result["kind"] == "Class"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "Counter",
+            },
+        )
+        assert result.name == "Counter"
+        assert result.kind == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous TypeScript symbols show Class.method format."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "save",
-        })
-        result = response["result"]
-        assert result["error"] == "Symbol 'save' is ambiguous (4 matches)"
-        assert result["total_matches"] == 4
-        refs = sorted([m["ref"] for m in result["matches"]])
-        assert refs == ["EditableStorage.save", "FileStorage.save", "MemoryStorage.save", "Storage.save"]
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "save",
+            },
+        )
+        assert result.error == "Symbol 'save' is ambiguous (4 matches)"
+        assert result.total_matches == 4
+        refs = sorted([m.ref for m in result.matches])
+        assert refs == [
+            "EditableStorage.save",
+            "FileStorage.save",
+            "MemoryStorage.save",
+            "Storage.save",
+        ]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "Counter.increment",
-        })
-        result = response["result"]
-        assert result["name"] == "increment"
-        assert result["kind"] == "Method"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "Counter.increment",
+            },
+        )
+        assert result.name == "increment"
+        assert result.kind == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "main.ts:createSampleUser",
-        })
-        result = response["result"]
-        assert result["name"] == "createSampleUser"
-        assert result["path"].endswith("main.ts")
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "main.ts:createSampleUser",
+            },
+        )
+        assert result.name == "createSampleUser"
+        assert result.path.endswith("main.ts")
 
     # =========================================================================
     # show multi-line constant tests
@@ -598,20 +728,25 @@ Moved file and updated imports in 2 file(s):
     def test_show_multiline_object_constant(self, workspace):
         """Test that show displays multi-line object constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 135,
-            "column": 13,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 135,
-            "range_end_line": 143,
-            "kind": "Constant",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 135,
+                "column": 13,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 135,
+                "range_end_line": 143,
+                "kind": "Constant",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:135-143
 
 export const COUNTRY_CODES: Record<string, string> = {
@@ -623,24 +758,30 @@ export const COUNTRY_CODES: Record<string, string> = {
     "JP": "Japan",
     "AU": "Australia",
 };"""
+        )
 
     def test_show_multiline_array_constant(self, workspace):
         """Test that show displays multi-line array constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "src" / "user.ts"),
-            "workspace_root": str(workspace),
-            "line": 148,
-            "column": 13,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 148,
-            "range_end_line": 153,
-            "kind": "Constant",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "src" / "user.ts"),
+                "workspace_root": str(workspace),
+                "line": 148,
+                "column": 13,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 148,
+                "range_end_line": 153,
+                "kind": "Constant",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/user.ts:148-153
 
 export const DEFAULT_CONFIG: string[] = [
@@ -649,6 +790,7 @@ export const DEFAULT_CONFIG: string[] = [
     "max_retries=3",
     "log_level=INFO",
 ];"""
+        )
 
     # =========================================================================
     # calls tests
@@ -657,79 +799,103 @@ export const DEFAULT_CONFIG: string[] = [
     def test_calls_outgoing(self, workspace):
         """Test outgoing calls from createSampleUser (only calls User)."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "src" / "main.ts"),
-            "from_line": 6,
-            "from_column": 9,
-            "from_symbol": "createSampleUser",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "src" / "main.ts"),
+                "from_line": 6,
+                "from_column": 9,
+                "from_symbol": "createSampleUser",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:6 [Function] createSampleUser
 
 Outgoing calls:
   └── src/user.ts:4 [Class] User"""
+        )
 
     def test_calls_incoming(self, workspace):
         """Test incoming calls to createSampleUser function."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "incoming",
-            "to_path": str(workspace / "src" / "main.ts"),
-            "to_line": 6,
-            "to_column": 9,
-            "to_symbol": "createSampleUser",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "incoming",
+                "to_path": str(workspace / "src" / "main.ts"),
+                "to_line": 6,
+                "to_column": 9,
+                "to_symbol": "createSampleUser",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:6 [Function] createSampleUser
 
 Incoming calls:
   └── src/main.ts:55 [Function] main"""
+        )
 
     def test_calls_outgoing_include_non_workspace(self, workspace):
         """Test outgoing calls with --include-non-workspace shows stdlib calls."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "src" / "main.ts"),
-            "from_line": 13,
-            "from_column": 9,
-            "from_symbol": "processUsers",
-            "max_depth": 1,
-            "include_non_workspace": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "src" / "main.ts"),
+                "from_line": 13,
+                "from_column": 9,
+                "from_symbol": "processUsers",
+                "max_depth": 1,
+                "include_non_workspace": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:13 [Function] processUsers
 
 Outgoing calls:
   ├── [Method] map
   ├── src/user.ts:107 [Method] listUsers (UserRepository)
   └── src/user.ts:21 [Method] displayName (User)"""
+        )
 
     def test_calls_outgoing_excludes_stdlib_by_default(self, workspace):
         """Test outgoing calls without --include-non-workspace excludes stdlib."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "src" / "main.ts"),
-            "from_line": 13,
-            "from_column": 9,
-            "from_symbol": "processUsers",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "src" / "main.ts"),
+                "from_line": 13,
+                "from_column": 9,
+                "from_symbol": "processUsers",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 src/main.ts:13 [Function] processUsers
 
 Outgoing calls:
   ├── src/user.ts:107 [Method] listUsers (UserRepository)
   └── src/user.ts:21 [Method] displayName (User)"""
+        )

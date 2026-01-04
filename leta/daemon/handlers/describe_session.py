@@ -17,12 +17,16 @@ async def handle_describe_session(
     workspaces: list[WorkspaceInfo] = []
     for root, servers in ctx.session.workspaces.items():
         for server_name, workspace in servers.items():
-            workspaces.append(WorkspaceInfo(
-                root=str(root),
-                language=server_name,
-                server_pid=workspace.client.process.pid if workspace.client and workspace.client.process else None,
-                open_documents=list(workspace.open_documents.keys()),
-            ))
+            workspaces.append(
+                WorkspaceInfo(
+                    root=str(root),
+                    language=server_name,
+                    server_pid=workspace.client.process.pid
+                    if workspace.client and workspace.client.process
+                    else None,
+                    open_documents=list(workspace.open_documents.keys()),
+                )
+            )
 
     return DescribeSessionResult(
         daemon_pid=os.getpid(),

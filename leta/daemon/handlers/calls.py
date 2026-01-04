@@ -44,37 +44,69 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
     include_non_workspace = params.include_non_workspace
 
     if mode == "outgoing":
-        if params.from_path is None or params.from_line is None or params.from_column is None:
-            return CallsResult(error="from_path, from_line, and from_column are required for outgoing mode")
+        if (
+            params.from_path is None
+            or params.from_line is None
+            or params.from_column is None
+        ):
+            return CallsResult(
+                error="from_path, from_line, and from_column are required for outgoing mode"
+            )
         path = Path(params.from_path).resolve()
         line = params.from_line
         column = params.from_column
         symbol_name = params.from_symbol or ""
         result = await _get_outgoing_calls_tree(
-            ctx, workspace_root, path, line, column, symbol_name, max_depth,
-            include_non_workspace
+            ctx,
+            workspace_root,
+            path,
+            line,
+            column,
+            symbol_name,
+            max_depth,
+            include_non_workspace,
         )
         if "error" in result:
             return CallsResult(error=str(result["error"]))
-        return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
+        return CallsResult(
+            root=_dict_to_call_node(result) if "name" in result else None
+        )
     elif mode == "incoming":
         if params.to_path is None or params.to_line is None or params.to_column is None:
-            return CallsResult(error="to_path, to_line, and to_column are required for incoming mode")
+            return CallsResult(
+                error="to_path, to_line, and to_column are required for incoming mode"
+            )
         path = Path(params.to_path).resolve()
         line = params.to_line
         column = params.to_column
         symbol_name = params.to_symbol or ""
         result = await _get_incoming_calls_tree(
-            ctx, workspace_root, path, line, column, symbol_name, max_depth,
-            include_non_workspace
+            ctx,
+            workspace_root,
+            path,
+            line,
+            column,
+            symbol_name,
+            max_depth,
+            include_non_workspace,
         )
         if "error" in result:
             return CallsResult(error=str(result["error"]))
-        return CallsResult(root=_dict_to_call_node(result) if "name" in result else None)
+        return CallsResult(
+            root=_dict_to_call_node(result) if "name" in result else None
+        )
     else:
-        if (params.from_path is None or params.from_line is None or params.from_column is None or
-            params.to_path is None or params.to_line is None or params.to_column is None):
-            return CallsResult(error="from_path, from_line, from_column, to_path, to_line, and to_column are required for path mode")
+        if (
+            params.from_path is None
+            or params.from_line is None
+            or params.from_column is None
+            or params.to_path is None
+            or params.to_line is None
+            or params.to_column is None
+        ):
+            return CallsResult(
+                error="from_path, from_line, from_column, to_path, to_line, and to_column are required for path mode"
+            )
         from_path = Path(params.from_path).resolve()
         from_line = params.from_line
         from_column = params.from_column
@@ -84,10 +116,18 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
         to_column = params.to_column
         to_symbol = params.to_symbol or ""
         result = await _find_call_path(
-            ctx, workspace_root,
-            from_path, from_line, from_column, from_symbol,
-            to_path, to_line, to_column, to_symbol,
-            max_depth, include_non_workspace
+            ctx,
+            workspace_root,
+            from_path,
+            from_line,
+            from_column,
+            from_symbol,
+            to_path,
+            to_line,
+            to_column,
+            to_symbol,
+            max_depth,
+            include_non_workspace,
         )
         if result.get("found"):
             path_items = result.get("path")
@@ -95,7 +135,9 @@ async def handle_calls(ctx: HandlerContext, params: CallsParams) -> CallsResult:
                 return CallsResult(
                     path=[_dict_to_call_node(item) for item in path_items]
                 )
-        return CallsResult(message=str(result.get("message")) if result.get("message") else None)
+        return CallsResult(
+            message=str(result.get("message")) if result.get("message") else None
+        )
 
 
 def _dict_to_call_node(d: FormattedCallItemWithCalls) -> CallNode:
@@ -152,7 +194,17 @@ def _is_path_in_workspace(uri: str, workspace_root: Path) -> bool:
     file_path = uri_to_path(uri)
     try:
         rel_path = file_path.relative_to(workspace_root)
-        excluded_dirs = {".venv", "venv", "node_modules", "vendor", ".git", "__pycache__", "target", "build", "dist"}
+        excluded_dirs = {
+            ".venv",
+            "venv",
+            "node_modules",
+            "vendor",
+            ".git",
+            "__pycache__",
+            "target",
+            "build",
+            "dist",
+        }
         if any(part in excluded_dirs for part in rel_path.parts):
             return False
         return True
@@ -207,7 +259,7 @@ async def _get_outgoing_calls_tree(
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
             error=f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. "
-                  + "The symbol may not be a function/method, or the position may be incorrect."
+            + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     formatted = _format_call_hierarchy_item(item, workspace_root, ctx)
@@ -220,8 +272,14 @@ async def _get_outgoing_calls_tree(
         column=formatted["column"],
     )
     root["calls"] = await _expand_outgoing_calls(
-        ctx, workspace, workspace_root, item, max_depth, set(),
-        include_non_workspace, is_root=True
+        ctx,
+        workspace,
+        workspace_root,
+        item,
+        max_depth,
+        set(),
+        include_non_workspace,
+        is_root=True,
     )
     return root
 
@@ -267,7 +325,9 @@ async def _expand_outgoing_calls(
     for call in result:
         to_item = call.to
 
-        if not include_non_workspace and not _is_path_in_workspace(to_item.uri, workspace_root):
+        if not include_non_workspace and not _is_path_in_workspace(
+            to_item.uri, workspace_root
+        ):
             continue
 
         call_info = _format_call_hierarchy_item(to_item, workspace_root, ctx)
@@ -276,8 +336,13 @@ async def _expand_outgoing_calls(
             for r in call.fromRanges
         ]
         call_info["calls"] = await _expand_outgoing_calls(
-            ctx, workspace, workspace_root, to_item, depth - 1, visited,
-            include_non_workspace
+            ctx,
+            workspace,
+            workspace_root,
+            to_item,
+            depth - 1,
+            visited,
+            include_non_workspace,
         )
         calls.append(call_info)
 
@@ -305,7 +370,7 @@ async def _get_incoming_calls_tree(
         rel_path = ctx.relative_path(path, workspace_root)
         return CallTreeError(
             error=f"No callable symbol found at {rel_path}:{line}:{column} for '{symbol_name}'. "
-                  + "The symbol may not be a function/method, or the position may be incorrect."
+            + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     formatted = _format_call_hierarchy_item(item, workspace_root, ctx)
@@ -318,8 +383,14 @@ async def _get_incoming_calls_tree(
         column=formatted["column"],
     )
     root["called_by"] = await _expand_incoming_calls(
-        ctx, workspace, workspace_root, item, max_depth, set(),
-        include_non_workspace, is_root=True
+        ctx,
+        workspace,
+        workspace_root,
+        item,
+        max_depth,
+        set(),
+        include_non_workspace,
+        is_root=True,
     )
     return root
 
@@ -365,7 +436,9 @@ async def _expand_incoming_calls(
     for call in result:
         from_item = call.from_
 
-        if not include_non_workspace and not _is_path_in_workspace(from_item.uri, workspace_root):
+        if not include_non_workspace and not _is_path_in_workspace(
+            from_item.uri, workspace_root
+        ):
             continue
 
         caller_info = _format_call_hierarchy_item(from_item, workspace_root, ctx)
@@ -374,8 +447,13 @@ async def _expand_incoming_calls(
             for r in call.fromRanges
         ]
         caller_info["called_by"] = await _expand_incoming_calls(
-            ctx, workspace, workspace_root, from_item, depth - 1, visited,
-            include_non_workspace
+            ctx,
+            workspace,
+            workspace_root,
+            from_item,
+            depth - 1,
+            visited,
+            include_non_workspace,
         )
         callers.append(caller_info)
 
@@ -411,12 +489,14 @@ async def _find_call_path(
 
     await workspace.client.wait_for_service_ready()
 
-    from_item = await _prepare_call_hierarchy(workspace, from_path, from_line, from_column)
+    from_item = await _prepare_call_hierarchy(
+        workspace, from_path, from_line, from_column
+    )
     if not from_item:
         rel_path = ctx.relative_path(from_path, workspace_root)
         return CallPathResult(
             error=f"No callable symbol found at {rel_path}:{from_line}:{from_column} for '{from_symbol}'. "
-                  + "The symbol may not be a function/method, or the position may be incorrect."
+            + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     to_item = await _prepare_call_hierarchy(workspace, to_path, to_line, to_column)
@@ -424,14 +504,13 @@ async def _find_call_path(
         rel_path = ctx.relative_path(to_path, workspace_root)
         return CallPathResult(
             error=f"No callable symbol found at {rel_path}:{to_line}:{to_column} for '{to_symbol}'. "
-                  + "The symbol may not be a function/method, or the position may be incorrect."
+            + "The symbol may not be a function/method, or the position may be incorrect."
         )
 
     to_key = (to_item.uri, to_item.selectionRange.start.line)
 
     path = await _bfs_call_path(
-        workspace, workspace_root, from_item, to_key, max_depth,
-        include_non_workspace
+        workspace, workspace_root, from_item, to_key, max_depth, include_non_workspace
     )
 
     if not path:
@@ -456,9 +535,9 @@ async def _bfs_call_path(
     max_depth: int,
     include_non_workspace: bool = False,
 ) -> list[CallHierarchyItem] | None:
-    queue: deque[tuple[CallHierarchyItem, list[CallHierarchyItem], int]] = deque([
-        (start_item, [start_item], 0)
-    ])
+    queue: deque[tuple[CallHierarchyItem, list[CallHierarchyItem], int]] = deque(
+        [(start_item, [start_item], 0)]
+    )
     visited: set[tuple[str, int]] = set()
     start_key = (start_item.uri, start_item.selectionRange.start.line)
     visited.add(start_key)
@@ -485,7 +564,9 @@ async def _bfs_call_path(
         for call in result:
             to_item = call.to
 
-            if not include_non_workspace and not _is_path_in_workspace(to_item.uri, workspace_root):
+            if not include_non_workspace and not _is_path_in_workspace(
+                to_item.uri, workspace_root
+            ):
                 continue
 
             item_key = (to_item.uri, to_item.selectionRange.start.line)

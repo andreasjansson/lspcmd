@@ -40,12 +40,15 @@ class LSPResponseError(Exception):
         super().__init__(f"LSP Error {code}: {message}")
 
     def is_method_not_found(self) -> bool:
-        return self.code == -32601 or "not found" in self.message.lower() or "not yet implemented" in self.message.lower()
+        return (
+            self.code == -32601
+            or "not found" in self.message.lower()
+            or "not yet implemented" in self.message.lower()
+        )
 
     def is_unsupported(self) -> bool:
         msg = self.message.lower()
-        return ("unsupported" in msg or 
-                ("internal error" in msg and self.code == -32603))
+        return "unsupported" in msg or ("internal error" in msg and self.code == -32603)
 
 
 class LSPMethodNotSupported(Exception):
@@ -78,17 +81,17 @@ KNOWN_ERROR_SOLUTIONS = [
     (
         "Unknown binary 'rust-analyzer' in official toolchain",
         "rust-analyzer is not installed in your Rust toolchain.\n"
-        + "Fix: rustup component add rust-analyzer"
+        + "Fix: rustup component add rust-analyzer",
     ),
     (
         "could not find `Cargo.toml`",
         "rust-analyzer requires a Cargo.toml file to work.\n"
-        + "This directory doesn't appear to be a valid Rust project."
+        + "This directory doesn't appear to be a valid Rust project.",
     ),
     (
         "No such file or directory (os error 2)",
         "The language server binary was not found.\n"
-        + "Make sure it's installed and in your PATH."
+        + "Make sure it's installed and in your PATH.",
     ),
 ]
 
@@ -125,40 +128,46 @@ class LanguageServerStartupError(Exception):
         self.original_error = original_error
         self.server_log = server_log
         self.log_path = log_path
-        
+
         lines = [
             f"Language server '{server_name}' failed to start for {language} files in {workspace_root}",
             "",
             f"Error: {original_error}",
         ]
-        
+
         known_solution = get_known_error_solution(server_log)
         if known_solution:
             lines.append("")
             lines.append("Solution:")
             for line in known_solution.splitlines():
                 lines.append(f"  {line}")
-        
+
         if server_log and server_log.strip():
             lines.append("")
             lines.append("Server log (last 20 lines):")
             for line in server_log.strip().splitlines()[-20:]:
                 lines.append(f"  {line}")
-        
+
         if log_path:
             lines.append("")
             lines.append(f"Full server log: {log_path}")
-        
+
         if not known_solution:
             lines.append("")
             lines.append("Possible causes:")
-            lines.append(f"  - The project may not be a valid {language} project (missing config files)")
+            lines.append(
+                f"  - The project may not be a valid {language} project (missing config files)"
+            )
             lines.append("  - The language server may have crashed or timed out")
-            lines.append(f"  - Try running '{server_name}' directly in that directory to see detailed errors")
-        
+            lines.append(
+                f"  - Try running '{server_name}' directly in that directory to see detailed errors"
+            )
+
         lines.append("")
-        lines.append("To exclude these files, use: leta grep PATTERN 'your/path/*.ext' -x 'path/to/exclude/*'")
-        
+        lines.append(
+            "To exclude these files, use: leta grep PATTERN 'your/path/*.ext' -x 'path/to/exclude/*'"
+        )
+
         super().__init__("\n".join(lines))
 
 

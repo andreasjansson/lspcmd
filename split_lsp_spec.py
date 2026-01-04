@@ -104,6 +104,7 @@ SECTIONS = [
     (11441, 11496, "99-miscellaneous"),
 ]
 
+
 def main():
     with open("lsp-spec.txt", "r") as f:
         lines = f.readlines()
@@ -111,7 +112,7 @@ def main():
     os.makedirs("lsp-spec", exist_ok=True)
 
     for start, end, name in SECTIONS:
-        section_lines = lines[start - 1:end]
+        section_lines = lines[start - 1 : end]
         output_path = f"lsp-spec/{name}.txt"
         with open(output_path, "w") as f:
             f.writelines(section_lines)
@@ -120,6 +121,7 @@ def main():
 
 def foo():
     print("bar")
+
 
 if __name__ == "__main__":
     main()

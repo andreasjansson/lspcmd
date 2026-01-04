@@ -9,7 +9,11 @@ from ..lsp.protocol import LanguageServerNotFound, LanguageServerStartupError
 from ..utils.config import get_log_dir, Config
 from ..utils.uri import path_to_uri
 from ..utils.text import get_language_id, read_file_content
-from ..servers.registry import ServerConfig, get_server_for_file, get_server_for_language
+from ..servers.registry import (
+    ServerConfig,
+    get_server_for_file,
+    get_server_for_language,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +40,7 @@ class Workspace:
         logger.info(f"Starting {self.server_config.name} for {self.root}")
 
         env = self._get_server_env()
-        
+
         try:
             process = await asyncio.create_subprocess_exec(
                 *self.server_config.command,
@@ -62,12 +66,12 @@ class Workspace:
             server_name=self.server_config.name,
             log_file=server_log_file,
         )
-        
+
         try:
             await self.client.start()
         except Exception as e:
             self.client = None
-            
+
             # Read recent lines from the server log file
             server_log_tail = None
             if server_log_file.exists():
@@ -77,7 +81,7 @@ class Workspace:
                     server_log_tail = "\n".join(lines[-30:])
                 except Exception:
                     pass
-            
+
             raise LanguageServerStartupError(
                 self.server_config.name,
                 ", ".join(self.server_config.languages),
@@ -89,10 +93,10 @@ class Workspace:
 
         # Wait for initial indexing to complete
         await self.client.wait_for_indexing(timeout=60.0)
-        
+
         # For servers that do lazy indexing, pre-index all files
         await self.ensure_workspace_indexed()
-        
+
         logger.info(f"Server {self.server_config.name} initialized and ready")
 
     def _get_init_options(self) -> dict[str, Any]:
@@ -105,6 +109,7 @@ class Workspace:
     def _get_server_env(self) -> dict[str, str]:
         import os
         from ..servers.registry import _get_extended_path
+
         env = os.environ.copy()
         env["PATH"] = _get_extended_path()
         return env
@@ -122,9 +127,9 @@ class Workspace:
         uri = path_to_uri(path)
         if uri not in self.open_documents:
             return
-        
+
         del self.open_documents[uri]
-        
+
         if self.client is not None:
             await self.client.send_notification(
                 "textDocument/didClose",
@@ -134,7 +139,7 @@ class Workspace:
     async def close_all_documents(self) -> None:
         if self.client is None:
             return
-        
+
         for uri in list(self.open_documents.keys()):
             await self.client.send_notification(
                 "textDocument/didClose",
@@ -146,14 +151,14 @@ class Workspace:
         """Open and close all source files to ensure clangd indexes them."""
         if self.client is None:
             return
-        
+
         # Only needed for clangd which does lazy indexing
         if self.server_config.name != "clangd":
             return
-        
+
         source_extensions = {".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hxx"}
         exclude_dirs = {"build", ".git", "node_modules"}
-        
+
         files_to_index = []
         for file_path in self.root.rglob("*"):
             if not file_path.is_file():
@@ -162,18 +167,22 @@ class Workspace:
                 continue
             if file_path.suffix in source_extensions:
                 files_to_index.append(file_path)
-        
+
         if not files_to_index:
             return
-            
-        logger.info(f"Pre-indexing {len(files_to_index)} files for clangd: {[f.name for f in files_to_index]}")
-        
+
+        logger.info(
+            f"Pre-indexing {len(files_to_index)} files for clangd: {[f.name for f in files_to_index]}"
+        )
+
         for file_path in files_to_index:
             await self.ensure_document_open(file_path)
-        
+
         await self.client.wait_for_indexing(timeout=30.0)
-        
-        logger.info(f"Pre-indexing complete, closing {len(self.open_documents)} documents")
+
+        logger.info(
+            f"Pre-indexing complete, closing {len(self.open_documents)} documents"
+        )
         await self.close_all_documents()
 
     async def ensure_document_open(self, path: Path) -> OpenDocument:
@@ -222,23 +231,33 @@ class Session:
     workspaces: dict[Path, dict[str, Workspace]] = field(default_factory=dict)
     config: Config = field(default_factory=lambda: Config())
 
-    async def get_or_create_workspace(self, file_path: Path, workspace_root: Path) -> Workspace:
+    async def get_or_create_workspace(
+        self, file_path: Path, workspace_root: Path
+    ) -> Workspace:
         workspace_root = workspace_root.resolve()
         server_config = get_server_for_file(file_path, self.config)
         if server_config is None:
             raise ValueError(f"No language server found for {file_path}")
 
-        return await self._get_or_create_workspace_for_server(workspace_root, server_config)
+        return await self._get_or_create_workspace_for_server(
+            workspace_root, server_config
+        )
 
-    async def get_or_create_workspace_for_language(self, language_id: str, workspace_root: Path) -> Workspace | None:
+    async def get_or_create_workspace_for_language(
+        self, language_id: str, workspace_root: Path
+    ) -> Workspace | None:
         workspace_root = workspace_root.resolve()
         server_config = get_server_for_language(language_id, self.config)
         if server_config is None:
             return None
 
-        return await self._get_or_create_workspace_for_server(workspace_root, server_config)
+        return await self._get_or_create_workspace_for_server(
+            workspace_root, server_config
+        )
 
-    async def _get_or_create_workspace_for_server(self, workspace_root: Path, server_config: ServerConfig) -> Workspace:
+    async def _get_or_create_workspace_for_server(
+        self, workspace_root: Path, server_config: ServerConfig
+    ) -> Workspace:
         if workspace_root not in self.workspaces:
             self.workspaces[workspace_root] = {}
 
@@ -284,7 +303,7 @@ class Session:
         file_path = file_path.resolve()
         language_id = get_language_id(file_path)
         server_config = get_server_for_language(language_id, self.config)
-        
+
         for root, servers in self.workspaces.items():
             try:
                 file_path.relative_to(root)
@@ -303,11 +322,13 @@ class Session:
                 server_pid = None
                 if ws.client is not None and ws.client.process.pid is not None:
                     server_pid = ws.client.process.pid
-                result["workspaces"].append({
-                    "root": str(root),
-                    "server": ws.server_config.name,
-                    "server_pid": server_pid,
-                    "open_documents": list(ws.open_documents.keys()),
-                    "running": ws.client is not None,
-                })
+                result["workspaces"].append(
+                    {
+                        "root": str(root),
+                        "server": ws.server_config.name,
+                        "server_pid": server_pid,
+                        "open_documents": list(ws.open_documents.keys()),
+                        "running": ws.client is not None,
+                    }
+                )
         return result

@@ -18,6 +18,7 @@ class ServiceProtocol(Protocol):
 @dataclass
 class PythonUser:
     """Represents a user in the Python service."""
+
     name: str
     email: str
 
@@ -62,6 +63,7 @@ def create_service(name: str) -> PythonService:
 def validate_email(email: str) -> bool:
     """Validate an email address format."""
     import re
+
     pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
     return bool(re.match(pattern, email))
 

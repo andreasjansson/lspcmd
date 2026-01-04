@@ -33,11 +33,14 @@ class TestLuaIntegration:
     def workspace(self, project, class_daemon, class_isolated_config):
         config = load_config()
         add_workspace_root(project, config)
-        run_request("grep", {
-            "paths": [str(project / "user.lua")],
-            "workspace_root": str(project),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(project / "user.lua")],
+                "workspace_root": str(project),
+                "pattern": ".*",
+            },
+        )
         time.sleep(1.0)
         return project
 
@@ -47,132 +50,173 @@ class TestLuaIntegration:
 
     def test_grep_pattern_filter(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+            },
+        )
+        output = format_output(result, "plain")
         assert "[Object] Storage" in output
         assert "[Object] MemoryStorage" in output
         assert "[Object] FileStorage" in output
 
     def test_grep_kind_filter_function(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.lua")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.lua")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.lua:8 [Function] createSampleUser (function ())
 main.lua:14 [Function] validateUser (function (u))
 main.lua:28 [Function] processUsers (function (repo))
 main.lua:36 [Function] main (function ())"""
+        )
 
     def test_grep_kind_filter_object(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "^User$",
-            "kinds": ["object"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "^User$",
+                "kinds": ["object"],
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "user.lua:11 [Object] User"
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
         # Case-insensitive should find Storage classes and storage variables
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "storage",
-            "kinds": ["object"],
-            "case_sensitive": False,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "storage",
+                "kinds": ["object"],
+                "case_sensitive": False,
+            },
+        )
+        output = format_output(result, "plain")
         assert "[Object] Storage" in output
         assert "[Object] MemoryStorage" in output
         assert "[Object] FileStorage" in output
-        
+
         # Case-sensitive should find only lowercase storage (none for objects)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "storage",
-            "kinds": ["object"],
-            "case_sensitive": True,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "storage",
+                "kinds": ["object"],
+                "case_sensitive": True,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "^Memory",
-            "kinds": ["object"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "^Memory",
+                "kinds": ["object"],
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "user.lua:72 [Object] MemoryStorage"
 
     def test_grep_multiple_files(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.lua"), str(workspace / "main.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "User",
-            "kinds": ["object"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.lua"), str(workspace / "main.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "User",
+                "kinds": ["object"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.lua:11 [Object] User
 user.lua:79 [Object] self.users in MemoryStorage.new
 user.lua:158 [Object] UserRepository"""
+        )
 
     def test_grep_workspace_wide(self, workspace):
         os.chdir(workspace)
         all_files = [str(p) for p in workspace.glob("*.lua")]
-        response = run_request("grep", {
-            "paths": all_files,
-            "workspace_root": str(workspace),
-            "pattern": "main",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": all_files,
+                "workspace_root": str(workspace),
+                "pattern": "main",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "main.lua:36 [Function] main (function ())"
 
     def test_grep_exclude_pattern(self, workspace):
         os.chdir(workspace)
         all_files = [str(p) for p in workspace.glob("*.lua")]
-        response = run_request("grep", {
-            "paths": all_files,
-            "workspace_root": str(workspace),
-            "pattern": "User",
-            "kinds": ["object"],
-            "exclude_patterns": ["errors.lua"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": all_files,
+                "workspace_root": str(workspace),
+                "pattern": "User",
+                "kinds": ["object"],
+                "exclude_patterns": ["errors.lua"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.lua:11 [Object] User
 user.lua:79 [Object] self.users in MemoryStorage.new
 user.lua:158 [Object] UserRepository"""
+        )
 
     def test_grep_with_docs(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "main.lua")],
-            "workspace_root": str(workspace),
-            "pattern": "^createSampleUser$",
-            "kinds": ["function"],
-            "include_docs": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "main.lua")],
+                "workspace_root": str(workspace),
+                "pattern": "^createSampleUser$",
+                "kinds": ["function"],
+                "include_docs": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.lua:8 [Function] createSampleUser (function ())
     ```lua
     function createSampleUser()
@@ -184,6 +228,7 @@ main.lua:8 [Function] createSampleUser (function ())
      Creates a sample user for testing.
      @return User A sample user instance
 """
+        )
 
     # =========================================================================
     # definition tests
@@ -191,34 +236,43 @@ main.lua:8 [Function] createSampleUser (function ())
 
     def test_definition_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.lua"),
-            "workspace_root": str(workspace),
-            "line": 40,
-            "column": 23,
-            "context": 0,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.lua"),
+                "workspace_root": str(workspace),
+                "line": 40,
+                "column": 23,
+                "context": 0,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "main.lua:8 local function createSampleUser()"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.lua"),
-            "workspace_root": str(workspace),
-            "line": 40,
-            "column": 23,
-            "context": 0,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.lua"),
+                "workspace_root": str(workspace),
+                "line": 40,
+                "column": 23,
+                "context": 0,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 main.lua:8-10
 
 local function createSampleUser()
     return user.User.new("John Doe", "john@example.com", 30)
 end"""
+        )
 
     # =========================================================================
     # references tests
@@ -226,14 +280,17 @@ end"""
 
     def test_references_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "user.lua"),
-            "workspace_root": str(workspace),
-            "line": 12,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "user.lua"),
+                "workspace_root": str(workspace),
+                "line": 12,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "user.lua:12 User.__index = User"
 
     # =========================================================================
@@ -244,15 +301,18 @@ end"""
 
     def test_move_file_not_supported(self, workspace):
         os.chdir(workspace)
-        
-        response = run_request("move-file", {
-            "old_path": str(workspace / "user.lua"),
-            "new_path": str(workspace / "person.lua"),
-            "workspace_root": str(workspace),
-        })
+
+        result = run_request(
+            "move-file",
+            {
+                "old_path": str(workspace / "user.lua"),
+                "new_path": str(workspace / "person.lua"),
+                "workspace_root": str(workspace),
+            },
+        )
         assert "error" in response
         assert response["error"] == "move-file is not supported by lua-language-server"
-        
+
         # Verify file was NOT moved
         assert (workspace / "user.lua").exists()
         assert not (workspace / "person.lua").exists()
@@ -264,24 +324,28 @@ end"""
     def test_resolve_symbol_unique_name(self, workspace):
         """Test resolving a unique symbol name."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "User",
-        })
-        result = response["result"]
-        assert result["name"] == "User"
-        assert result["kind"] == "Object"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "User",
+            },
+        )
+        assert result.name == "User"
+        assert result.kind == "Object"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "user.lua:User",
-        })
-        result = response["result"]
-        assert result["name"] == "User"
-        assert result["path"].endswith("user.lua")
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "user.lua:User",
+            },
+        )
+        assert result.name == "User"
+        assert result.path.endswith("user.lua")
 
     # =========================================================================
     # show multi-line constant tests
@@ -290,20 +354,25 @@ end"""
     def test_show_multiline_table_constant(self, workspace):
         """Test that show displays multi-line table constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "user.lua"),
-            "workspace_root": str(workspace),
-            "line": 199,
-            "column": 2,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 199,
-            "range_end_line": 207,
-            "kind": "Object",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "user.lua"),
+                "workspace_root": str(workspace),
+                "line": 199,
+                "column": 2,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 199,
+                "range_end_line": 207,
+                "kind": "Object",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.lua:199-207
 
 M.COUNTRY_CODES = {
@@ -315,24 +384,30 @@ M.COUNTRY_CODES = {
     JP = "Japan",
     AU = "Australia",
 }"""
+        )
 
     def test_show_multiline_array_constant(self, workspace):
         """Test that show displays multi-line array constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "user.lua"),
-            "workspace_root": str(workspace),
-            "line": 210,
-            "column": 2,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 210,
-            "range_end_line": 215,
-            "kind": "Array",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "user.lua"),
+                "workspace_root": str(workspace),
+                "line": 210,
+                "column": 2,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 210,
+                "range_end_line": 215,
+                "kind": "Array",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.lua:210-215
 
 M.DEFAULT_CONFIG = {
@@ -341,6 +416,7 @@ M.DEFAULT_CONFIG = {
     "max_retries=3",
     "log_level=INFO",
 }"""
+        )
 
     # =========================================================================
     # calls tests (lua-language-server does not support call hierarchy)
@@ -349,14 +425,20 @@ M.DEFAULT_CONFIG = {
     def test_calls_not_supported(self, workspace):
         """Test that calls returns proper error for lua-language-server."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "main.lua"),
-            "from_line": 36,
-            "from_column": 4,
-            "from_symbol": "main.lua:36:main",
-            "max_depth": 1,
-        })
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "main.lua"),
+                "from_line": 36,
+                "from_column": 4,
+                "from_symbol": "main.lua:36:main",
+                "max_depth": 1,
+            },
+        )
         assert "error" in response
-        assert response["error"] == "textDocument/prepareCallHierarchy is not supported by lua-language-server"
+        assert (
+            response["error"]
+            == "textDocument/prepareCallHierarchy is not supported by lua-language-server"
+        )

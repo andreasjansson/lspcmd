@@ -32,7 +32,9 @@ async def handle_grep(ctx: HandlerContext, params: GrepParams) -> GrepResult:
         symbols = await ctx.collect_all_workspace_symbols(workspace_root)
 
     if exclude_patterns:
-        symbols = [s for s in symbols if not is_excluded(s.get("path", ""), exclude_patterns)]
+        symbols = [
+            s for s in symbols if not is_excluded(s.get("path", ""), exclude_patterns)
+        ]
 
     symbols = [s for s in symbols if regex.search(s.get("name", ""))]
 

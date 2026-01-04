@@ -33,11 +33,14 @@ class TestCppIntegration:
     def workspace(self, project, class_daemon, class_isolated_config):
         config = load_config()
         add_workspace_root(project, config)
-        run_request("grep", {
-            "paths": [str(project / "user.hpp")],
-            "workspace_root": str(project),
-            "pattern": ".*",
-        })
+        run_request(
+            "grep",
+            {
+                "paths": [str(project / "user.hpp")],
+                "workspace_root": str(project),
+                "pattern": ".*",
+            },
+        )
         time.sleep(1.0)
         return project
 
@@ -47,26 +50,32 @@ class TestCppIntegration:
 
     def test_grep_pattern_filter(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
         assert "Storage" in output
         assert "MemoryStorage" in output
         assert "FileStorage" in output
 
     def test_grep_kind_filter_class(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
         assert "[Class] User" in output
         assert "[Class] Storage" in output
         assert "[Class] MemoryStorage" in output
@@ -75,98 +84,139 @@ class TestCppIntegration:
 
     def test_grep_kind_filter_function(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:135 [Function] createSampleUser (User ()) in example
 user.hpp:140 [Function] validateUser (void (const User &)) in example"""
+        )
 
     def test_grep_kind_filter_method(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "^is",
-            "kinds": ["method"],
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "^is",
+                "kinds": ["method"],
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "user.hpp:23 [Method] isAdult (bool () const) in User"
 
     def test_grep_case_sensitive(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "^User$",
-            "case_sensitive": False,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "^User$",
+                "case_sensitive": False,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:13 [Class] User (class) in example
 user.hpp:15 [Constructor] User ((std::string, std::string, int)) in User"""
-        
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "^user$",
-            "case_sensitive": True,
-        })
-        lowercase_output = format_output(response["result"], "plain")
+        )
+
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "^user$",
+                "case_sensitive": True,
+            },
+        )
+        lowercase_output = format_output(result, "plain")
         assert lowercase_output == ""
 
     def test_grep_combined_filters(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "Storage",
-            "kinds": ["class"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "Storage",
+                "kinds": ["class"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:37 [Class] Storage (class) in example
 user.hpp:48 [Class] MemoryStorage (class) in example
 user.hpp:80 [Class] FileStorage (class) in example"""
+        )
 
     def test_grep_multiple_files(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp"), str(workspace / "main.cpp")],
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp"), str(workspace / "main.cpp")],
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:135 [Function] createSampleUser (User ()) in example
 user.hpp:140 [Function] validateUser (void (const User &)) in example
 main.cpp:7 [Function] main (int ())"""
+        )
 
     def test_grep_workspace_wide(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": "validate",
-            "case_sensitive": False,
-            "kinds": ["function"],
-        })
-        output = format_output(response["result"], "plain")
-        assert output == "user.hpp:140 [Function] validateUser (void (const User &)) in example"
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": "validate",
+                "case_sensitive": False,
+                "kinds": ["function"],
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == "user.hpp:140 [Function] validateUser (void (const User &)) in example"
+        )
 
     def test_grep_exclude_pattern(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-        })
-        all_output = format_output(response["result"], "plain")
-        assert all_output == """\
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+            },
+        )
+        all_output = format_output(result, "plain")
+        assert (
+            all_output
+            == """\
 user.hpp:135 [Function] createSampleUser (User ()) in example
 user.hpp:140 [Function] validateUser (void (const User &)) in example
 errors.cpp:6 [Function] undefinedVariable (int ())
@@ -176,30 +226,42 @@ errors.cpp:23 [Function] twoArgs (void (int, int))
 errors.cpp:25 [Function] argumentError (void ())
 errors.cpp:30 [Function] typeConversion (void ())
 main.cpp:7 [Function] main (int ())"""
-        
-        response = run_request("grep", {
-            "workspace_root": str(workspace),
-            "pattern": ".*",
-            "kinds": ["function"],
-            "exclude_patterns": ["errors.cpp"],
-        })
-        filtered_output = format_output(response["result"], "plain")
-        assert filtered_output == """\
+        )
+
+        result = run_request(
+            "grep",
+            {
+                "workspace_root": str(workspace),
+                "pattern": ".*",
+                "kinds": ["function"],
+                "exclude_patterns": ["errors.cpp"],
+            },
+        )
+        filtered_output = format_output(result, "plain")
+        assert (
+            filtered_output
+            == """\
 user.hpp:135 [Function] createSampleUser (User ()) in example
 user.hpp:140 [Function] validateUser (void (const User &)) in example
 main.cpp:7 [Function] main (int ())"""
+        )
 
     def test_grep_with_docs(self, workspace):
         os.chdir(workspace)
-        response = run_request("grep", {
-            "paths": [str(workspace / "user.hpp")],
-            "workspace_root": str(workspace),
-            "pattern": "createSampleUser",
-            "kinds": ["function"],
-            "include_docs": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "grep",
+            {
+                "paths": [str(workspace / "user.hpp")],
+                "workspace_root": str(workspace),
+                "pattern": "createSampleUser",
+                "kinds": ["function"],
+                "include_docs": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:135 [Function] createSampleUser (User ()) in example
     ### function `createSampleUser`  
     
@@ -213,6 +275,7 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
     inline User createSampleUser()
     ```
 """
+        )
 
     # =========================================================================
     # definition tests
@@ -220,65 +283,85 @@ user.hpp:135 [Function] createSampleUser (User ()) in example
 
     def test_definition_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.cpp"),
-            "workspace_root": str(workspace),
-            "line": 11,
-            "column": 16,
-            "context": 0,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.cpp"),
+                "workspace_root": str(workspace),
+                "line": 11,
+                "column": 16,
+                "context": 0,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
         assert output == "user.hpp:135 inline User createSampleUser() {"
 
     def test_definition_with_body(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.cpp"),
-            "workspace_root": str(workspace),
-            "line": 11,
-            "column": 16,
-            "context": 0,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.cpp"),
+                "workspace_root": str(workspace),
+                "line": 11,
+                "column": 16,
+                "context": 0,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:135-137
 
 inline User createSampleUser() {
     return User("John Doe", "john@example.com", 30);
 }"""
+        )
 
     def test_definition_with_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.cpp"),
-            "workspace_root": str(workspace),
-            "line": 11,
-            "column": 16,
-            "context": 1,
-            "body": False,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.cpp"),
+                "workspace_root": str(workspace),
+                "line": 11,
+                "column": 16,
+                "context": 1,
+                "body": False,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:134-136
 /// Creates a sample user for testing.
 inline User createSampleUser() {
     return User("John Doe", "john@example.com", 30);
 """
+        )
 
     def test_definition_with_body_and_context(self, workspace):
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "main.cpp"),
-            "workspace_root": str(workspace),
-            "line": 11,
-            "column": 25,
-            "context": 1,
-            "body": True,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "main.cpp"),
+                "workspace_root": str(workspace),
+                "line": 11,
+                "column": 25,
+                "context": 1,
+                "body": True,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:134-138
 
 /// Creates a sample user for testing.
@@ -286,6 +369,7 @@ inline User createSampleUser() {
     return User("John Doe", "john@example.com", 30);
 }
 """
+        )
 
     # =========================================================================
     # references tests
@@ -296,14 +380,17 @@ inline User createSampleUser() {
         # clangd returns references in non-deterministic order depending on indexing timing.
         # This is a deliberate exception to the rule that all tests match exact outputs.
         os.chdir(workspace)
-        response = run_request("references", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 13,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "references",
+            {
+                "path": str(workspace / "user.hpp"),
+                "workspace_root": str(workspace),
+                "line": 13,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
         expected_lines = {
             "main.cpp:11     User user = createSampleUser();",
             "user.hpp:13 class User {",
@@ -331,14 +418,17 @@ inline User createSampleUser() {
 
     def test_implementations_basic(self, workspace):
         os.chdir(workspace)
-        response = run_request("implementations", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 37,
-            "column": 6,
-            "context": 0,
-        })
-        output = format_output(response["result"], "plain")
+        result = run_request(
+            "implementations",
+            {
+                "path": str(workspace / "user.hpp"),
+                "workspace_root": str(workspace),
+                "line": 37,
+                "column": 6,
+                "context": 0,
+            },
+        )
+        output = format_output(result, "plain")
         assert "MemoryStorage" in output
         assert "FileStorage" in output
 
@@ -350,19 +440,22 @@ inline User createSampleUser() {
 
     def test_rename(self, workspace):
         os.chdir(workspace)
-        
+
         # Verify User class exists before rename
         original_content = (workspace / "user.hpp").read_text()
         assert "class User {" in original_content
-        
-        response = run_request("rename", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 13,
-            "column": 6,
-            "new_name": "Person",
-        })
-        output = format_output(response["result"], "plain")
+
+        result = run_request(
+            "rename",
+            {
+                "path": str(workspace / "user.hpp"),
+                "workspace_root": str(workspace),
+                "line": 13,
+                "column": 6,
+                "new_name": "Person",
+            },
+        )
+        output = format_output(result, "plain")
         # clangd renames in multiple files (user.hpp and main.cpp), order may vary
         lines = output.strip().split("\n")
         assert lines[0].startswith("Renamed in")
@@ -374,14 +467,17 @@ inline User createSampleUser() {
         assert "class User {" not in renamed_content
 
         # Revert the rename
-        run_request("rename", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 13,
-            "column": 6,
-            "new_name": "User",
-        })
-        
+        run_request(
+            "rename",
+            {
+                "path": str(workspace / "user.hpp"),
+                "workspace_root": str(workspace),
+                "line": 13,
+                "column": 6,
+                "new_name": "User",
+            },
+        )
+
         # Verify revert worked
         reverted_content = (workspace / "user.hpp").read_text()
         assert "class User {" in reverted_content
@@ -393,15 +489,18 @@ inline User createSampleUser() {
 
     def test_move_file_not_supported(self, workspace):
         os.chdir(workspace)
-        
-        response = run_request("move-file", {
-            "old_path": str(workspace / "user.hpp"),
-            "new_path": str(workspace / "person.hpp"),
-            "workspace_root": str(workspace),
-        })
+
+        result = run_request(
+            "move-file",
+            {
+                "old_path": str(workspace / "user.hpp"),
+                "new_path": str(workspace / "person.hpp"),
+                "workspace_root": str(workspace),
+            },
+        )
         assert "error" in response
         assert response["error"] == "move-file is not supported by clangd"
-        
+
         # Verify file was NOT moved
         assert (workspace / "user.hpp").exists()
         assert not (workspace / "person.hpp").exists()
@@ -413,48 +512,56 @@ inline User createSampleUser() {
     def test_resolve_symbol_unique_name(self, workspace):
         """Test resolving a unique symbol name."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "example.UserRepository",
-        })
-        result = response["result"]
-        assert result["name"] == "UserRepository"
-        assert result["kind"] == "Class"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "example.UserRepository",
+            },
+        )
+        assert result.name == "UserRepository"
+        assert result.kind == "Class"
 
     def test_resolve_symbol_ambiguous_shows_container_refs(self, workspace):
         """Test that ambiguous C++ symbols show Class.method format."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "save",
-        })
-        result = response["result"]
-        assert result["error"] == "Symbol 'save' is ambiguous (3 matches)"
-        assert result["total_matches"] == 3
-        refs = sorted([m["ref"] for m in result["matches"]])
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "save",
+            },
+        )
+        assert result.error == "Symbol 'save' is ambiguous (3 matches)"
+        assert result.total_matches == 3
+        refs = sorted([m.ref for m in result.matches])
         assert refs == ["FileStorage.save", "MemoryStorage.save", "Storage.save"]
 
     def test_resolve_symbol_class_method(self, workspace):
         """Test resolving Class.method format."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "User.isAdult",
-        })
-        result = response["result"]
-        assert result["name"] == "isAdult"
-        assert result["kind"] == "Method"
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "User.isAdult",
+            },
+        )
+        assert result.name == "isAdult"
+        assert result.kind == "Method"
 
     def test_resolve_symbol_file_filter(self, workspace):
         """Test resolving with file filter."""
         os.chdir(workspace)
-        response = run_request("resolve-symbol", {
-            "workspace_root": str(workspace),
-            "symbol_path": "main.cpp:main",
-        })
-        result = response["result"]
-        assert result["name"] == "main"
-        assert result["path"].endswith("main.cpp")
+        result = run_request(
+            "resolve-symbol",
+            {
+                "workspace_root": str(workspace),
+                "symbol_path": "main.cpp:main",
+            },
+        )
+        assert result.name == "main"
+        assert result.path.endswith("main.cpp")
 
     # =========================================================================
     # show multi-line constant tests
@@ -463,20 +570,25 @@ inline User createSampleUser() {
     def test_show_multiline_array_constant(self, workspace):
         """Test that show displays multi-line array constants correctly."""
         os.chdir(workspace)
-        response = run_request("show", {
-            "path": str(workspace / "user.hpp"),
-            "workspace_root": str(workspace),
-            "line": 162,
-            "column": 22,
-            "context": 0,
-            "body": True,
-            "direct_location": True,
-            "range_start_line": 162,
-            "range_end_line": 170,
-            "kind": "Variable",
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "show",
+            {
+                "path": str(workspace / "user.hpp"),
+                "workspace_root": str(workspace),
+                "line": 162,
+                "column": 22,
+                "context": 0,
+                "body": True,
+                "direct_location": True,
+                "range_start_line": 162,
+                "range_end_line": 170,
+                "kind": "Variable",
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:162-170
 
 constexpr const char* COUNTRY_CODES[] = {
@@ -488,6 +600,7 @@ constexpr const char* COUNTRY_CODES[] = {
     "JP",
     "AU",
 };"""
+        )
 
     # =========================================================================
     # calls tests (clangd only supports incoming calls, not outgoing)
@@ -496,33 +609,45 @@ constexpr const char* COUNTRY_CODES[] = {
     def test_calls_outgoing_not_supported(self, workspace):
         """Test that outgoing calls returns proper error for clangd."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "outgoing",
-            "from_path": str(workspace / "main.cpp"),
-            "from_line": 7,
-            "from_column": 4,
-            "from_symbol": "main",
-            "max_depth": 1,
-        })
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "outgoing",
+                "from_path": str(workspace / "main.cpp"),
+                "from_line": 7,
+                "from_column": 4,
+                "from_symbol": "main",
+                "max_depth": 1,
+            },
+        )
         assert "error" in response
-        assert response["error"] == "callHierarchy/outgoingCalls is not supported by clangd"
+        assert (
+            response["error"]
+            == "callHierarchy/outgoingCalls is not supported by clangd"
+        )
 
     def test_calls_incoming(self, workspace):
         """Test incoming calls to createSampleUser function."""
         os.chdir(workspace)
-        response = run_request("calls", {
-            "workspace_root": str(workspace),
-            "mode": "incoming",
-            "to_path": str(workspace / "user.hpp"),
-            "to_line": 135,
-            "to_column": 5,
-            "to_symbol": "createSampleUser",
-            "max_depth": 1,
-        })
-        output = format_output(response["result"], "plain")
-        assert output == """\
+        result = run_request(
+            "calls",
+            {
+                "workspace_root": str(workspace),
+                "mode": "incoming",
+                "to_path": str(workspace / "user.hpp"),
+                "to_line": 135,
+                "to_column": 5,
+                "to_symbol": "createSampleUser",
+                "max_depth": 1,
+            },
+        )
+        output = format_output(result, "plain")
+        assert (
+            output
+            == """\
 user.hpp:135 [Function] createSampleUser
 
 Incoming calls:
   └── main.cpp:7 [Function] main"""
+        )

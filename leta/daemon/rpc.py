@@ -8,12 +8,14 @@ from pydantic import BaseModel, Field
 # Base models for RPC
 class RpcRequest(BaseModel):
     """Base RPC request wrapper."""
+
     method: str
     params: dict[str, object] = Field(default_factory=dict)
 
 
 class RpcResponse(BaseModel):
     """Base RPC response wrapper."""
+
     result: dict[str, object] | list[object] | None = None
     error: str | None = None
 

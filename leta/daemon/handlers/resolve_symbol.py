@@ -32,6 +32,7 @@ async def handle_resolve_symbol(
     all_symbols = await ctx.collect_all_workspace_symbols(workspace_root)
 
     if path_filter:
+
         def matches_path(rel_path: str) -> bool:
             if fnmatch.fnmatch(rel_path, path_filter):
                 return True
@@ -110,7 +111,13 @@ async def handle_resolve_symbol(
         return ResolveSymbolResult(error=f"Symbol '{symbol_path}' not found{suffix}")
 
     preferred_kinds = {
-        "Class", "Struct", "Interface", "Enum", "Module", "Namespace", "Package",
+        "Class",
+        "Struct",
+        "Interface",
+        "Enum",
+        "Module",
+        "Namespace",
+        "Package",
     }
     type_matches = [m for m in matches if m.get("kind") in preferred_kinds]
     if len(type_matches) == 1 and len(matches) > 1:
@@ -132,15 +139,17 @@ async def handle_resolve_symbol(
     matches_info: list[SymbolInfo] = []
     for sym in matches[:10]:
         ref = _generate_unambiguous_ref(sym, matches, target_name)
-        matches_info.append(SymbolInfo(
-            name=sym.get("name", ""),
-            kind=sym.get("kind", ""),
-            path=sym.get("path", ""),
-            line=sym.get("line", 0),
-            column=sym.get("column", 0),
-            container=sym.get("container"),
-            ref=ref,
-        ))
+        matches_info.append(
+            SymbolInfo(
+                name=sym.get("name", ""),
+                kind=sym.get("kind", ""),
+                path=sym.get("path", ""),
+                line=sym.get("line", 0),
+                column=sym.get("column", 0),
+                container=sym.get("container"),
+                ref=ref,
+            )
+        )
 
     return ResolveSymbolResult(
         error=f"Symbol '{symbol_path}' is ambiguous ({len(matches)} matches)",
@@ -222,7 +231,8 @@ def _ref_resolves_uniquely(
             try:
                 line_filter = int(parts[1])
                 matching = [
-                    s for s in all_matches
+                    s
+                    for s in all_matches
                     if Path(s.get("path", "")).name == path_filter
                     and s.get("line") == line_filter
                 ]
@@ -232,15 +242,18 @@ def _ref_resolves_uniquely(
 
     if path_filter:
         candidates = [
-            s for s in all_matches
-            if Path(s.get("path", "")).name == path_filter
+            s for s in all_matches if Path(s.get("path", "")).name == path_filter
         ]
     else:
         candidates = all_matches
 
     sym_parts = symbol_path.split(".")
     if len(sym_parts) == 1:
-        matching = [s for s in candidates if _normalize_symbol_name(s.get("name", "")) == sym_parts[0]]
+        matching = [
+            s
+            for s in candidates
+            if _normalize_symbol_name(s.get("name", "")) == sym_parts[0]
+        ]
     else:
         container_str = ".".join(sym_parts[:-1])
         target_name = sym_parts[-1]
@@ -254,7 +267,11 @@ def _ref_resolves_uniquely(
             s_container_normalized = _normalize_container(s_container)
             s_path = s.get("path", "")
             s_module = _get_module_name(s_path)
-            full_container = f"{s_module}.{s_container_normalized}" if s_container_normalized else s_module
+            full_container = (
+                f"{s_module}.{s_container_normalized}"
+                if s_container_normalized
+                else s_module
+            )
 
             s_effective_container = _get_effective_container(s)
 

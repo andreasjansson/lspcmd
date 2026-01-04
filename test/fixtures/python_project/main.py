@@ -26,12 +26,13 @@ class StorageProtocol(Protocol):
 @dataclass
 class User:
     """Represents a user in the system.
-    
+
     Attributes:
         name: The user's full name.
         email: The user's email address (used as unique identifier).
         age: The user's age in years.
     """
+
     name: str
     email: str
     age: int
@@ -79,7 +80,7 @@ class FileStorage:
 
 class UserRepository:
     """Repository for managing user entities.
-    
+
     Provides CRUD operations for User objects with an in-memory store.
     """
 
@@ -128,11 +129,11 @@ def main() -> None:
     """Main entry point."""
     repo = UserRepository()
     user = create_sample_user()
-    
+
     if not validate_email(user.email):
         print(f"Invalid email: {user.email}")
         return
-    
+
     repo.add_user(user)
 
     found = repo.get_user("john@example.com")

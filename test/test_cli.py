@@ -86,6 +86,7 @@ class TestCliCommands:
     def test_grep_no_workspace(self, isolated_config, temp_dir):
         runner = CliRunner()
         import os
+
         # Run from an empty temp dir with no workspace markers
         empty_dir = temp_dir / "empty"
         empty_dir.mkdir()
@@ -100,8 +101,8 @@ class TestCliCommands:
         """Test that output_result writes 'No results' to stderr."""
         from unittest.mock import patch
         from leta.cli import output_result
-        
-        with patch('leta.cli.click.echo') as mock_echo:
+
+        with patch("leta.cli.click.echo") as mock_echo:
             output_result([], "plain")
             mock_echo.assert_called_once_with("No results", err=True)
 
@@ -109,8 +110,8 @@ class TestCliCommands:
         """Test that output_result writes warnings to stderr."""
         from unittest.mock import patch
         from leta.cli import output_result
-        
-        with patch('leta.cli.click.echo') as mock_echo:
+
+        with patch("leta.cli.click.echo") as mock_echo:
             output_result({"warning": "test warning message"}, "plain")
             mock_echo.assert_called_once_with("Warning: test warning message", err=True)
 
@@ -144,6 +145,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["show", "User"])
@@ -156,6 +158,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["show", "MemoryStorage.save"])
@@ -168,6 +171,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["show", "main.py:User"])
@@ -180,6 +184,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["show", "User"])
@@ -192,6 +197,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["refs", "User"])
@@ -242,11 +248,15 @@ class TestCliWithDaemon:
         # Try to restart a workspace that doesn't exist
         result = runner.invoke(cli, ["workspace", "restart", str(temp_dir)])
         # Should fail because workspace isn't initialized
-        assert result.exit_code != 0 or "error" in result.output.lower() or "not" in result.output.lower()
+        assert (
+            result.exit_code != 0
+            or "error" in result.output.lower()
+            or "not" in result.output.lower()
+        )
 
     def test_implementations_for_protocol(self, python_project, isolated_config):
         """Test that implementations works for Python Protocols.
-        
+
         basedpyright now supports implementations for Protocol classes.
         """
         config = load_config()
@@ -254,6 +264,7 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["implementations", "StorageProtocol"])
@@ -268,12 +279,16 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             result = runner.invoke(cli, ["subtypes", "User"])
         # Should fail with a "not supported" error
         assert result.exit_code == 1
-        assert "not supported" in result.output.lower() or "method not found" in result.output.lower()
+        assert (
+            "not supported" in result.output.lower()
+            or "method not found" in result.output.lower()
+        )
 
     def test_rename(self, python_project, isolated_config):
         """Test rename symbol."""
@@ -282,10 +297,13 @@ class TestCliWithDaemon:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(python_project)
             # Rename a function
-            result = runner.invoke(cli, ["rename", "create_sample_user", "make_sample_user"])
+            result = runner.invoke(
+                cli, ["rename", "create_sample_user", "make_sample_user"]
+            )
         assert result.exit_code == 0
 
     def test_workspace_remove_stops_servers(self, python_project, isolated_config):
@@ -338,14 +356,17 @@ class TestCliWithGopls:
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(go_project)
             result = runner.invoke(cli, ["implementations", "Storage"])
         assert result.exit_code == 0, f"Failed with: {result.output}"
         # Order may vary, so sort lines
-        assert sorted(result.output.strip().split("\n")) == sorted("""\
+        assert sorted(result.output.strip().split("\n")) == sorted(
+            """\
 main.go:39 type MemoryStorage struct {
-main.go:85 type FileStorage struct {""".strip().split("\n"))
+main.go:85 type FileStorage struct {""".strip().split("\n")
+        )
 
     def test_subtypes(self, go_project, isolated_config):
         """Test that subtypes works for Go interfaces."""
@@ -354,14 +375,17 @@ main.go:85 type FileStorage struct {""".strip().split("\n"))
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(go_project)
             result = runner.invoke(cli, ["subtypes", "Storage"])
         assert result.exit_code == 0, f"Failed with: {result.output}"
         # Order may vary, so sort lines
-        assert sorted(result.output.strip().split("\n")) == sorted("""\
+        assert sorted(result.output.strip().split("\n")) == sorted(
+            """\
 main.go:85 [Class] FileStorage (sample_project)
-main.go:39 [Class] MemoryStorage (sample_project)""".strip().split("\n"))
+main.go:39 [Class] MemoryStorage (sample_project)""".strip().split("\n")
+        )
 
     def test_supertypes(self, go_project, isolated_config):
         """Test that supertypes works for Go structs."""
@@ -370,13 +394,17 @@ main.go:39 [Class] MemoryStorage (sample_project)""".strip().split("\n"))
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(go_project)
             result = runner.invoke(cli, ["supertypes", "MemoryStorage"])
         assert result.exit_code == 0, f"Failed with: {result.output}"
-        assert result.output == """\
+        assert (
+            result.output
+            == """\
 main.go:31 [Interface] Storage (sample_project)
 """
+        )
 
     def test_show_by_symbol(self, go_project, isolated_config):
         """Test definition works with symbol syntax in Go."""
@@ -385,6 +413,7 @@ main.go:31 [Interface] Storage (sample_project)
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(go_project)
             result = runner.invoke(cli, ["show", "User"])
@@ -399,6 +428,7 @@ main.go:31 [Interface] Storage (sample_project)
 
         runner = CliRunner()
         import os
+
         with runner.isolated_filesystem():
             os.chdir(go_project)
             result = runner.invoke(cli, ["show", "MemoryStorage.Save"])

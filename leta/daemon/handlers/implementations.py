@@ -1,6 +1,10 @@
 """Handler for implementations command."""
 
-from ..rpc import ImplementationsParams as RPCImplementationsParams, ImplementationsResult, LocationInfo
+from ..rpc import (
+    ImplementationsParams as RPCImplementationsParams,
+    ImplementationsResult,
+    LocationInfo,
+)
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
 from ...lsp.types import TextDocumentPositionParams, TextDocumentIdentifier, Position
 from .base import HandlerContext
@@ -9,10 +13,12 @@ from .base import HandlerContext
 async def handle_implementations(
     ctx: HandlerContext, params: RPCImplementationsParams
 ) -> ImplementationsResult:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     assert workspace.client
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
@@ -40,6 +46,4 @@ async def handle_implementations(
         raise
 
     locations = ctx.format_locations(result, workspace.root, context)
-    return ImplementationsResult(
-        locations=[LocationInfo(**loc) for loc in locations]
-    )
+    return ImplementationsResult(locations=[LocationInfo(**loc) for loc in locations])

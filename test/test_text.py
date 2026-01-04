@@ -97,19 +97,19 @@ class TestResolveRegexPosition:
         line, col = resolve_regex_position(content, "foo", line=1)
         assert line == 1
         assert col == 4
-    
+
     def test_unique_match_in_file(self):
         content = "class MyClass:\n    def unique_method(self):\n        pass"
         line, col = resolve_regex_position(content, "unique_method", line=None)
         assert line == 2
         assert col == 8
-    
+
     def test_regex_pattern(self):
         content = "def get_user():\n    pass\ndef get_item():\n    pass"
         line, col = resolve_regex_position(content, "get_user", line=None)
         assert line == 1
         assert col == 4
-    
+
     def test_multiple_matches_on_line_raises(self):
         content = "foo bar foo baz"
         with pytest.raises(ValueError) as exc_info:
@@ -117,33 +117,33 @@ class TestResolveRegexPosition:
         assert "matches 2 times on line 1" in str(exc_info.value)
         assert "column 0" in str(exc_info.value)
         assert "column 8" in str(exc_info.value)
-    
+
     def test_multiple_matches_in_file_raises(self):
         content = "def foo():\n    pass\ndef foo_bar():\n    foo"
         with pytest.raises(ValueError) as exc_info:
             resolve_regex_position(content, "foo", line=None)
         assert "matches 3 times in file" in str(exc_info.value)
         assert "LINE:REGEX or LINE,COLUMN" in str(exc_info.value)
-    
+
     def test_no_match_on_line_raises(self):
         content = "def bar():\n    pass"
         with pytest.raises(ValueError) as exc_info:
             resolve_regex_position(content, "foo", line=1)
         assert "not found on line 1" in str(exc_info.value)
-    
+
     def test_no_match_in_file_raises(self):
         content = "def bar():\n    pass"
         with pytest.raises(ValueError) as exc_info:
             resolve_regex_position(content, "xyz", line=None)
         assert "not found in file" in str(exc_info.value)
-    
+
     def test_line_out_of_range_raises(self):
         content = "line1\nline2"
         with pytest.raises(ValueError) as exc_info:
             resolve_regex_position(content, "foo", line=10)
         assert "out of range" in str(exc_info.value)
         assert "2 lines" in str(exc_info.value)
-    
+
     def test_regex_special_characters(self):
         content = "def test_foo():\n    x = (1 + 2)"
         line, col = resolve_regex_position(content, r"\(1 \+ 2\)", line=None)

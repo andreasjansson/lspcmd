@@ -138,7 +138,7 @@ WORKSPACE_MARKERS = [
 
 def detect_workspace_root(path: Path) -> Path | None:
     """Detect workspace root by walking up from path and finding workspace markers.
-    
+
     Returns the deepest (closest to path) directory containing a workspace marker.
     """
     path = path.resolve()
@@ -157,7 +157,7 @@ def detect_workspace_root(path: Path) -> Path | None:
 
 def get_known_workspace_root(path: Path, config: Config) -> Path | None:
     """Get the deepest known workspace root that contains path.
-    
+
     If path is in multiple known workspaces (nested), returns the deepest one.
     """
     path = path.resolve()
@@ -165,7 +165,7 @@ def get_known_workspace_root(path: Path, config: Config) -> Path | None:
 
     best_root = None
     best_depth = -1
-    
+
     for root_str in roots:
         root = Path(root_str).resolve()
         try:
@@ -180,14 +180,16 @@ def get_known_workspace_root(path: Path, config: Config) -> Path | None:
     return best_root
 
 
-def get_best_workspace_root(path: Path, config: Config, cwd: Path | None = None) -> Path | None:
+def get_best_workspace_root(
+    path: Path, config: Config, cwd: Path | None = None
+) -> Path | None:
     """Get the best workspace root for a path.
-    
+
     Only returns explicitly initialized workspace roots (from config).
-    
+
     Returns None if no initialized workspace contains the path.
     Use `leta workspace init` to initialize a workspace.
-    
+
     The cwd parameter is ignored (kept for API compatibility).
     """
     path = path.resolve()
@@ -204,7 +206,7 @@ def add_workspace_root(root: Path, config: Config) -> None:
 
 def remove_workspace_root(root: Path, config: Config) -> bool:
     """Remove a workspace root from the config.
-    
+
     Returns True if the root was found and removed, False otherwise.
     """
     roots = config.get("workspaces", {}).get("roots", [])
@@ -218,25 +220,25 @@ def remove_workspace_root(root: Path, config: Config) -> bool:
 
 def cleanup_stale_workspace_roots(config: Config) -> list[str]:
     """Remove workspace roots that no longer exist on disk.
-    
+
     Returns list of removed roots.
     """
     roots = config.get("workspaces", {}).get("roots", [])
     if not roots:
         return []
-    
+
     removed = []
     valid_roots = []
-    
+
     for root_str in roots:
         root = Path(root_str)
         if root.exists() and root.is_dir():
             valid_roots.append(root_str)
         else:
             removed.append(root_str)
-    
+
     if removed:
         config.setdefault("workspaces", {})["roots"] = valid_roots
         save_config(config)
-    
+
     return removed

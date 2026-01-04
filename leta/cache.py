@@ -14,6 +14,7 @@ V = TypeVar("V")
 
 class CacheEntry:
     """Typed wrapper for cache entry data."""
+
     value: object
     access_time: float
     size: int
@@ -32,7 +33,9 @@ class CacheEntry:
         size_raw = data.get("size")
         return cls(
             value=data["value"],
-            access_time=float(str(access_time_raw)) if access_time_raw is not None else 0.0,
+            access_time=float(str(access_time_raw))
+            if access_time_raw is not None
+            else 0.0,
             size=int(str(size_raw)) if size_raw is not None else 0,
         )
 
@@ -77,7 +80,9 @@ class LMDBCache:
                 try:
                     raw_entry: dict[str, object] = pickle.loads(value_bytes)
                     entry = CacheEntry.from_dict(raw_entry)
-                    entries.append((key_bytes, entry.access_time, entry.size or len(value_bytes)))
+                    entries.append(
+                        (key_bytes, entry.access_time, entry.size or len(value_bytes))
+                    )
                 except Exception as e:
                     logger.warning(f"Failed to load cache entry: {e}")
 

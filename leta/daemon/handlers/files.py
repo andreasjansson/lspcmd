@@ -30,7 +30,8 @@ async def handle_files(ctx: HandlerContext, params: FilesParams) -> FilesResult:
 
     if exclude_patterns:
         files = [
-            f for f in files
+            f
+            for f in files
             if not is_excluded(ctx.relative_path(f, workspace_root), exclude_patterns)
         ]
 
@@ -77,7 +78,9 @@ async def handle_files(ctx: HandlerContext, params: FilesParams) -> FilesResult:
         if not is_binary:
             try:
                 content = file_path.read_text(errors="replace")
-                lines = content.count("\n") + (1 if content and not content.endswith("\n") else 0)
+                lines = content.count("\n") + (
+                    1 if content and not content.endswith("\n") else 0
+                )
             except Exception:
                 pass
 

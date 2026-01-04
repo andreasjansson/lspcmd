@@ -8,10 +8,10 @@ T = TypeVar("T")
 
 def validate_email(email: str) -> bool:
     """Validate an email address format.
-    
+
     Args:
         email: The email address to validate.
-        
+
     Returns:
         True if the email format is valid, False otherwise.
     """
@@ -26,10 +26,10 @@ def validate_age(age: int) -> bool:
 
 def memoize(func: Callable[..., T]) -> Callable[..., T]:
     """Decorator to cache function results.
-    
+
     Args:
         func: The function to memoize.
-        
+
     Returns:
         A wrapped function that caches results.
     """
@@ -47,12 +47,12 @@ def memoize(func: Callable[..., T]) -> Callable[..., T]:
 @memoize
 def fibonacci(n: int) -> int:
     """Calculate the nth Fibonacci number.
-    
+
     Uses memoization for efficient computation.
-    
+
     Args:
         n: The index of the Fibonacci number to compute.
-        
+
     Returns:
         The nth Fibonacci number.
     """
@@ -63,7 +63,7 @@ def fibonacci(n: int) -> int:
 
 class Counter(Generic[T]):
     """A generic counter class.
-    
+
     Attributes:
         initial: The initial value of the counter.
     """

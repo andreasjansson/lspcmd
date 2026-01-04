@@ -20,10 +20,12 @@ from .base import HandlerContext
 
 
 async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameResult:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     new_name = params.new_name
     workspace_root = Path(params.workspace_root).resolve()
@@ -111,7 +113,9 @@ async def _apply_text_edits(file_path: Path, edits: list[TextEdit]) -> None:
             line = lines[start_line] if start_line < len(lines) else ""
             lines[start_line] = line[:start_char] + new_text + line[end_char:]
         else:
-            first_line = lines[start_line][:start_char] if start_line < len(lines) else ""
+            first_line = (
+                lines[start_line][:start_char] if start_line < len(lines) else ""
+            )
             last_line = lines[end_line][end_char:] if end_line < len(lines) else ""
             lines[start_line : end_line + 1] = [first_line + new_text + last_line]
 

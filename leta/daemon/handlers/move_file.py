@@ -41,9 +41,9 @@ async def handle_move_file(
 
     server_name = workspace.server_config.name
     caps = workspace.client.capabilities.model_dump()
-    supports_will_rename = caps.get("workspace", {}).get(
-        "fileOperations", {}
-    ).get("willRename")
+    supports_will_rename = (
+        caps.get("workspace", {}).get("fileOperations", {}).get("willRename")
+    )
 
     if not supports_will_rename:
         raise ValueError(f"move-file is not supported by {server_name}")
@@ -51,9 +51,7 @@ async def handle_move_file(
     opened_for_indexing: list[Path] = []
     if old_path.suffix == ".py":
         python_files = ctx.find_all_source_files(workspace_root)
-        python_files = [
-            f for f in python_files if f.suffix == ".py" and f != old_path
-        ]
+        python_files = [f for f in python_files if f.suffix == ".py" and f != old_path]
         for file_path in python_files:
             if str(file_path) not in workspace.open_documents:
                 await workspace.ensure_document_open(file_path)
@@ -87,7 +85,14 @@ async def handle_move_file(
         )
         files_modified.extend(additional_files)
         imports_updated = (
-            len([f for f in additional_files if f != ctx.relative_path(new_path, workspace_root)]) > 0
+            len(
+                [
+                    f
+                    for f in additional_files
+                    if f != ctx.relative_path(new_path, workspace_root)
+                ]
+            )
+            > 0
         )
 
     if not file_already_moved:
@@ -174,7 +179,9 @@ async def _apply_text_edits(file_path: Path, edits: list[TextEdit]) -> None:
             line = lines[start_line] if start_line < len(lines) else ""
             lines[start_line] = line[:start_char] + new_text + line[end_char:]
         else:
-            first_line = lines[start_line][:start_char] if start_line < len(lines) else ""
+            first_line = (
+                lines[start_line][:start_char] if start_line < len(lines) else ""
+            )
             last_line = lines[end_line][end_char:] if end_line < len(lines) else ""
             lines[start_line : end_line + 1] = [first_line + new_text + last_line]
 

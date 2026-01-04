@@ -62,7 +62,10 @@ class TestLMDBCacheBasicOperations:
     def test_complex_keys_and_values(self, cache_dir):
         cache = LMDBCache(cache_dir, max_bytes=10000)
         try:
-            cache[("path/to/file.py", 42, "abc123")] = {"name": "foo", "items": [1, 2, 3]}
+            cache[("path/to/file.py", 42, "abc123")] = {
+                "name": "foo",
+                "items": [1, 2, 3],
+            }
             result = cache.get(("path/to/file.py", 42, "abc123"))
             assert result == {"name": "foo", "items": [1, 2, 3]}
         finally:
@@ -79,7 +82,7 @@ class TestLMDBCacheLRUEviction:
     def test_evicts_oldest_when_full(self, cache_dir):
         size_per_entry = self._entry_size(("k",), "x" * 10)
         max_bytes = size_per_entry * 2 + 10
-        
+
         cache = LMDBCache(cache_dir, max_bytes=max_bytes)
         try:
             cache[("key1",)] = "x" * 10
@@ -87,9 +90,9 @@ class TestLMDBCacheLRUEviction:
             assert len(cache) == 2
             assert ("key1",) in cache
             assert ("key2",) in cache
-            
+
             cache[("key3",)] = "x" * 10
-            
+
             assert len(cache) == 2
             assert ("key1",) not in cache
             assert ("key2",) in cache
@@ -100,19 +103,19 @@ class TestLMDBCacheLRUEviction:
     def test_access_updates_lru_order(self, cache_dir):
         size_per_entry = self._entry_size(("k",), "x" * 10)
         max_bytes = size_per_entry * 2 + 10
-        
+
         cache = LMDBCache(cache_dir, max_bytes=max_bytes)
         try:
             cache[("key1",)] = "x" * 10
             time.sleep(0.01)
             cache[("key2",)] = "x" * 10
-            
+
             time.sleep(0.01)
             cache.get(("key1",))
-            
+
             time.sleep(0.01)
             cache[("key3",)] = "x" * 10
-            
+
             assert ("key1",) in cache
             assert ("key2",) not in cache
             assert ("key3",) in cache
@@ -123,16 +126,16 @@ class TestLMDBCacheLRUEviction:
         small_size = self._entry_size(("k",), "x")
         large_size = self._entry_size(("k",), "x" * 100)
         max_bytes = small_size * 3 + 10
-        
+
         cache = LMDBCache(cache_dir, max_bytes=max_bytes)
         try:
             cache[("key1",)] = "x"
             cache[("key2",)] = "x"
             cache[("key3",)] = "x"
             assert len(cache) == 3
-            
+
             cache[("key4",)] = "x" * 100
-            
+
             assert ("key4",) in cache
             remaining = sum(1 for k in [("key1",), ("key2",), ("key3",)] if k in cache)
             assert remaining < 3
@@ -143,15 +146,15 @@ class TestLMDBCacheLRUEviction:
         cache = LMDBCache(cache_dir, max_bytes=10000)
         try:
             assert cache.current_bytes == 0
-            
+
             cache[("key1",)] = "value1"
             bytes_after_one = cache.current_bytes
             assert bytes_after_one > 0
-            
+
             cache[("key2",)] = "value2"
             bytes_after_two = cache.current_bytes
             assert bytes_after_two > bytes_after_one
-            
+
             cache[("key1",)] = "new_value"
             assert cache.current_bytes != bytes_after_two
         finally:
@@ -166,7 +169,7 @@ class TestLMDBCachePersistence:
             cache[("key2",)] = {"nested": "data"}
         finally:
             cache.close()
-        
+
         cache2 = LMDBCache(cache_dir, max_bytes=10000)
         try:
             assert cache2.get(("key1",)) == "value1"
@@ -177,7 +180,7 @@ class TestLMDBCachePersistence:
 
     def test_lru_order_survives_restart(self, cache_dir):
         size_per_entry = 100
-        
+
         cache = LMDBCache(cache_dir, max_bytes=10000)
         try:
             cache[("key1",)] = "a"
@@ -185,19 +188,19 @@ class TestLMDBCachePersistence:
             cache[("key2",)] = "b"
             time.sleep(0.01)
             cache[("key3",)] = "c"
-            
+
             time.sleep(0.01)
             cache.get(("key1",))
-            
+
             bytes_before = cache.current_bytes
         finally:
             cache.close()
-        
+
         cache2 = LMDBCache(cache_dir, max_bytes=bytes_before + 50)
         try:
             time.sleep(0.01)
             cache2[("key4",)] = "d"
-            
+
             assert ("key1",) in cache2
             assert ("key3",) in cache2
             assert ("key4",) in cache2
@@ -214,7 +217,7 @@ class TestLMDBCachePersistence:
             count_before = len(cache)
         finally:
             cache.close()
-        
+
         cache2 = LMDBCache(cache_dir, max_bytes=10000)
         try:
             assert cache2.current_bytes == bytes_before
@@ -264,7 +267,7 @@ class TestLMDBCacheEdgeCases:
         try:
             for i in range(1000):
                 cache[(f"key{i}",)] = f"value{i}"
-            
+
             assert len(cache) == 1000
             assert cache.get(("key0",)) == "value0"
             assert cache.get(("key999",)) == "value999"

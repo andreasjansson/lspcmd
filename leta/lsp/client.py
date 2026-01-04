@@ -51,7 +51,9 @@ class LSPClient:
     _reader_task: asyncio.Task[None] | None
     _initialized: bool
     _server_capabilities: ServerCapabilities
-    _notification_handlers: dict[str, Callable[[dict[str, object] | None], Awaitable[None]]]
+    _notification_handlers: dict[
+        str, Callable[[dict[str, object] | None], Awaitable[None]]
+    ]
     _log_handle: TextIO | None
     _service_ready: asyncio.Event
     _needs_service_ready: bool
@@ -112,7 +114,7 @@ class LSPClient:
                 data = await self.process.stderr.read(4096)
                 if not data:
                     break
-                text = data.decode(errors='replace')
+                text = data.decode(errors="replace")
                 if self._log_handle:
                     self._log_handle.write(text)
                     self._log_handle.flush()
@@ -155,7 +157,9 @@ class LSPClient:
             rootPath=self.workspace_root.replace("file://", ""),
             capabilities=ClientCapabilities.model_validate(get_client_capabilities()),
             workspaceFolders=[
-                WorkspaceFolder(uri=self.workspace_root, name=self.workspace_root.split("/")[-1])
+                WorkspaceFolder(
+                    uri=self.workspace_root, name=self.workspace_root.split("/")[-1]
+                )
             ],
             initializationOptions=self.init_options if self.init_options else None,
         )
@@ -342,14 +346,20 @@ class LSPClient:
         await self.stdin.drain()
 
         try:
-            raw_result = await asyncio.wait_for(future, timeout=timeout or REQUEST_TIMEOUT)
+            raw_result = await asyncio.wait_for(
+                future, timeout=timeout or REQUEST_TIMEOUT
+            )
         except asyncio.TimeoutError:
             self._pending_requests.pop(request_id, None)
-            raise LSPResponseError(-1, f"Request {method} timed out after {timeout or REQUEST_TIMEOUT}s")
+            raise LSPResponseError(
+                -1, f"Request {method} timed out after {timeout or REQUEST_TIMEOUT}s"
+            )
 
         return _parse_response(method, raw_result)
 
-    async def send_notification(self, method: str, params: dict[str, Any] | list[Any] | None) -> None:
+    async def send_notification(
+        self, method: str, params: dict[str, Any] | list[Any] | None
+    ) -> None:
         message: dict[str, Any] = {"jsonrpc": "2.0", "method": method}
         if params is not None:
             message["params"] = params
@@ -364,7 +374,9 @@ class LSPClient:
             while True:
                 logger.debug("Waiting to read message from server")
                 message = await read_message(self.stdout)
-                logger.debug(f"Received message: id={message.get('id')}, method={message.get('method')}")
+                logger.debug(
+                    f"Received message: id={message.get('id')}, method={message.get('method')}"
+                )
                 await self._handle_message(message)
         except LSPProtocolError as e:
             logger.error(f"Protocol error: {e}")
@@ -400,7 +412,11 @@ class LSPClient:
             error = message["error"]
             logger.debug(f"LSP RESPONSE [{request_id}] ERROR: {error}")
             future.set_exception(
-                LSPResponseError(error.get("code", -1), error.get("message", "Unknown error"), error.get("data"))
+                LSPResponseError(
+                    error.get("code", -1),
+                    error.get("message", "Unknown error"),
+                    error.get("data"),
+                )
             )
         else:
             result = message.get("result")
@@ -434,7 +450,9 @@ class LSPClient:
             response["result"] = result
 
         encoded_response = encode_message(response)
-        logger.debug(f"Sending response for server request {request_id}: {len(encoded_response)} bytes")
+        logger.debug(
+            f"Sending response for server request {request_id}: {len(encoded_response)} bytes"
+        )
         self.stdin.write(encoded_response)
         await self.stdin.drain()
         logger.debug(f"Sent response for server request {request_id}")
@@ -475,9 +493,15 @@ class LSPClient:
                 self._indexing_done.set()
                 logger.debug("All progress complete, server ready")
             else:
-                logger.debug(f"Progress end: {token}, {len(self._active_progress_tokens)} remaining")
+                logger.debug(
+                    f"Progress end: {token}, {len(self._active_progress_tokens)} remaining"
+                )
 
-    def on_notification(self, method: str, handler: Callable[[dict[str, object] | None], Awaitable[None]]) -> None:
+    def on_notification(
+        self,
+        method: str,
+        handler: Callable[[dict[str, object] | None], Awaitable[None]],
+    ) -> None:
         self._notification_handlers[method] = handler
 
     async def wait_for_service_ready(self, timeout: float = 30.0) -> bool:
@@ -489,7 +513,9 @@ class LSPClient:
             await asyncio.wait_for(self._service_ready.wait(), timeout=timeout)
             return True
         except asyncio.TimeoutError:
-            logger.warning(f"Timeout waiting for {self.server_name} to become ServiceReady")
+            logger.warning(
+                f"Timeout waiting for {self.server_name} to become ServiceReady"
+            )
             return False
 
     async def wait_for_indexing(self, timeout: float = 30.0) -> bool:
@@ -573,12 +599,16 @@ def _parse_response(method: str, raw_result: Any) -> Any:
 
     if method == "callHierarchy/incomingCalls":
         if isinstance(raw_result, list):
-            return [CallHierarchyIncomingCall.model_validate(item) for item in raw_result]
+            return [
+                CallHierarchyIncomingCall.model_validate(item) for item in raw_result
+            ]
         return None
 
     if method == "callHierarchy/outgoingCalls":
         if isinstance(raw_result, list):
-            return [CallHierarchyOutgoingCall.model_validate(item) for item in raw_result]
+            return [
+                CallHierarchyOutgoingCall.model_validate(item) for item in raw_result
+            ]
         return None
 
     if method == "textDocument/prepareTypeHierarchy":

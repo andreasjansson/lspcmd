@@ -1,6 +1,10 @@
 """Handler for declaration command."""
 
-from ..rpc import DeclarationParams as RPCDeclarationParams, DeclarationResult, LocationInfo
+from ..rpc import (
+    DeclarationParams as RPCDeclarationParams,
+    DeclarationResult,
+    LocationInfo,
+)
 from ...lsp.protocol import LSPResponseError, LSPMethodNotSupported
 from ...lsp.types import TextDocumentPositionParams, TextDocumentIdentifier, Position
 from .base import HandlerContext
@@ -9,10 +13,12 @@ from .base import HandlerContext
 async def handle_declaration(
     ctx: HandlerContext, params: RPCDeclarationParams
 ) -> DeclarationResult:
-    workspace, doc, _ = await ctx.get_workspace_and_document({
-        "path": params.path,
-        "workspace_root": params.workspace_root,
-    })
+    workspace, doc, _ = await ctx.get_workspace_and_document(
+        {
+            "path": params.path,
+            "workspace_root": params.workspace_root,
+        }
+    )
     line, column = ctx.parse_position({"line": params.line, "column": params.column})
     context = params.context
 
@@ -34,6 +40,4 @@ async def handle_declaration(
         raise
 
     locations = ctx.format_locations(result, workspace.root, context)
-    return DeclarationResult(
-        locations=[LocationInfo(**loc) for loc in locations]
-    )
+    return DeclarationResult(locations=[LocationInfo(**loc) for loc in locations])
