@@ -1,0 +1,15 @@
+==================
+refs with context
+==================
+leta refs createSampleUser -n 1
+---
+src/main.ts:5-7
+ */
+function createSampleUser(): User {
+    return new User("John Doe", "john@example.com", 30);
+
+src/main.ts:57-59
+    const repo = new UserRepository(storage);
+    const user = createSampleUser();
+
+
