@@ -1,0 +1,7 @@
+[
+  {
+    "directory": ".",
+    "command": "clang++ -std=c++17 -c main.cpp -o main.o",
+    "file": "main.cpp"
+  }
+]
