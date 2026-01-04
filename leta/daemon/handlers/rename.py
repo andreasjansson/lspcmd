@@ -108,16 +108,33 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
             except Exception as e:
                 logger.warning(f"workspace/symbol sync failed: {e}")
 
-    # Reopen all modified documents
-    # This also forces the LSP to process the file changes (especially for ruby-lsp
-    # which processes messages asynchronously) because ensure_document_open sends a
-    # documentSymbol request and waits for the response
+    # Reopen all modified documents and force reindexing
+    # For ruby-lsp, opening a document and requesting documentSymbol triggers 
+    # run_combined_requests which re-indexes the file via index.handle_change
     for old_path, new_path in renamed_files:
         await workspace.ensure_document_open(new_path)
     for rel_path in files_modified:
         abs_path = workspace_root / rel_path
         if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
             await workspace.ensure_document_open(abs_path)
+    
+    # For ruby-lsp, force reindexing by sending documentSymbol requests
+    # This triggers run_combined_requests which calls index.handle_change
+    if workspace.client and workspace.client.server_name == "ruby-lsp":
+        from ...lsp.types import DocumentSymbolParams, TextDocumentIdentifier
+        for rel_path in files_modified:
+            abs_path = workspace_root / rel_path
+            if abs_path.exists():
+                doc = await workspace.ensure_document_open(abs_path)
+                try:
+                    logger.info(f"Forcing reindex via documentSymbol for {abs_path}")
+                    await workspace.client.send_request(
+                        "textDocument/documentSymbol",
+                        DocumentSymbolParams(textDocument=TextDocumentIdentifier(uri=doc.uri)),
+                        timeout=5.0,
+                    )
+                except Exception as e:
+                    logger.warning(f"documentSymbol request failed: {e}")
 
     return RenameResult(files_changed=files_modified)
 
