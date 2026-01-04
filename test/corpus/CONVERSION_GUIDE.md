@@ -183,30 +183,55 @@ Make sure every original test has a corresponding corpus test.
 
 ## File Organization
 
-**IMPORTANT: Each test case should have its own file with a single command/expectation pair.**
+**IMPORTANT: Each test case MUST have its own file with exactly ONE command/expectation pair.**
 
-This makes tests easier to understand, debug, and update. Name files descriptively:
+This rule makes tests:
+- Easy to understand at a glance
+- Simple to debug when they fail
+- Trivial to update with `--update`
+
+### Directory Structure
 
 ```
 test/corpus/<language>/
-├── grep_pattern.txt           # Single grep pattern test
-├── grep_kind_class.txt        # Single grep kind filter test
-├── show_function.txt          # Single show test
-├── refs_basic.txt             # Single refs test
-├── calls_outgoing.txt         # Single calls test
-├── declaration_not_supported.txt  # Single error test
-└── rename_class.txt           # Exception: multi-step mutation test
+├── fixture/                    # The test project files
+├── grep_pattern.txt            # ONE test: grep with pattern
+├── grep_kind_class.txt         # ONE test: grep filtering by class
+├── grep_kind_function.txt      # ONE test: grep filtering by function
+├── show_function.txt           # ONE test: show a function
+├── show_with_context.txt       # ONE test: show with -n context
+├── refs_basic.txt              # ONE test: basic references
+├── calls_outgoing.txt          # ONE test: outgoing calls
+├── declaration_not_supported.txt  # ONE test: error case
+└── rename_class.txt            # EXCEPTION: multi-step mutation
+```
+
+### Example: Standard Test File
+
+Each file has exactly one test block (`show_function.txt`):
+
+```
+==================
+show function definition
+==================
+leta show create_sample_user
+---
+main.py:114-115
+
+def create_sample_user() -> User:
+    return User(name="John Doe", email="john@example.com", age=30)
 ```
 
 ### Exception: Mutating Commands
 
-Tests for commands that modify state (rename, mv) are the **only exception**. These need multiple steps in a single file to:
-1. Verify state before
-2. Run the mutation
-3. Verify state after
-4. **Restore state** so subsequent test runs work
+Tests for commands that **modify state** (rename, mv) are the **only exception**. These need multiple steps in a single file to:
+1. Verify state before mutation
+2. Run the mutation command
+3. Verify state after mutation
+4. **Restore state** so the test can run again
 
 Example from Python corpus (`rename_class.txt`):
+
 ```
 ==================
 check class exists before rename
@@ -239,17 +264,50 @@ grep "from editable import" editable_consumer.py
 from editable import RenamedPerson, editable_create_sample
 ```
 
-Note: The Python rename test doesn't restore because subsequent tests handle that. But for Go where rename affects fewer files, we restore explicitly:
+Example from Python corpus (`mv_file.txt`):
 
 ```
 ==================
-restore original name
+check import before move
 ==================
-leta rename RenamedPerson EditablePerson
+grep "from editable import" editable_consumer.py
 ---
-Renamed in 1 file(s):
-  editable.go
+from editable import EditablePerson, editable_create_sample
+
+==================
+move file and update imports
+==================
+leta mv editable.py editable_renamed.py
+---
+Moved file and updated imports in 2 file(s):
+  editable_consumer.py
+  editable_renamed.py
+
+==================
+verify import was updated
+==================
+grep "from editable_renamed import" editable_consumer.py
+---
+from editable_renamed import EditablePerson, editable_create_sample
+
+==================
+restore file back
+==================
+leta mv editable_renamed.py editable.py
+---
+Moved file and updated imports in 2 file(s):
+  editable_consumer.py
+  editable.py
+
+==================
+verify import was restored
+==================
+grep "from editable import" editable_consumer.py
+---
+from editable import EditablePerson, editable_create_sample
 ```
+
+Note how the mv test explicitly restores the file so the test is idempotent.
 
 ## Common Patterns
 
