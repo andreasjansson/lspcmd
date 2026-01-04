@@ -1,0 +1,17 @@
+==================
+grep with docs
+==================
+leta grep "createSampleUser" --kind method --docs src/Main.php -C
+---
+src/Main.php:17 [Method] createSampleUser (static) in Main
+    __LetaFixture\\Main::createSampleUser__
+    
+    Creates a sample user for testing.
+    
+    ```php
+    <?php
+    public static function createSampleUser(): User { }
+    ```
+    
+    _@return_ `User` A sample user instance
+
