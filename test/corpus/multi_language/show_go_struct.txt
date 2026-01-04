@@ -1,0 +1,11 @@
+==================
+show Go struct
+==================
+leta show GoService
+---
+main.go:12-15
+
+type GoService struct {
+	Name  string
+	users []GoUser
+}
