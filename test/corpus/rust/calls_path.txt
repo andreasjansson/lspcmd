@@ -1,0 +1,8 @@
+==================
+calls path found
+==================
+leta calls --from main --to create_sample_user
+---
+Call path:
+src/main.rs:22 [Function] main (fn main())
+  → src/main.rs:10 [Function] create_sample_user (fn create_sample_user() -> User)
