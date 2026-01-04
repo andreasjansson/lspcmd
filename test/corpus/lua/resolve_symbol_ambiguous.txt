@@ -1,0 +1,10 @@
+==================
+resolve ambiguous symbol shows matches
+==================
+leta show createSampleUser
+---
+Error: Symbol 'createSampleUser' is ambiguous (2 matches)
+  main.lua:8:createSampleUser
+    main.lua:8 [Function] createSampleUser
+  return.createSampleUser
+    main.lua:56 [Variable] createSampleUser in return
