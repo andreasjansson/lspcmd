@@ -77,37 +77,55 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     if file_changes:
         logger.info(f"Notifying LSP about {len(file_changes)} file changes: {file_changes}")
         await workspace.notify_files_changed(file_changes)
-        
-        # For ruby-lsp, we need to wait for it to process the file changes
-        # It processes messages asynchronously in a queue, and the index update
-        # happens when the didChangeWatchedFiles notification is processed.
-        # We send a request and wait for its response to ensure the queue is flushed.
-        if workspace.client and workspace.client.server_name == "ruby-lsp":
-            import asyncio
-            from ...lsp.types import WorkspaceSymbolParams
-            try:
-                # Send a request that forces queue processing
-                await workspace.client.send_request(
-                    "workspace/symbol",
-                    WorkspaceSymbolParams(query="__leta_sync__"),
-                    timeout=5.0,
-                )
-                # Delay to ensure index is fully updated
-                # ruby-lsp's index update can take a moment after processing
-                await asyncio.sleep(0.2)
-            except Exception:
-                pass  # Just want to ensure notifications are processed
 
-    # Reopen all modified documents
-    # This also forces the LSP to process the file changes (especially for ruby-lsp
-    # which processes messages asynchronously) because ensure_document_open sends a
-    # documentSymbol request and waits for the response
-    for old_path, new_path in renamed_files:
-        await workspace.ensure_document_open(new_path)
-    for rel_path in files_modified:
-        abs_path = workspace_root / rel_path
-        if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
-            await workspace.ensure_document_open(abs_path)
+    # For ruby-lsp, we need special handling to ensure the index is properly updated.
+    # ruby-lsp's index doesn't get updated reliably via didChangeWatchedFiles alone.
+    # We need to:
+    # 1. Wait for notifications to be processed
+    # 2. Reopen documents which triggers run_combined_requests
+    # 3. That calls index.handle_change which properly deletes old entries and adds new ones
+    if workspace.client and workspace.client.server_name == "ruby-lsp":
+        import asyncio
+        from ...lsp.types import WorkspaceSymbolParams, DocumentSymbolParams
+        
+        # Wait for didChangeWatchedFiles to be processed
+        try:
+            await workspace.client.send_request(
+                "workspace/symbol",
+                WorkspaceSymbolParams(query="__sync__"),
+                timeout=5.0,
+            )
+        except Exception:
+            pass
+        
+        # Reopen documents and force reindexing via documentSymbol
+        for rel_path in files_modified:
+            abs_path = workspace_root / rel_path
+            if abs_path.exists():
+                # Ensure document is closed first
+                await workspace.close_document(abs_path)
+                # Small delay to ensure close is processed  
+                await asyncio.sleep(0.05)
+                # Reopen with fresh content from disk
+                doc = await workspace.ensure_document_open(abs_path)
+                # Force reindex via documentSymbol request - this triggers run_combined_requests
+                # which calls index.handle_change with a block that deletes old entries
+                try:
+                    await workspace.client.send_request(
+                        "textDocument/documentSymbol",
+                        DocumentSymbolParams(textDocument=TextDocumentIdentifier(uri=doc.uri)),
+                        timeout=5.0,
+                    )
+                except Exception:
+                    pass
+    else:
+        # For other servers, just reopen documents
+        for old_path, new_path in renamed_files:
+            await workspace.ensure_document_open(new_path)
+        for rel_path in files_modified:
+            abs_path = workspace_root / rel_path
+            if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
+                await workspace.ensure_document_open(abs_path)
 
     return RenameResult(files_changed=files_modified)
 
