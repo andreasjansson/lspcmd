@@ -1,0 +1,16 @@
+==================
+show multiline list constant
+==================
+leta show DEFAULT_CONFIG
+---
+src/main/java/com/example/User.java:23-31
+
+    /**
+     * Default configuration values.
+     */
+    public static final List<String> DEFAULT_CONFIG = List.of(
+        "debug=false",
+        "timeout=30",
+        "max_retries=3",
+        "log_level=INFO"
+    );
