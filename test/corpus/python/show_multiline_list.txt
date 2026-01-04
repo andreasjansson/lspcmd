@@ -1,0 +1,13 @@
+==================
+show multi-line list constant
+==================
+leta show DEFAULT_CONFIG
+---
+utils.py:140-145
+
+DEFAULT_CONFIG = [
+    "debug=false",
+    "timeout=30",
+    "max_retries=3",
+    "log_level=INFO",
+]
