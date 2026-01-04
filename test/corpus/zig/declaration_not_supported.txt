@@ -1,0 +1,6 @@
+==================
+declaration not supported
+==================
+leta declaration sample_user
+---
+Error: Symbol 'sample_user' not found
