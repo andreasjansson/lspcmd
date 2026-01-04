@@ -1,0 +1,21 @@
+==================
+show with file filter
+==================
+leta show storage.rs:Storage
+---
+src/storage.rs:4-17
+
+/// Trait defining the storage interface.
+pub trait Storage {
+    /// Saves a user with the given key.
+    fn save(&mut self, key: String, user: User);
+
+    /// Loads a user by key.
+    fn load(&self, key: &str) -> Option<&User>;
+
+    /// Deletes a user by key.
+    fn delete(&mut self, key: &str) -> bool;
+
+    /// Lists all stored users.
+    fn list(&self) -> Vec<&User>;
+}
