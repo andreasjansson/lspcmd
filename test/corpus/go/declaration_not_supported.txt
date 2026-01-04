@@ -1,0 +1,6 @@
+==================
+declaration not supported
+==================
+leta declaration repo
+---
+Error: Symbol 'repo' not found
