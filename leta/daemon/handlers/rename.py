@@ -101,6 +101,13 @@ async def _apply_workspace_edit(
             elif isinstance(change, RenameFile):
                 old_path = uri_to_path(change.oldUri)
                 new_path = uri_to_path(change.newUri)
+                # Skip if already renamed (handles duplicate rename operations from some LSP servers)
+                if not old_path.exists():
+                    logger.debug(f"Skipping rename: source file does not exist: {old_path}")
+                    continue
+                if new_path.exists():
+                    logger.debug(f"Skipping rename: target file already exists: {new_path}")
+                    continue
                 new_path.parent.mkdir(parents=True, exist_ok=True)
                 old_path.rename(new_path)
                 files_modified.append(ctx.relative_path(new_path, workspace_root))
