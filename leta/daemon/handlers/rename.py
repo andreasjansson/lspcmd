@@ -36,10 +36,6 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
     assert workspace.client is not None
 
-    # Wait for indexing to complete before sending rename request
-    # Some servers (like ruby-lsp) return null if not fully indexed
-    await workspace.client.wait_for_indexing(timeout=10.0)
-
     rename_params = RenameParams(
         textDocument=TextDocumentIdentifier(uri=doc.uri),
         position=Position(line=line, character=column),
@@ -48,6 +44,15 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     logger.info(f"Sending rename request via server {workspace.client.server_name}: uri={doc.uri}, line={line}, column={column}, newName={new_name}")
     result = await workspace.client.send_request("textDocument/rename", rename_params)
     logger.info(f"Rename result: {result}")
+
+    # Some servers (like ruby-lsp) need time to index after didOpen before they can
+    # respond to rename requests. If we get null, wait and retry once.
+    if not result:
+        import asyncio
+        logger.info("Rename returned null, waiting for server to index and retrying...")
+        await asyncio.sleep(0.5)
+        result = await workspace.client.send_request("textDocument/rename", rename_params)
+        logger.info(f"Rename retry result: {result}")
 
     if not result:
         raise ValueError("Rename not supported or failed")
