@@ -24,6 +24,12 @@ async def handle_declaration(
 
     assert workspace.client is not None
 
+    # Check capabilities before sending request to avoid timeouts
+    if not workspace.client.capabilities.supports_declaration():
+        raise LSPMethodNotSupported(
+            "textDocument/declaration", workspace.server_config.name
+        )
+
     try:
         result = await workspace.client.send_request(
             "textDocument/declaration",
