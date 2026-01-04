@@ -169,7 +169,6 @@ class LSPClient:
 
         result = await self.send_request("initialize", init_params)
         self._server_capabilities = result.capabilities
-        logger.info(f"Server {self.server_name} capabilities: {result.capabilities.model_dump(exclude_none=True)}")
         await self.send_notification("initialized", {})
         self._initialized = True
 
