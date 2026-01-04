@@ -1,0 +1,15 @@
+==================
+show method definition
+==================
+leta show createSampleUser
+---
+src/main/java/com/example/Main.java:10-17
+
+    /**
+     * Creates a sample user for testing.
+     *
+     * @return A sample user
+     */
+    public static User createSampleUser() {
+        return new User("John Doe", "john@example.com", 30);
+    }
