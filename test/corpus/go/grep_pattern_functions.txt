@@ -1,0 +1,9 @@
+==================
+grep pattern filter functions
+==================
+leta grep "^New" --kind function main.go -C
+---
+main.go:16 [Function] NewUser (func(name, email string, age int) *User)
+main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
+main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
+main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
