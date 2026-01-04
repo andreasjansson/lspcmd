@@ -1,0 +1,12 @@
+==================
+find references to User class
+==================
+leta refs User
+---
+main.py:27 class User:
+main.py:87         self._users: dict[str, User] = {}
+main.py:89     def add_user(self, user: User) -> None:
+main.py:93     def get_user(self, email: str) -> Optional[User]:
+main.py:104     def list_users(self) -> list[User]:
+main.py:113 def create_sample_user() -> User:
+main.py:115     return User(name="John Doe", email="john@example.com", age=30)
