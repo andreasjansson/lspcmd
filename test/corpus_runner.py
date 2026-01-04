@@ -394,7 +394,7 @@ def list_tests() -> None:
             continue
 
         language = lang_dir.name
-        server_cmd = LANGUAGE_SERVER_COMMANDS.get(language, "unknown")
+        server_cmd = get_language_server_name(language)
         installed = "✓" if check_language_server(language) else "✗"
 
         print(f"\n{Colors.BOLD}{language}{Colors.RESET} ({server_cmd}) [{installed}]")
