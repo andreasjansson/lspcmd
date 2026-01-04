@@ -1,0 +1,25 @@
+==================
+refs with context
+==================
+leta refs UserRepository -n 1
+---
+src/main/java/com/example/Main.java:24-26
+     */
+    public static List<String> processUsers(UserRepository repo) {
+        return repo.listUsers().stream()
+
+src/main/java/com/example/Main.java:48-50
+        Storage storage = new MemoryStorage();
+        UserRepository repo = new UserRepository(storage);
+        User user = createSampleUser();
+
+src/main/java/com/example/Main.java:48-50
+        Storage storage = new MemoryStorage();
+        UserRepository repo = new UserRepository(storage);
+        User user = createSampleUser();
+
+src/main/java/com/example/UserRepository.java:8-10
+ */
+public class UserRepository {
+    private Storage storage;
+
