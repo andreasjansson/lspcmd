@@ -1,0 +1,30 @@
+==================
+resolve unique symbol
+==================
+leta show Counter
+---
+src/main.ts:28-50
+
+class Counter {
+    private value: number;
+
+    constructor(initial: number = 0) {
+        this.value = initial;
+    }
+
+    getValue(): number {
+        return this.value;
+    }
+
+    increment(): number {
+        return ++this.value;
+    }
+
+    decrement(): number {
+        return --this.value;
+    }
+
+    reset(): void {
+        this.value = 0;
+    }
+}
