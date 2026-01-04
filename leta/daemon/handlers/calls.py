@@ -319,8 +319,11 @@ async def _expand_outgoing_calls(
     except LSPResponseError as e:
         if e.is_method_not_found():
             if is_root:
+                hint = None
+                if workspace.server_config.name == "clangd":
+                    hint = "Upgrade to clangd 20+ (brew install llvm)"
                 raise LSPMethodNotSupported(
-                    "callHierarchy/outgoingCalls", workspace.server_config.name
+                    "callHierarchy/outgoingCalls", workspace.server_config.name, hint
                 )
             return []
         raise
