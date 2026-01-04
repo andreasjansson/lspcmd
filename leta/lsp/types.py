@@ -3,6 +3,21 @@ from typing import Any, ClassVar, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 
+class FileChangeType(IntEnum):
+    Created = 1
+    Changed = 2
+    Deleted = 3
+
+
+class FileEvent(BaseModel):
+    uri: str
+    type: int  # FileChangeType
+
+
+class DidChangeWatchedFilesParams(BaseModel):
+    changes: list[FileEvent]
+
+
 class Position(BaseModel):
     line: int
     character: int
