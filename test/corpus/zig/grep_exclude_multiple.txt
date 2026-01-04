@@ -1,0 +1,8 @@
+==================
+grep exclude multiple patterns
+==================
+leta grep "." --kind function --exclude "errors.zig" --exclude "user.zig" --exclude "build.zig" -C
+---
+src/main.zig:4 [Function] main (fn main() !void)
+src/main.zig:22 [Function] createSampleUser (fn createSampleUser() user.User)
+src/main.zig:27 [Function] validateUser (fn validateUser(u: user.User) !void)
