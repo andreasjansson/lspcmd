@@ -1,0 +1,55 @@
+==================
+show function definition
+==================
+leta show NewUserRepository
+---
+main.go:124-126
+
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{storage: storage}
+}
+
+==================
+show function with context
+==================
+leta show NewUserRepository -n 1
+---
+main.go:123-127
+
+// NewUserRepository creates a new repository with the given storage.
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{storage: storage}
+}
+
+
+==================
+show multiline map variable
+==================
+leta show CountryCodes
+---
+utils.go:100-108
+
+var CountryCodes = map[string]string{
+	"US": "United States",
+	"CA": "Canada",
+	"GB": "United Kingdom",
+	"DE": "Germany",
+	"FR": "France",
+	"JP": "Japan",
+	"AU": "Australia",
+}
+
+==================
+show multiline slice variable
+==================
+leta show DefaultPorts
+---
+utils.go:111-117
+
+var DefaultPorts = []int{
+	80,
+	443,
+	8080,
+	8443,
+	3000,
+}
