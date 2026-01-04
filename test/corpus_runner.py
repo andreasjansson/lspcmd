@@ -72,6 +72,7 @@ class LanguageResult:
     language: str
     file_results: list[FileResult] = field(default_factory=list)
     setup_error: str | None = None
+    elapsed: float = 0.0
 
     @property
     def passed(self) -> bool:
