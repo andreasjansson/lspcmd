@@ -3,3 +3,4 @@ calls path returns empty
 ==================
 leta calls --from main --to createSampleUser
 ---
+Error: textDocument/prepareCallHierarchy is not supported by zls

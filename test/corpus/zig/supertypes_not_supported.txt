@@ -3,3 +3,4 @@ supertypes returns empty
 ==================
 leta supertypes MemoryStorage
 ---
+Error: textDocument/prepareTypeHierarchy is not supported by zls

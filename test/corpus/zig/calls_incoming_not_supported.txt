@@ -3,4 +3,4 @@ calls incoming not supported
 ==================
 leta calls --to createSampleUser
 ---
-Error: No callable symbol found at src/main.zig:22:7 for 'createSampleUser'. The symbol may not be a function/method, or the position may be incorrect.
+Error: textDocument/prepareCallHierarchy is not supported by zls

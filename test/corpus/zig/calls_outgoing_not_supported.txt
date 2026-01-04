@@ -3,4 +3,4 @@ calls outgoing not supported
 ==================
 leta calls --from main
 ---
-Error: No callable symbol found at src/main.zig:4:7 for 'main'. The symbol may not be a function/method, or the position may be incorrect.
+Error: textDocument/prepareCallHierarchy is not supported by zls
