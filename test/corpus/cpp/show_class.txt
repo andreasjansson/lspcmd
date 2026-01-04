@@ -1,0 +1,29 @@
+==================
+show class definition
+==================
+leta show example.User
+---
+user.hpp:13-34
+
+class User {
+public:
+    User(std::string name, std::string email, int age)
+        : name_(std::move(name)), email_(std::move(email)), age_(age) {}
+
+    const std::string& name() const { return name_; }
+    const std::string& email() const { return email_; }
+    int age() const { return age_; }
+
+    /// Checks if the user is 18 or older.
+    bool isAdult() const { return age_ >= 18; }
+
+    /// Returns a formatted display name.
+    std::string displayName() const {
+        return name_ + " <" + email_ + ">";
+    }
+
+private:
+    std::string name_;
+    std::string email_;
+    int age_;
+};
