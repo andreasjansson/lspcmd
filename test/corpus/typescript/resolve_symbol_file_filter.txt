@@ -1,0 +1,10 @@
+==================
+resolve with file filter
+==================
+leta show main.ts:createSampleUser
+---
+src/main.ts:6-8
+
+function createSampleUser(): User {
+    return new User("John Doe", "john@example.com", 30);
+}
