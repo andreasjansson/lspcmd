@@ -1,0 +1,14 @@
+==================
+show multiline array constant
+==================
+leta show DEFAULT_PORTS
+---
+src/user.zig:146-152
+
+pub const DEFAULT_PORTS = [_]u16{
+    80,
+    443,
+    8080,
+    8443,
+    3000,
+};
