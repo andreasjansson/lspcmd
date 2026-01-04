@@ -1,0 +1,6 @@
+==================
+declaration not supported
+==================
+leta declaration repo
+---
+Error: textDocument/declaration is not supported by typescript-language-server
