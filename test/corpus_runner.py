@@ -239,14 +239,18 @@ def run_corpus_file(file_path: Path, work_dir: Path, suite: str, template_vars: 
 
 
 def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult:
-    """Run all corpus tests in a suite directory."""
+    """Run all corpus tests in a suite directory.
+    
+    Test files are run in alphabetical order.
+    If a fixture/ directory exists, it's copied to a temp dir and {{ FIXTURE_DIR }} is available.
+    """
     start_time = time.time()
     suite_name = str(suite_dir.relative_to(CORPUS_DIR))
     result = SuiteResult(suite=suite_name)
     
     fixture_dir = suite_dir / "fixture"
     temp_dir = None
-    env: dict[str, str] = {}
+    template_vars: dict[str, str] = {}
     
     try:
         # Set up temp directory and copy fixture if present
@@ -254,28 +258,23 @@ def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult
             temp_dir = Path(tempfile.mkdtemp(prefix=f"leta_corpus_{suite_name.replace('/', '_')}_")).resolve()
             shutil.copytree(fixture_dir, temp_dir, dirs_exist_ok=True)
             work_dir = temp_dir
-            env["FIXTURE_DIR"] = str(temp_dir)
+            template_vars["FIXTURE_DIR"] = str(temp_dir)
         else:
             work_dir = suite_dir
         
-        # Run _setup.txt first if it exists
-        setup_file = suite_dir / "_setup.txt"
-        if setup_file.exists():
-            file_result = run_corpus_file(setup_file, work_dir, suite_name, env)
-            result.file_results.append(file_result)
-            if not file_result.passed:
-                result.setup_error = "Setup failed"
-                result.elapsed = time.time() - start_time
-                return result
-        
-        # Run all other test files
-        corpus_files = sorted(f for f in suite_dir.glob("*.txt") if not f.name.startswith("_"))
+        # Run all test files in alphabetical order
+        corpus_files = sorted(suite_dir.glob("*.txt"))
         
         for corpus_file in corpus_files:
             if filter_pattern and filter_pattern not in corpus_file.stem:
                 continue
-            file_result = run_corpus_file(corpus_file, work_dir, suite_name, env)
+            file_result = run_corpus_file(corpus_file, work_dir, suite_name, template_vars)
             result.file_results.append(file_result)
+            # Stop on first failure in setup files (files starting with _)
+            if corpus_file.name.startswith("_") and not file_result.passed:
+                result.setup_error = f"Setup failed in {corpus_file.name}"
+                result.elapsed = time.time() - start_time
+                return result
         
         result.elapsed = time.time() - start_time
         return result
