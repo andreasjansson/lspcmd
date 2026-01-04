@@ -44,7 +44,16 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     if not result:
         raise ValueError("Rename not supported or failed")
 
-    files_modified = await _apply_workspace_edit(ctx, result, workspace_root)
+    files_modified, renamed_files = await _apply_workspace_edit(ctx, result, workspace_root)
+
+    # Sync the LSP with the changes so subsequent operations see the updated state
+    for old_path, new_path in renamed_files:
+        await workspace.close_document(old_path)
+    for rel_path in files_modified:
+        abs_path = workspace_root / rel_path
+        if abs_path.exists():
+            await workspace.sync_document(abs_path)
+
     return RenameResult(files_changed=files_modified)
 
 
