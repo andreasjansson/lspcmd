@@ -1,0 +1,11 @@
+==================
+show unique symbol
+==================
+leta show UserRepository
+---
+src/user.rs:43-46
+
+/// Repository for managing user entities.
+pub struct UserRepository<S: Storage> {
+    storage: S,
+}
