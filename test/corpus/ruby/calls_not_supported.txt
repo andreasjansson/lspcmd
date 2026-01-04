@@ -3,4 +3,4 @@ calls not supported
 ==================
 leta calls --from main
 ---
-Error: textDocument/prepareCallHierarchy is not supported by solargraph
+Error: textDocument/prepareCallHierarchy is not supported by ruby-lsp
