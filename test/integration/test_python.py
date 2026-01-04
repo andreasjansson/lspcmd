@@ -113,7 +113,7 @@ main.py:119 [Variable] repo in process_users
 main.py:128 [Function] main
 main.py:130 [Variable] repo in main
 main.py:131 [Variable] user in main
-main.py:138 [Variable] found in main"""
+main.py:139 [Variable] found in main"""
         )
 
     def test_grep_pattern_filter(self, workspace):
