@@ -213,13 +213,10 @@ class Workspace:
             doc = self.open_documents[uri]
             current_content = read_file_content(path)
             if current_content != doc.content:
-                import sys
-                print(f"DEBUG: content changed, closing and reopening {uri}", file=sys.stderr)
                 # Close and reopen the document to force a full refresh
                 # This is more reliable than didChange for servers that use incremental sync
                 # (like ruby-lsp) since we don't track the exact edits made
                 await self.close_document(path)
-                print(f"DEBUG: closed, now falling through to reopen", file=sys.stderr)
                 # Fall through to reopen below
             else:
                 return doc
