@@ -1,0 +1,6 @@
+==================
+grep kind filter interface
+==================
+leta grep "." --kind interface src/user.ts -C
+---
+src/user.ts:29 [Interface] Storage
