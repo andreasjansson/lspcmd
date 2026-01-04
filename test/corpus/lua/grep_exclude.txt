@@ -1,0 +1,10 @@
+==================
+grep exclude pattern
+==================
+leta grep "." --kind function --exclude "errors*" --exclude "main*" -C
+---
+user.lua:19 [Function] User.new (function (name, email, age))
+user.lua:46 [Function] Storage.new (function ())
+user.lua:77 [Function] MemoryStorage.new (function ())
+user.lua:128 [Function] FileStorage.new (function (basePath))
+user.lua:164 [Function] UserRepository.new (function (storage))
