@@ -148,6 +148,26 @@ class Workspace:
             )
         self.open_documents.clear()
 
+    async def notify_files_changed(
+        self, changes: list[tuple[Path, FileChangeType]]
+    ) -> None:
+        """Notify the LSP server about file changes via workspace/didChangeWatchedFiles.
+        
+        This is needed for servers like jdtls that rely on file watching.
+        """
+        if self.client is None:
+            return
+
+        file_events = [
+            FileEvent(uri=path_to_uri(path), type=change_type.value)
+            for path, change_type in changes
+        ]
+        
+        await self.client.send_notification(
+            "workspace/didChangeWatchedFiles",
+            DidChangeWatchedFilesParams(changes=file_events).model_dump(),
+        )
+
     async def ensure_workspace_indexed(self) -> None:
         """Open and close all source files to ensure clangd indexes them."""
         if self.client is None:
