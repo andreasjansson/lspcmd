@@ -1,0 +1,9 @@
+==================
+grep kind filter method
+==================
+leta grep "." --kind method src/main/java/com/example/Main.java -C
+---
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in Main
+src/main/java/com/example/Main.java:25 [Method] processUsers(UserRepository) ( : List<String>) in Main
+src/main/java/com/example/Main.java:37 [Method] validateEmail(String) ( : boolean) in Main
+src/main/java/com/example/Main.java:47 [Method] main(String[]) ( : void) in Main
