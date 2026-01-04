@@ -1,0 +1,8 @@
+==================
+grep case sensitive finds match
+==================
+leta grep "Storage" --kind class user.rb -C
+---
+user.rb:38 [Class] Storage
+user.rb:71 [Class] MemoryStorage
+user.rb:113 [Class] FileStorage
