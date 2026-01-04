@@ -1,0 +1,10 @@
+==================
+show method definition
+==================
+leta show create_sample_user
+---
+main.rb:8-10
+
+def create_sample_user
+  User.new('John Doe', 'john@example.com', 30)
+end
