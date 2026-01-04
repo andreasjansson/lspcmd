@@ -180,28 +180,29 @@ def get_language_server_name(language: str) -> str:
 def setup_workspace(language: str, work_dir: Path) -> str | None:
     """Set up a workspace for testing. Returns error message or None."""
     fixture_dir = CORPUS_DIR / language / "fixture"
-    if not fixture_dir.exists():
-        return f"No fixture directory found: {fixture_dir}"
+    
+    # If there's a fixture directory, copy it and set up workspace
+    if fixture_dir.exists():
+        shutil.copytree(fixture_dir, work_dir, dirs_exist_ok=True)
 
-    shutil.copytree(fixture_dir, work_dir, dirs_exist_ok=True)
+        result = subprocess.run(
+            ["leta", "workspace", "add", "--root", str(work_dir)],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            return f"Failed to add workspace: {result.stderr}"
 
-    result = subprocess.run(
-        ["leta", "workspace", "add", "--root", str(work_dir)],
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return f"Failed to add workspace: {result.stderr}"
+        result = subprocess.run(
+            ["leta", "grep", "."],
+            cwd=work_dir,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
 
-    result = subprocess.run(
-        ["leta", "grep", "."],
-        cwd=work_dir,
-        capture_output=True,
-        text=True,
-        timeout=60,
-    )
-
-    time.sleep(1.0)
+        time.sleep(1.0)
+    
     return None
 
 
