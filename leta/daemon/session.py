@@ -243,6 +243,20 @@ class Workspace:
             },
         )
 
+        # Ensure server has processed the didOpen by sending a request and waiting for response.
+        # Some servers (like ruby-lsp) process messages asynchronously in a queue, so we need
+        # to ensure the didOpen is fully processed before subsequent operations can succeed.
+        from .handlers.base import flatten_symbols
+        from ..lsp.types import DocumentSymbolParams, TextDocumentIdentifier
+        try:
+            await self.client.send_request(
+                "textDocument/documentSymbol",
+                DocumentSymbolParams(textDocument=TextDocumentIdentifier(uri=uri)),
+                timeout=10.0,
+            )
+        except Exception:
+            pass  # Ignore errors - we just want to ensure didOpen was processed
+
         return doc
 
 
