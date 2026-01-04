@@ -1,0 +1,63 @@
+==================
+show unique symbol
+==================
+leta show UserRepository
+---
+src/UserRepository.php:7-62
+
+/**
+ * Provides high-level user management operations.
+ */
+class UserRepository
+{
+    /**
+     * Creates a new UserRepository instance.
+     *
+     * @param Storage $storage The storage backend to use
+     */
+    public function __construct(
+        private Storage $storage
+    ) {}
+
+    /**
+     * Adds a user to the repository.
+     *
+     * @param User $user The user to add
+     */
+    public function addUser(User $user): void
+    {
+        $this->storage->save($user);
+    }
+
+    /**
+     * Gets a user by email.
+     *
+     * @param string $email The email to search for
+     * @return User|null The user if found
+     */
+    public function getUser(string $email): ?User
+    {
+        return $this->storage->load($email);
+    }
+
+    /**
+     * Deletes a user by email.
+     *
+     * @param string $email The email of the user to delete
+     * @return bool True if the user was deleted
+     */
+    public function deleteUser(string $email): bool
+    {
+        return $this->storage->delete($email);
+    }
+
+    /**
+     * Lists all users.
+     *
+     * @return User[] All users in the repository
+     */
+    public function listUsers(): array
+    {
+        return $this->storage->list();
+    }
+}
