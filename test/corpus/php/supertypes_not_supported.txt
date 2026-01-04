@@ -3,3 +3,5 @@ supertypes not supported
 ==================
 leta supertypes MemoryStorage
 ---
+Error: textDocument/prepareTypeHierarchy is not supported by intelephense
+Error: textDocument/prepareTypeHierarchy is not supported by intelephense
