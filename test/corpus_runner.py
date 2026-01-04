@@ -524,6 +524,10 @@ def main() -> int:
         stop_event.set()
         printer_thread.join()
 
+        # Add separator in verbose mode
+        if args.verbose:
+            print()
+
         if args.update:
             for lang_result in results:
                 for file_result in lang_result.file_results:
