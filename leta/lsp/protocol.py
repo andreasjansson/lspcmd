@@ -63,11 +63,16 @@ class LSPResponseError(Exception):
 class LSPMethodNotSupported(Exception):
     method: str
     server_name: str
+    hint: str | None
 
-    def __init__(self, method: str, server_name: str):
+    def __init__(self, method: str, server_name: str, hint: str | None = None):
         self.method = method
         self.server_name = server_name
-        super().__init__(f"{method} is not supported by {server_name}")
+        self.hint = hint
+        msg = f"{method} is not supported by {server_name}"
+        if hint:
+            msg += f". {hint}"
+        super().__init__(msg)
 
 
 class LanguageServerNotFound(Exception):
