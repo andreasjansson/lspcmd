@@ -63,13 +63,13 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
     # Build list of file changes for didChangeWatchedFiles notification
     # 
-    # For ruby-lsp, the change type matters:
-    # - CREATED: calls index.index_single (only adds, doesn't delete old entries)
-    # - CHANGED: calls index.handle_change (deletes old entries first, then adds)
-    # - DELETED: calls index.delete (removes entries)
-    #
-    # Since we close documents before notification, ruby-lsp will use index.handle_change
-    # for CHANGED (when file not in store) which properly updates the index.
+    # For ruby-lsp, we MUST use DELETED followed by CREATED for modified files:
+    # - DELETED: calls index.delete(uri) unconditionally - removes old entries
+    # - CREATED: calls index.index_single(uri, content) - adds new entries
+    # 
+    # Using CHANGED doesn't work reliably because:
+    # - CHANGED only calls handle_change if file is NOT in store
+    # - The didClose notification might not be processed before didChangeWatchedFiles
     file_changes: list[tuple[Path, FileChangeType]] = []
     for old_path, new_path in renamed_files:
         file_changes.append((old_path, FileChangeType.Deleted))
@@ -77,9 +77,8 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     for rel_path in files_modified:
         abs_path = workspace_root / rel_path
         if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
-            # Use CHANGED instead of DELETE+CREATE - ruby-lsp's handle_change properly
-            # deletes old entries before adding new ones when file is not in store
-            file_changes.append((abs_path, FileChangeType.Changed))
+            file_changes.append((abs_path, FileChangeType.Deleted))
+            file_changes.append((abs_path, FileChangeType.Created))
 
     # Notify LSP about file changes (needed for servers that watch files)
     if file_changes:
