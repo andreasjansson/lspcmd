@@ -5,6 +5,6 @@ leta grep . main.py --kind class
 ---
 main.py:14 [Class] StorageProtocol
 main.py:27 [Class] User
-main.py:48 [Class] MemoryStorage
-main.py:61 [Class] FileStorage
-main.py:80 [Class] UserRepository
+main.py:49 [Class] MemoryStorage
+main.py:62 [Class] FileStorage
+main.py:81 [Class] UserRepository
