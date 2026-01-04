@@ -1,0 +1,8 @@
+==================
+grep pattern filter
+==================
+leta grep "Storage" --kind class -C
+---
+user.hpp:37 [Class] Storage (class) in example
+user.hpp:48 [Class] MemoryStorage (class) in example
+user.hpp:80 [Class] FileStorage (class) in example
