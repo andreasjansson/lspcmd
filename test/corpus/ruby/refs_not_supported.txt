@@ -1,0 +1,5 @@
+==================
+refs returns empty (solargraph limitation)
+==================
+leta refs User
+---
