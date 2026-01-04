@@ -1,6 +1,5 @@
 ===
 setup workspace
 ===
-leta workspace add --root $FIXTURE_DIR && leta grep . && sleep 1
+leta workspace add --root $FIXTURE_DIR && leta grep .
 ---
-Added workspace: $FIXTURE_DIR
