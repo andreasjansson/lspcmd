@@ -4,5 +4,5 @@ implementations basic
 leta implementations Storage
 ---
 src/main/java/com/example/AbstractStorage.java:7 public abstract class AbstractStorage implements Storage {
-src/main/java/com/example/MemoryStorage.java:12 public class MemoryStorage extends AbstractStorage {
 src/main/java/com/example/FileStorage.java:12 public class FileStorage extends AbstractStorage {
+src/main/java/com/example/MemoryStorage.java:12 public class MemoryStorage extends AbstractStorage {
