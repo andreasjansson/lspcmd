@@ -1,0 +1,6 @@
+==================
+grep kind filter interface
+==================
+leta grep "." --kind interface -C
+---
+src/Storage.php:10 [Interface] Storage
