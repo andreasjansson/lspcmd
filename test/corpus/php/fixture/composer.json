@@ -1,0 +1,13 @@
+{
+    "name": "leta/php-fixture",
+    "description": "PHP fixture for leta integration tests",
+    "type": "project",
+    "require": {
+        "php": ">=8.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LetaFixture\\": "src/"
+        }
+    }
+}
