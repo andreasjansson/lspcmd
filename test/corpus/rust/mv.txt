@@ -12,8 +12,8 @@ leta mv src/user.rs src/person.rs
 ---
 Moved file and updated imports in 3 file(s):
   src/main.rs
-  src/storage.rs
   src/person.rs
+  src/storage.rs
 
 ==================
 verify mod was updated
