@@ -1,0 +1,18 @@
+==================
+grep with docs
+==================
+leta grep "createSampleUser" --kind function --docs user.hpp -C
+---
+user.hpp:135 [Function] createSampleUser (User ()) in example
+    ### function `createSampleUser`  
+    
+    ---
+    → `User`  
+    Creates a sample user for testing.  
+    
+    ---
+    ```cpp
+    // In namespace example
+    inline User createSampleUser()
+    ```
+
