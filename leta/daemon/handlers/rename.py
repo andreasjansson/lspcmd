@@ -75,6 +75,7 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
 
     # Notify LSP about file changes (needed for servers that watch files)
     if file_changes:
+        logger.info(f"Notifying LSP about {len(file_changes)} file changes: {file_changes}")
         await workspace.notify_files_changed(file_changes)
 
     # Reopen all modified documents
