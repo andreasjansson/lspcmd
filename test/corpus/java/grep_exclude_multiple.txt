@@ -1,0 +1,10 @@
+==================
+grep exclude multiple patterns
+==================
+leta grep "." --kind class --exclude "*Errors*" --exclude "*Abstract*" -C
+---
+src/main/java/com/example/User.java:9 [Class] User
+src/main/java/com/example/Main.java:8 [Class] Main
+src/main/java/com/example/UserRepository.java:9 [Class] UserRepository
+src/main/java/com/example/FileStorage.java:12 [Class] FileStorage
+src/main/java/com/example/MemoryStorage.java:12 [Class] MemoryStorage
