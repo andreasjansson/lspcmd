@@ -1,0 +1,6 @@
+==================
+calls not supported
+==================
+leta calls --from createSampleUser
+---
+Error: textDocument/prepareCallHierarchy is not supported by intelephense
