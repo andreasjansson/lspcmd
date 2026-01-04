@@ -1,0 +1,6 @@
+==================
+grep multiple files via glob
+==================
+leta grep "Sample" --kind method "src/*.php" -C
+---
+src/Main.php:17 [Method] createSampleUser (static) in Main
