@@ -1,0 +1,6 @@
+==================
+grep case insensitive (default)
+==================
+leta grep "^user$" src/user.ts
+---
+src/user.ts:4 [Class] User
