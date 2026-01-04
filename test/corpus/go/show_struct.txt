@@ -1,5 +1,5 @@
 ==================
-resolve unique symbol
+show struct definition
 ==================
 leta show User
 ---
