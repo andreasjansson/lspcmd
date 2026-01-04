@@ -190,6 +190,9 @@ def setup_workspace(language: str, work_dir: Path) -> str | None:
     if result.returncode != 0:
         return f"Failed to add workspace: {result.stderr}"
 
+    # DEBUG
+    print(f"DEBUG: Added workspace {work_dir}, running warmup grep...", flush=True)
+
     result = subprocess.run(
         ["leta", "grep", "."],
         cwd=work_dir,
@@ -197,6 +200,15 @@ def setup_workspace(language: str, work_dir: Path) -> str | None:
         text=True,
         timeout=60,
     )
+
+    # DEBUG
+    print(f"DEBUG: Warmup grep returned {result.returncode}", flush=True)
+    if result.returncode != 0:
+        print(f"DEBUG: stderr: {result.stderr[:500]}", flush=True)
+    
+    # DEBUG: Check daemon info
+    info_result = subprocess.run(["leta", "daemon", "info"], capture_output=True, text=True)
+    print(f"DEBUG: Daemon info after warmup:\n{info_result.stdout}", flush=True)
 
     time.sleep(1.0)
     return None
