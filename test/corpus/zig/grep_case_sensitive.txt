@@ -1,0 +1,6 @@
+==================
+grep case sensitive finds User
+==================
+leta grep "^User$" -C
+---
+src/user.zig:4 [Constant] User
