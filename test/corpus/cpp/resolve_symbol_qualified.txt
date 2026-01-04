@@ -1,0 +1,8 @@
+==================
+resolve symbol qualified
+==================
+leta show User.isAdult
+---
+user.hpp:23
+
+    bool isAdult() const { return age_ >= 18; }
