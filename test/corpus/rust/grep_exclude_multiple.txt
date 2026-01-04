@@ -1,0 +1,11 @@
+==================
+grep exclude multiple patterns
+==================
+leta grep "." --kind function --exclude "errors.rs" --exclude "storage.rs" -C
+---
+src/user.rs:13 [Function] new (fn(name: String, email: String, age: u32) -> Self) in impl User
+src/user.rs:50 [Function] new (fn(storage: S) -> Self) in impl UserRepository<S>
+src/user.rs:81 [Function] validate_user (fn(user: &User) -> Result<(), String>)
+src/main.rs:10 [Function] create_sample_user (fn() -> User)
+src/main.rs:15 [Function] process_users (fn(repo: &UserRepository<MemoryStorage>) -> Vec<String>)
+src/main.rs:22 [Function] main (fn())
