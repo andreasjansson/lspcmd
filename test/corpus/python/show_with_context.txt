@@ -1,0 +1,13 @@
+==================
+show function with context lines
+==================
+leta show create_sample_user -n 2
+---
+main.py:112-118
+
+
+
+def create_sample_user() -> User:
+    """Create a sample user for testing."""
+    return User(name="John Doe", email="john@example.com", age=30)
+
