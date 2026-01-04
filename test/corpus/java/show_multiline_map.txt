@@ -1,0 +1,19 @@
+==================
+show multiline map constant
+==================
+leta show COUNTRY_CODES
+---
+src/main/java/com/example/User.java:10-21
+
+    /**
+     * Country codes mapped to their full names.
+     */
+    public static final Map<String, String> COUNTRY_CODES = Map.of(
+        "US", "United States",
+        "CA", "Canada",
+        "GB", "United Kingdom",
+        "DE", "Germany",
+        "FR", "France",
+        "JP", "Japan",
+        "AU", "Australia"
+    );
