@@ -1,0 +1,36 @@
+==================
+check before rename
+==================
+grep "type EditablePerson struct" editable.go
+---
+type EditablePerson struct {
+
+==================
+rename EditablePerson to RenamedPerson
+==================
+leta rename EditablePerson RenamedPerson
+---
+Renamed in 1 file(s):
+  editable.go
+
+==================
+verify rename worked
+==================
+grep "type.*Person struct" editable.go
+---
+type RenamedPerson struct {
+
+==================
+restore original name
+==================
+leta rename RenamedPerson EditablePerson
+---
+Renamed in 1 file(s):
+  editable.go
+
+==================
+verify restore worked
+==================
+grep "type EditablePerson struct" editable.go
+---
+type EditablePerson struct {
