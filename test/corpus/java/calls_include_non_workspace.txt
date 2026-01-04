@@ -1,0 +1,10 @@
+==================
+calls outgoing include non-workspace
+==================
+leta calls --from processUsers --include-non-workspace --max-depth 1
+---
+src/main/java/com/example/Main.java:25 [Method] processUsers(UserRepository) : List<String> (com.example.Main)
+
+Outgoing calls:
+  ├── src/main/java/com/example/UserRepository.java:55 [Method] listUsers() : List<User> (com.example.UserRepository)
+  └── src/main/java/com/example/User.java:90 [Method] displayName() : String (com.example.User)
