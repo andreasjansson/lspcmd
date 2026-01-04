@@ -1,0 +1,12 @@
+==================
+show function with context
+==================
+leta show createSampleUser -n 1
+---
+user.hpp:134-138
+
+/// Creates a sample user for testing.
+inline User createSampleUser() {
+    return User("John Doe", "john@example.com", 30);
+}
+
