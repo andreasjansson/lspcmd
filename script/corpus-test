@@ -1,4 +1,5 @@
 #!/bin/bash
 set -e
 cd "$(dirname "$0")/.."
-python -m test.corpus_runner "$@"
+# Run sequentially by default - there's a race condition with parallel workspace setup
+python -m test.corpus_runner --sequential "$@"
