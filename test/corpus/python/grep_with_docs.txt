@@ -1,0 +1,11 @@
+==================
+grep with documentation
+==================
+leta grep main.py "^create_sample_user$" --kind function --docs
+---
+main.py:113 [Function] create_sample_user
+    ```python
+    (function) def create_sample_user() -> User
+    ```
+    ---
+    Create a sample user for testing.
