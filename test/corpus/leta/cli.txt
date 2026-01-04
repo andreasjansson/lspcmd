@@ -1,0 +1,205 @@
+===
+help
+===
+leta --help
+---
+Usage: leta [OPTIONS] COMMAND [ARGS]...
+
+  Fast semantic code search powered by Language Server Protocol.
+
+  Find definitions, references, and navigate code using LSP servers. Works
+  with any language that has an LSP implementation.
+
+Options:
+  --json      Output in JSON format
+  --version   Show the version and exit.
+  -h, --help  Show this message and exit.
+
+Commands:
+  calls            Show call hierarchy for a symbol.
+  config           Show configuration info and paths.
+  daemon           Manage the leta daemon.
+  declaration      Find declaration(s) of a symbol.
+  diagnostics      Show diagnostics (errors, warnings) for files.
+  edit             Edit files in the workspace.
+  files            List workspace files with symbol counts.
+  grep             Search for symbols matching a regex pattern.
+  help-all         Show detailed help for all commands.
+  hover            Show hover information for a symbol.
+  implementations  Find implementations of an interface or abstract method.
+  mv               Move/rename a file and update imports.
+  ref              Alias for 'refs'.
+  refs             Find all references to a symbol.
+  rename           Rename a symbol across the workspace.
+  show             Show definition(s) of a symbol with full source code.
+  subtypes         Find subtypes (implementing classes) of a type.
+  supertypes       Find supertypes (base classes/interfaces) of a type.
+  workspace        Manage workspaces.
+
+===
+help show
+===
+leta show --help
+---
+Usage: leta show [OPTIONS] SYMBOL
+
+  Show definition(s) of a symbol with full source code.
+
+  SYMBOL can be:   - SymbolName: search by name   - Parent.Symbol: qualified
+  name (e.g., Class.method)   - path:Symbol: filter by file path (supports
+  globs)   - path:Parent.Symbol: combine path and qualified name
+
+  Examples:     leta show User     leta show UserRepository.save     leta show
+  "models/*:User"     leta show --head 50 LARGE_CONSTANT
+
+Options:
+  -n, --context-lines INTEGER  Number of context lines before/after
+  --head INTEGER               Limit output to first N lines
+  -h, --help                   Show this message and exit.
+
+===
+help refs
+===
+leta refs --help
+---
+Usage: leta refs [OPTIONS] SYMBOL
+
+  Find all references to a symbol.
+
+  SYMBOL can be:   - SymbolName: search by name   - Parent.Symbol: qualified
+  name (e.g., Class.method)   - path:Symbol: filter by file path (supports
+  globs)   - path:Parent.Symbol: combine path and qualified name
+
+  Examples:     leta refs User     leta refs UserRepository.save     leta refs
+  "models/*:User"
+
+Options:
+  -n, --context-lines INTEGER  Number of context lines around each reference
+  -h, --help                   Show this message and exit.
+
+===
+help grep
+===
+leta grep --help
+---
+Usage: leta grep [OPTIONS] PATTERN [PATH]
+
+  Search for symbols matching a regex pattern.
+
+  Only searches symbol NAMES, not file contents. Use ripgrep for full-text
+  search.
+
+  Examples:     leta grep "^test_"                    # Functions starting
+  with test_     leta grep "Handler$" -k class        # Classes ending with
+  Handler     leta grep ".*" src/models.py -k class  # All classes in a file
+  leta grep "parse" -d                  # Show docstrings
+
+Options:
+  -k, --kind TEXT              Filter by symbol kind (e.g., class, function,
+                               method)
+  -d, --docs                   Include documentation/docstrings
+  -x, --exclude TEXT           Exclude files/directories matching pattern
+                               (repeatable)
+  -C, --case-sensitive         Case-sensitive matching (default: case-
+                               insensitive)
+  --head INTEGER               Limit output to first N lines
+  -i, --include-non-workspace  Include symbols from external dependencies
+  -h, --help                   Show this message and exit.
+
+===
+help workspace
+===
+leta workspace --help
+---
+Usage: leta workspace [OPTIONS] COMMAND [ARGS]...
+
+  Manage workspaces.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  add      Add a workspace root directory.
+  list     List all registered workspaces and their language servers.
+  remove   Remove a workspace and stop its language servers.
+  restart  Restart language servers for a workspace.
+
+===
+help daemon
+===
+leta daemon --help
+---
+Usage: leta daemon [OPTIONS] COMMAND [ARGS]...
+
+  Manage the leta daemon.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  info      Show daemon status and active language servers.
+  restart   Restart the daemon (stop and start).
+  shutdown  Stop the daemon and all language servers.
+  start     Start the daemon if not running.
+  stop      Stop all language servers but keep daemon running.
+
+===
+help-all contains all commands
+===
+leta help-all | head -60
+---
+================================================================================
+                      LETA - Command Line LSP Client
+================================================================================
+
+Fast semantic code search powered by Language Server Protocol.
+Find definitions, references, and navigate code using LSP servers.
+
+QUICK START
+-----------
+1. Add a workspace:    leta workspace add --root /path/to/project
+2. Search symbols:     leta grep "User"
+3. Show definition:    leta show User
+4. Find references:    leta refs User
+5. Find usages:        leta calls --to process_request
+
+COMMAND DETAILS
+---------------
+
+leta grep PATTERN [PATH]
+    Search for symbols matching a regex pattern.
+
+    Options:
+        -k, --kind TEXT      Filter by kind (class, function, method, etc.)
+        -d, --docs           Include documentation/docstrings
+        -x, --exclude TEXT   Exclude files/dirs matching pattern (repeatable)
+        -C, --case-sensitive Case-sensitive matching
+        --head N             Limit output to first N lines
+        -i, --include-non-workspace  Include external dependencies
+
+    Examples:
+        leta grep "^test_"                    # Functions starting with test_
+        leta grep "Handler$" -k class         # Classes ending with Handler
+        leta grep ".*" src/models.py -k class # All classes in a file
+        leta grep "parse" -d                  # Show docstrings
+
+leta show SYMBOL
+    Show definition(s) of a symbol with full source code.
+
+    Options:
+        -n, --context-lines N  Context lines before/after
+        --head N               Limit output to first N lines
+
+    Symbol formats:
+        SymbolName             Search by name
+        Parent.Symbol          Qualified name (e.g., Class.method)
+        path:Symbol            Filter by file path (supports globs)
+        path:Parent.Symbol     Combine path and qualified name
+
+    Examples:
+        leta show User
+        leta show UserRepository.save
+        leta show "models/*:User"
+        leta show --head 50 LARGE_CONSTANT
+
+leta refs SYMBOL
