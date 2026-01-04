@@ -39,7 +39,7 @@ class TestGoIntegration:
                 "paths": [str(project / "main.go")],
                 "workspace_root": str(project),
                 "pattern": ".*",
-            },
+            }
         )
         time.sleep(1.0)
         return project
@@ -57,7 +57,7 @@ class TestGoIntegration:
                 "workspace_root": str(workspace),
                 "pattern": "^New",
                 "kinds": ["function"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -78,7 +78,7 @@ main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
                 "workspace_root": str(workspace),
                 "pattern": ".*",
                 "kinds": ["struct"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -99,7 +99,7 @@ main.go:119 [Struct] UserRepository (struct{...})"""
                 "workspace_root": str(workspace),
                 "pattern": ".*",
                 "kinds": ["interface"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -118,7 +118,7 @@ main.go:154 [Interface] Validator (interface{...})"""
                 "workspace_root": str(workspace),
                 "pattern": "^User$",
                 "case_sensitive": False,
-            },
+            }
         )
         insensitive_output = format_output(result, "plain")
         assert insensitive_output == "main.go:9 [Struct] User (struct{...})"
@@ -130,7 +130,7 @@ main.go:154 [Interface] Validator (interface{...})"""
                 "workspace_root": str(workspace),
                 "pattern": "^User$",
                 "case_sensitive": True,
-            },
+            }
         )
         sensitive_output = format_output(result, "plain")
         assert sensitive_output == "main.go:9 [Struct] User (struct{...})"
@@ -142,7 +142,7 @@ main.go:154 [Interface] Validator (interface{...})"""
                 "workspace_root": str(workspace),
                 "pattern": "^user$",
                 "case_sensitive": True,
-            },
+            }
         )
         lowercase_output = format_output(result, "plain")
         assert lowercase_output == ""
@@ -156,7 +156,7 @@ main.go:154 [Interface] Validator (interface{...})"""
                 "workspace_root": str(workspace),
                 "pattern": "Storage",
                 "kinds": ["struct"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -175,7 +175,7 @@ main.go:85 [Struct] FileStorage (struct{...})"""
                 "workspace_root": str(workspace),
                 "pattern": "^New",
                 "kinds": ["function"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -199,7 +199,7 @@ utils.go:69 [Function] NewError (func(err error) *Result[T])"""
                 "pattern": "Validate",
                 "kinds": ["function"],
                 "exclude_patterns": ["editable*"],
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -219,7 +219,7 @@ main.go:159 [Function] ValidateUser (func(user *User) error)"""
                 "pattern": ".*",
                 "kinds": ["function"],
                 "exclude_patterns": ["editable*"],
-            },
+            }
         )
         all_output = format_output(result, "plain")
         assert (
@@ -249,7 +249,7 @@ errors.go:17 [Function] TypeErrorFunc (func() int)"""
                 "pattern": ".*",
                 "kinds": ["function"],
                 "exclude_patterns": ["utils.go", "editable*"],
-            },
+            }
         )
         filtered_output = format_output(result, "plain")
         assert (
@@ -276,7 +276,7 @@ errors.go:17 [Function] TypeErrorFunc (func() int)"""
                 "pattern": "^NewUser$",
                 "kinds": ["function"],
                 "include_docs": True,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -309,7 +309,7 @@ main.go:16 [Function] NewUser (func(name, email string, age int) *User)
                 "line": 174,
                 "column": 9,
                 "context": 0,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -332,7 +332,7 @@ func NewUserRepository(storage Storage) *UserRepository {
                 "line": 174,
                 "column": 9,
                 "context": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -361,7 +361,7 @@ func NewUserRepository(storage Storage) *UserRepository {
                 "line": 9,
                 "column": 5,
                 "context": 0,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -401,7 +401,7 @@ main.go:159 func ValidateUser(user *User) error {"""
                 "line": 124,
                 "column": 5,
                 "context": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -433,7 +433,7 @@ main.go:173-175
                 "line": 31,
                 "column": 5,
                 "context": 0,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -453,7 +453,7 @@ main.go:85 type FileStorage struct {"""
                 "line": 31,
                 "column": 5,
                 "context": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -494,7 +494,7 @@ type FileStorage struct {
                     "line": 9,
                     "column": 6,
                     "new_name": "RenamedPerson",
-                },
+                }
             )
             output = format_output(result, "plain")
             assert (
@@ -525,10 +525,9 @@ Renamed in 1 file(s):
                 "column": 2,
                 "context": 0,
             },
+            expect_error=True,
         )
-        assert response == {
-            "error": "textDocument/declaration is not supported by gopls"
-        }
+        assert result.error == "textDocument/declaration is not supported by gopls"
 
     # =========================================================================
     # move-file tests
@@ -543,10 +542,12 @@ Renamed in 1 file(s):
                 "old_path": str(workspace / "utils.go"),
                 "new_path": str(workspace / "helpers.go"),
                 "workspace_root": str(workspace),
-            },
+            }
+        ,
+            expect_error=True,
         )
-        assert "error" in response
-        assert response["error"] == "move-file is not supported by gopls"
+        assert hasattr(result, "error")
+        assert result.error == "move-file is not supported by gopls"
 
         # Verify file was NOT moved
         assert (workspace / "utils.go").exists()
@@ -564,7 +565,7 @@ Renamed in 1 file(s):
             {
                 "workspace_root": str(workspace),
                 "symbol_path": "User",
-            },
+            }
         )
         assert result.name == "User"
         assert result.kind == "Struct"
@@ -577,7 +578,9 @@ Renamed in 1 file(s):
             {
                 "workspace_root": str(workspace),
                 "symbol_path": "Save",
-            },
+            }
+        ,
+            expect_error=True,
         )
         assert result.error == "Symbol 'Save' is ambiguous (4 matches)"
         assert result.total_matches == 4
@@ -597,7 +600,7 @@ Renamed in 1 file(s):
             {
                 "workspace_root": str(workspace),
                 "symbol_path": "MemoryStorage.Save",
-            },
+            }
         )
         assert result.name == "(*MemoryStorage).Save"
         assert result.line == 49
@@ -611,7 +614,7 @@ Renamed in 1 file(s):
             {
                 "workspace_root": str(workspace),
                 "symbol_path": "User.IsAdult",
-            },
+            }
         )
         assert "IsAdult" in result.name
         assert result.kind == "Method"
@@ -624,7 +627,7 @@ Renamed in 1 file(s):
             {
                 "workspace_root": str(workspace),
                 "symbol_path": "main.go:NewUser",
-            },
+            }
         )
         assert result.name == "NewUser"
         assert result.path.endswith("main.go")
@@ -648,7 +651,7 @@ Renamed in 1 file(s):
                 "range_start_line": 100,
                 "range_end_line": 108,
                 "kind": "Variable",
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -682,7 +685,7 @@ var CountryCodes = map[string]string{
                 "range_start_line": 111,
                 "range_end_line": 117,
                 "kind": "Variable",
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -716,7 +719,7 @@ var DefaultPorts = []int{
                 "from_column": 5,
                 "from_symbol": "createSampleUser",
                 "max_depth": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -741,7 +744,7 @@ Outgoing calls:
                 "to_column": 5,
                 "to_symbol": "createSampleUser",
                 "max_depth": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -770,7 +773,7 @@ Incoming calls:
                 "to_column": 5,
                 "to_symbol": "createSampleUser",
                 "max_depth": 3,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -795,7 +798,7 @@ main.go:172 [Function] main (sample_project • main.go)
                 "from_symbol": "DisplayName",
                 "max_depth": 1,
                 "include_non_workspace": True,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
@@ -820,7 +823,7 @@ Outgoing calls:
                 "from_column": 16,
                 "from_symbol": "DisplayName",
                 "max_depth": 1,
-            },
+            }
         )
         output = format_output(result, "plain")
         assert (
