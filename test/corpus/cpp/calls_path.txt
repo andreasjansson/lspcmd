@@ -1,0 +1,8 @@
+==================
+calls path
+==================
+leta calls --from main --to createSampleUser
+---
+Call path:
+main.cpp:7 [Function] main
+  → user.hpp:135 [Function] createSampleUser (example::createSampleUser)
