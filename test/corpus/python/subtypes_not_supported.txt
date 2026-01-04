@@ -1,0 +1,6 @@
+==================
+subtypes not supported by pyright
+==================
+leta subtypes StorageProtocol 2>&1; true
+---
+Error: textDocument/prepareTypeHierarchy is not supported by basedpyright
