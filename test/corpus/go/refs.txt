@@ -1,0 +1,43 @@
+==================
+refs basic
+==================
+leta refs User
+---
+main.go:9 type User struct {
+main.go:16 func NewUser(name, email string, age int) *User {
+main.go:17 	return &User{Name: name, Email: email, Age: age}
+main.go:21 func (u *User) IsAdult() bool {
+main.go:26 func (u *User) DisplayName() string {
+main.go:32 	Save(user *User) error
+main.go:33 	Load(email string) (*User, error)
+main.go:35 	List() ([]*User, error)
+main.go:40 	users map[string]*User
+main.go:45 	return &MemoryStorage{users: make(map[string]*User)}
+main.go:49 func (m *MemoryStorage) Save(user *User) error {
+main.go:58 func (m *MemoryStorage) Load(email string) (*User, error) {
+main.go:76 func (m *MemoryStorage) List() ([]*User, error) {
+main.go:77 	result := make([]*User, 0, len(m.users))
+main.go:95 func (f *FileStorage) Save(user *User) error {
+main.go:101 func (f *FileStorage) Load(email string) (*User, error) {
+main.go:113 func (f *FileStorage) List() ([]*User, error) {
+main.go:129 func (r *UserRepository) AddUser(user *User) error {
+main.go:134 func (r *UserRepository) GetUser(email string) (*User, error) {
+main.go:144 func (r *UserRepository) ListUsers() ([]*User, error) {
+main.go:149 func createSampleUser() *User {
+main.go:159 func ValidateUser(user *User) error {
+
+==================
+refs with context
+==================
+leta refs NewUserRepository -n 1
+---
+main.go:123-125
+// NewUserRepository creates a new repository with the given storage.
+func NewUserRepository(storage Storage) *UserRepository {
+	return &UserRepository{storage: storage}
+
+main.go:173-175
+	storage := NewMemoryStorage()
+	repo := NewUserRepository(storage)
+	user := createSampleUser()
+
