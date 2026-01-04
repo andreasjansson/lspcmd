@@ -1,47 +1,36 @@
 ==================
 check class exists before rename
 ==================
-grep "^class User$" user.rb
+grep "^class Storage$" user.rb
 ---
-class User
+class Storage
 
 ==================
-rename User to Person
+rename Storage to StorageInterface
 ==================
-leta rename User Person
+leta rename Storage StorageInterface
 ---
-Renamed in 3 file(s):
-  main.rb
-  person.rb
+Renamed in 1 file(s):
   user.rb
 
 ==================
 verify class was renamed
 ==================
-grep "^class Person$" person.rb
+grep "^class StorageInterface$" user.rb
 ---
-class Person
-
-==================
-verify file was renamed
-==================
-ls person.rb
----
-person.rb
+class StorageInterface
 
 ==================
 restore original name
 ==================
-leta rename Person User
+leta rename StorageInterface Storage
 ---
-Renamed in 3 file(s):
-  main.rb
-  person.rb
+Renamed in 1 file(s):
   user.rb
 
 ==================
 verify restore worked
 ==================
-grep "^class User$" user.rb
+grep "^class Storage$" user.rb
 ---
-class User
+class Storage
