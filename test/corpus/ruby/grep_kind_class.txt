@@ -1,0 +1,10 @@
+==================
+grep kind filter class
+==================
+leta grep "." --kind class user.rb
+---
+user.rb:8 [Class] User
+user.rb:38 [Class] Storage
+user.rb:71 [Class] MemoryStorage
+user.rb:113 [Class] FileStorage
+user.rb:163 [Class] UserRepository
