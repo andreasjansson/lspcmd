@@ -1,0 +1,8 @@
+==================
+calls outgoing excludes stdlib by default
+==================
+leta calls --from User.displayName
+---
+src/main/java/com/example/User.java:90 [Method] displayName() : String (com.example.User)
+
+Outgoing calls:
