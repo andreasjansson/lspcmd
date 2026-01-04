@@ -173,6 +173,12 @@ def _normalize_symbol_name(name: str) -> str:
     match = re.match(r"^\(\*?\w+\)\.(\w+)$", name)
     if match:
         return match.group(1)
+    # Handle Lua colon method syntax: "User:isAdult" -> "isAdult"
+    if ":" in name:
+        return name.split(":")[-1]
+    # Handle dot-qualified names: "User.new" -> "new"
+    if "." in name:
+        return name.split(".")[-1]
     return name
 
 
