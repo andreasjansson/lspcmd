@@ -490,6 +490,7 @@ async def _find_call_path(
         raise ValueError(f"No language server available for {from_path}")
 
     await workspace.client.wait_for_service_ready()
+    await workspace.client.wait_for_indexing()
 
     from_item = await _prepare_call_hierarchy(
         workspace, from_path, from_line, from_column
