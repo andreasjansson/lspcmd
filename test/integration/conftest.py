@@ -29,6 +29,7 @@ from leta.daemon.rpc import (
     ReferencesResult,
     RemoveWorkspaceResult,
     RenameResult,
+    ResolveSymbolResult,
     RestartWorkspaceResult,
     ShowResult,
     SubtypesResult,
