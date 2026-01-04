@@ -1,0 +1,16 @@
+==================
+show multiline array constant
+==================
+leta show COUNTRY_CODES
+---
+src/User.php:15-23
+
+    public const COUNTRY_CODES = [
+        'US' => 'United States',
+        'CA' => 'Canada',
+        'GB' => 'United Kingdom',
+        'DE' => 'Germany',
+        'FR' => 'France',
+        'JP' => 'Japan',
+        'AU' => 'Australia',
+    ];
