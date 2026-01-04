@@ -1,0 +1,8 @@
+==================
+grep with pattern and kind filter combined
+==================
+leta grep "Storage" main.py --kind class
+---
+main.py:14 [Class] StorageProtocol
+main.py:49 [Class] MemoryStorage
+main.py:62 [Class] FileStorage
