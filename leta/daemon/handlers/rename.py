@@ -47,14 +47,16 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
     if not result:
         raise ValueError("Rename not supported or failed")
 
+    # Close ALL documents that will be modified BEFORE applying edits
+    # This is critical for servers like ruby-lsp that won't reindex files
+    # from didChangeWatchedFiles if the document is still open
+    files_to_modify = _get_files_from_workspace_edit(result, workspace_root)
+    for file_path in files_to_modify:
+        await workspace.close_document(file_path)
+
     files_modified, renamed_files = await _apply_workspace_edit(ctx, result, workspace_root)
 
     logger.debug(f"Rename: files_modified={files_modified}, renamed_files={renamed_files}")
-
-    # Close old documents FIRST (before notifying about file changes)
-    # This is important for servers like ruby-lsp that check if files are managed by client
-    for old_path, new_path in renamed_files:
-        await workspace.close_document(old_path)
 
     # Build list of file changes for didChangeWatchedFiles notification
     file_changes: list[tuple[Path, FileChangeType]] = []
@@ -66,11 +68,11 @@ async def handle_rename(ctx: HandlerContext, params: RPCRenameParams) -> RenameR
         if abs_path.exists() and abs_path not in [new for _, new in renamed_files]:
             file_changes.append((abs_path, FileChangeType.Changed))
 
-    # Notify LSP about file changes (needed for jdtls and other file-watching servers)
+    # Notify LSP about file changes (needed for servers that watch files)
     if file_changes:
         await workspace.notify_files_changed(file_changes)
 
-    # Now open the new documents
+    # Reopen all modified documents
     for old_path, new_path in renamed_files:
         await workspace.ensure_document_open(new_path)
     for rel_path in files_modified:
