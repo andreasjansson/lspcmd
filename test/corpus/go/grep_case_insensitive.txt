@@ -1,0 +1,6 @@
+==================
+grep case insensitive (default)
+==================
+leta grep "^user$"
+---
+main.go:9 [Struct] User (struct{...})
