@@ -251,14 +251,15 @@ def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult
     template_vars: dict[str, str] = {}
     
     try:
-        # Set up temp directory and copy fixture if present
+        # Always create a temp directory for tests to run in
+        temp_dir = Path(tempfile.mkdtemp(prefix=f"leta_corpus_{suite_name.replace('/', '_')}_")).resolve()
+        work_dir = temp_dir
+        template_vars["WORK_DIR"] = str(temp_dir)
+        
+        # Copy fixture if present
         if fixture_dir.exists():
-            temp_dir = Path(tempfile.mkdtemp(prefix=f"leta_corpus_{suite_name.replace('/', '_')}_")).resolve()
             shutil.copytree(fixture_dir, temp_dir, dirs_exist_ok=True)
-            work_dir = temp_dir
             template_vars["FIXTURE_DIR"] = str(temp_dir)
-        else:
-            work_dir = suite_dir
         
         # Run _setup.txt first if it exists
         setup_file = suite_dir / "_setup.txt"
