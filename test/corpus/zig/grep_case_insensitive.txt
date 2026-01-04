@@ -1,0 +1,7 @@
+==================
+grep case insensitive (default)
+==================
+leta grep "^user$"
+---
+src/user.zig:4 [Constant] User
+src/main.zig:2 [Constant] user
