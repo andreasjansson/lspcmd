@@ -66,13 +66,26 @@ async def handle_resolve_symbol(
         container_parts = parts[:-1]
         matches = []
         container_str = ".".join(container_parts)
+        # Full qualified name as user typed it (e.g., "User.new")
+        full_qualified = symbol_path
 
         for sym in all_symbols:
             sym_name = sym.get("name", "")
 
+            # Go-style pointer/value receiver: (*User).Save or (User).Save
             go_style_name = f"(*{container_str}).{target_name}"
             go_style_name_val = f"({container_str}).{target_name}"
             if sym_name == go_style_name or sym_name == go_style_name_val:
+                matches.append(sym)
+                continue
+
+            # Lua-style: symbol name IS "User.new" or "User:isAdult"
+            if sym_name == full_qualified:
+                matches.append(sym)
+                continue
+            # Also check with colon for Lua methods: User.isAdult -> User:isAdult
+            lua_colon_name = f"{container_str}:{target_name}"
+            if sym_name == lua_colon_name:
                 matches.append(sym)
                 continue
 
