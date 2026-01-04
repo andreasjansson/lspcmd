@@ -1,0 +1,15 @@
+==================
+implementations with context
+==================
+leta implementations Storage -n 1
+---
+user.hpp:47-49
+/// Stores users in memory.
+class MemoryStorage : public Storage {
+public:
+
+user.hpp:79-81
+/// Stores users in files (stub implementation).
+class FileStorage : public Storage {
+public:
+
