@@ -448,15 +448,23 @@ class HandlerContext:
             return []
 
         locations: list[LocationDict] = []
+        seen: set[tuple[str, int]] = set()
         for item in result:
             uri = item.uri
             range_ = item.selectionRange
 
             file_path = uri_to_path(uri)
             start_line = range_.start.line
+            rel_path = self.relative_path(file_path, workspace_root)
+
+            # Deduplicate by path and line (some servers return duplicates)
+            key = (rel_path, start_line + 1)
+            if key in seen:
+                continue
+            seen.add(key)
 
             location: LocationDict = {
-                "path": self.relative_path(file_path, workspace_root),
+                "path": rel_path,
                 "line": start_line + 1,
                 "column": range_.start.character,
                 "name": item.name,
