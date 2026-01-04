@@ -1,0 +1,6 @@
+==================
+grep case sensitive finds User
+==================
+leta grep "^User$" src/user.rs -C
+---
+src/user.rs:5 [Struct] User
