@@ -1,0 +1,23 @@
+==================
+implementations basic
+==================
+leta implementations Storage
+---
+main.go:39 type MemoryStorage struct {
+main.go:85 type FileStorage struct {
+
+==================
+implementations with context
+==================
+leta implementations Storage -n 1
+---
+main.go:38-40
+// MemoryStorage stores users in memory.
+type MemoryStorage struct {
+	users map[string]*User
+
+main.go:84-86
+// FileStorage stores users in files (stub implementation).
+type FileStorage struct {
+	basePath string
+
