@@ -1,0 +1,25 @@
+==================
+refs with context
+==================
+leta refs UserRepository -n 1
+---
+src/Main.php:43-45
+     *
+     * @param UserRepository $repo The repository to process
+     * @return string[] The display names of all users
+
+src/Main.php:46-48
+     */
+    public static function processUsers(UserRepository $repo): array
+    {
+
+src/Main.php:60-62
+        $storage = new MemoryStorage();
+        $repo = new UserRepository($storage);
+
+
+src/UserRepository.php:9-11
+ */
+class UserRepository
+{
+
