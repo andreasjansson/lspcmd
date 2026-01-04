@@ -20,17 +20,12 @@ from .base import (
 
 async def handle_show(
     ctx: HandlerContext, params: ShowParams
-) -> list[LocationDict] | dict[str, object]:
-    """Handle show command, returning either locations or definition content."""
-    body = params.body
-
+) -> dict[str, object]:
+    """Handle show command, returning definition content."""
     if params.direct_location:
-        return await _handle_direct_definition(ctx, params, body)
+        return await _handle_direct_definition(ctx, params)
 
-    if body:
-        return await _handle_definition_body(ctx, params)
-
-    return await _handle_location_request(ctx, params)
+    return await _handle_definition_body(ctx, params)
 
 
 async def _handle_direct_definition(
