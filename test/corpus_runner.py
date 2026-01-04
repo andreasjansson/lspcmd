@@ -205,13 +205,13 @@ def run_test(test: CorpusTest, work_dir: Path, suite: str, env: dict[str, str] |
     return result
 
 
-def run_corpus_file(file_path: Path, work_dir: Path, suite: str, env: dict[str, str] | None = None) -> FileResult:
+def run_corpus_file(file_path: Path, work_dir: Path, suite: str, env: dict[str, str] | None = None, check_exit_only: bool = False) -> FileResult:
     """Run all tests in a corpus file."""
     file_result = FileResult(file_path=file_path)
     tests = parse_corpus_file(file_path)
 
     for test in tests:
-        result = run_test(test, work_dir, suite, env)
+        result = run_test(test, work_dir, suite, env, check_exit_only)
         file_result.results.append(result)
 
     return file_result
