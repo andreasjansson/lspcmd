@@ -1,0 +1,6 @@
+==================
+grep workspace wide validate function
+==================
+leta grep "validate" --kind function -C
+---
+src/user.rs:81 [Function] validate_user (fn(user: &User) -> Result<(), String>)
