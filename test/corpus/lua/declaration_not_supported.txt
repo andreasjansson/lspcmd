@@ -1,0 +1,6 @@
+==================
+declaration not supported
+==================
+leta declaration User
+---
+Error: textDocument/declaration is not supported by lua-language-server
