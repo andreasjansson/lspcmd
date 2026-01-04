@@ -32,7 +32,7 @@ LANGUAGE_SERVER_COMMANDS = {
     "rust": "rust-analyzer",
     "java": "jdtls",
     "cpp": "clangd",
-    "ruby": "solargraph",
+    "ruby": "ruby-lsp",
     "php": "intelephense",
     "lua": "lua-language-server",
     "zig": "zls",
