@@ -370,7 +370,7 @@ class LSPClient:
         self.stdin.write(encode_message(message))
         await self.stdin.drain()
 
-        logger.debug(f"LSP NOTIFICATION {method}")
+        logger.info(f"LSP NOTIFICATION {method}: {params}")
 
     async def _read_loop(self) -> None:
         try:
