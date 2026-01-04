@@ -1,0 +1,10 @@
+==================
+resolve value receiver method
+==================
+leta show User.IsAdult
+---
+main.go:21-23
+
+func (u *User) IsAdult() bool {
+	return u.Age >= 18
+}
