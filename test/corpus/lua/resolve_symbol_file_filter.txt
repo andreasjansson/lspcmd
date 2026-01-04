@@ -1,0 +1,8 @@
+==================
+resolve with file filter
+==================
+leta show user.lua:User
+---
+user.lua:11
+
+local User = {}
