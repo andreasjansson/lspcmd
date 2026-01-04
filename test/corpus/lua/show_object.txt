@@ -1,0 +1,8 @@
+==================
+show object definition
+==================
+leta show User
+---
+user.lua:11
+
+local User = {}
