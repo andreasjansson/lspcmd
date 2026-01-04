@@ -1,0 +1,15 @@
+==================
+implementations with context
+==================
+leta implementations Storage -n 1
+---
+src/storage.rs:38-40
+
+impl Storage for MemoryStorage {
+    fn save(&mut self, key: String, user: User) {
+
+src/storage.rs:77-79
+
+impl Storage for FileStorage {
+    fn save(&mut self, key: String, user: User) {
+
