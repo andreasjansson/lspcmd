@@ -1,5 +1,5 @@
 ==================
-implementations not supported
+implementations basic not supported
 ==================
 leta implementations Storage
 ---
