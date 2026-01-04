@@ -327,7 +327,23 @@ class TypeHierarchyItem(BaseModel):
 
 
 class ServerCapabilities(BaseModel, extra="allow"):
-    pass
+    def supports_call_hierarchy(self) -> bool:
+        return bool(getattr(self, "callHierarchyProvider", None))
+
+    def supports_type_hierarchy(self) -> bool:
+        return bool(getattr(self, "typeHierarchyProvider", None))
+
+    def supports_declaration(self) -> bool:
+        return bool(getattr(self, "declarationProvider", None))
+
+    def supports_implementation(self) -> bool:
+        return bool(getattr(self, "implementationProvider", None))
+
+    def supports_references(self) -> bool:
+        return bool(getattr(self, "referencesProvider", None))
+
+    def supports_rename(self) -> bool:
+        return bool(getattr(self, "renameProvider", None))
 
 
 class ServerInfo(BaseModel):
