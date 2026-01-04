@@ -27,6 +27,12 @@ async def handle_supertypes(
 
     await workspace.client.wait_for_service_ready()
 
+    # Check capabilities before sending request to avoid timeouts
+    if not workspace.client.capabilities.supports_type_hierarchy():
+        raise LSPMethodNotSupported(
+            "textDocument/prepareTypeHierarchy", workspace.server_config.name
+        )
+
     try:
         prepare_result = await workspace.client.send_request(
             "textDocument/prepareTypeHierarchy",
