@@ -6,6 +6,7 @@ from typing import Any
 
 from ..lsp.client import LSPClient
 from ..lsp.protocol import LanguageServerNotFound, LanguageServerStartupError
+from ..lsp.types import FileChangeType, FileEvent, DidChangeWatchedFilesParams
 from ..utils.config import get_log_dir, Config
 from ..utils.uri import path_to_uri
 from ..utils.text import get_language_id, read_file_content
