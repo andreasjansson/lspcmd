@@ -1,0 +1,9 @@
+==================
+calls incoming
+==================
+leta calls --to createSampleUser
+---
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() : User (com.example.Main)
+
+Incoming calls:
+  └── src/main/java/com/example/Main.java:50 [Method] main(String[]) : void (com.example.Main)
