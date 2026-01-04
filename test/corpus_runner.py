@@ -36,6 +36,7 @@ LANGUAGE_SERVER_COMMANDS = {
     "php": "intelephense",
     "lua": "lua-language-server",
     "zig": "zls",
+    "multi_language": ["basedpyright-langserver", "gopls"],  # requires multiple servers
 }
 
 
