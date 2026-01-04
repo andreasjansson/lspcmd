@@ -27,6 +27,7 @@ from ...lsp.types import (
 )
 from ...utils.text import get_language_id, read_file_content, get_lines_around
 from ...utils.uri import uri_to_path
+import re
 
 if TYPE_CHECKING:
     from ..session import Session, Workspace, OpenDocument
