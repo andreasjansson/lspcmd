@@ -1,0 +1,14 @@
+==================
+show struct definition
+==================
+leta show User
+---
+src/user.rs:3-9
+
+/// Represents a user in the system.
+#[derive(Debug, Clone)]
+pub struct User {
+    name: String,
+    email: String,
+    age: u32,
+}
