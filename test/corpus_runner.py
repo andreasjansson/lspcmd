@@ -499,7 +499,7 @@ def main() -> int:
         print(f"{Colors.RED}No languages found{Colors.RESET}")
         return 1
 
-    temp_base = Path(tempfile.mkdtemp(prefix="leta_corpus_"))
+    temp_base = Path(tempfile.mkdtemp(prefix="leta_corpus_")).resolve()
     start_time = time.time()
 
     # Set up progress queue and printer thread
