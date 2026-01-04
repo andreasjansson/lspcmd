@@ -170,6 +170,12 @@ async def _prepare_call_hierarchy(
     doc = await workspace.ensure_document_open(path)
     assert workspace.client is not None
 
+    # Check capabilities before sending request to avoid timeouts
+    if not workspace.client.capabilities.supports_call_hierarchy():
+        raise LSPMethodNotSupported(
+            "textDocument/prepareCallHierarchy", workspace.server_config.name
+        )
+
     try:
         result = await workspace.client.send_request(
             "textDocument/prepareCallHierarchy",
