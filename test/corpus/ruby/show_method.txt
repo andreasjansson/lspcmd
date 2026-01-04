@@ -6,5 +6,5 @@ leta show create_sample_user
 main.rb:8-10
 
 def create_sample_user
-  Person.new('John Doe', 'john@example.com', 30)
+  User.new('John Doe', 'john@example.com', 30)
 end

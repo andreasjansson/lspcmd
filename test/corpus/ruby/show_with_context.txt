@@ -8,7 +8,7 @@ main.rb:6-12
 #
 # @return [User] A sample user instance
 def create_sample_user
-  Person.new('John Doe', 'john@example.com', 30)
+  User.new('John Doe', 'john@example.com', 30)
 end
 
 # Validates a user and raises an error if invalid.

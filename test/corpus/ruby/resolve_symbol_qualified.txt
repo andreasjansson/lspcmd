@@ -3,7 +3,7 @@ resolve qualified symbol
 ==================
 leta show MemoryStorage.save
 ---
-person.rb:79-81
+user.rb:79-81
 
   def save(user)
     @users[user.email] = user

@@ -3,7 +3,7 @@ show multiline hash constant
 ==================
 leta show COUNTRY_CODES
 ---
-person.rb:144-152
+user.rb:144-152
 
 COUNTRY_CODES = {
   'US' => 'United States',

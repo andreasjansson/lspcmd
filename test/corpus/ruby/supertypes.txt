@@ -3,5 +3,4 @@ supertypes of class
 ==================
 leta supertypes MemoryStorage
 ---
-person.rb:38 [Class] Storage (person.rb)
 user.rb:38 [Class] Storage (user.rb)
