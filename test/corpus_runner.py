@@ -240,10 +240,10 @@ def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult
         else:
             work_dir = suite_dir
         
-        # Run _setup.txt first if it exists (only check exit code, not output)
+        # Run _setup.txt first if it exists
         setup_file = suite_dir / "_setup.txt"
         if setup_file.exists():
-            file_result = run_corpus_file(setup_file, work_dir, suite_name, env, check_exit_only=True)
+            file_result = run_corpus_file(setup_file, work_dir, suite_name, env)
             result.file_results.append(file_result)
             if not file_result.passed:
                 result.setup_error = "Setup failed"
