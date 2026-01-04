@@ -1,0 +1,39 @@
+==================
+find references with context
+==================
+leta refs User -n 1
+---
+main.py:26-28
+@dataclass
+class User:
+    """Represents a user in the system.
+
+main.py:87-89
+    def __init__(self) -> None:
+        self._users: dict[str, User] = {}
+
+
+main.py:89-91
+
+    def add_user(self, user: User) -> None:
+        """Add a user to the repository."""
+
+main.py:93-95
+
+    def get_user(self, email: str) -> Optional[User]:
+        """Retrieve a user by email address."""
+
+main.py:104-106
+
+    def list_users(self) -> list[User]:
+        """List all users in the repository."""
+
+main.py:113-115
+
+def create_sample_user() -> User:
+    """Create a sample user for testing."""
+
+main.py:115-117
+    """Create a sample user for testing."""
+    return User(name="John Doe", email="john@example.com", age=30)
+
