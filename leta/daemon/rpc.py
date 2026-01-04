@@ -126,7 +126,6 @@ class ShowParams(BaseModel):
     column: int = 0
     context: int = 0
     head: int | None = None
-    body: bool = True
     symbol_name: str | None = Field(default=None, alias="symbol")
     symbol_kind: str | None = Field(default=None, alias="kind")
     range_start_line: int | None = None
