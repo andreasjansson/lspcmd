@@ -1,0 +1,12 @@
+==================
+resolve symbol ambiguous
+==================
+leta show save
+---
+Error: Symbol 'save' is ambiguous (3 matches)
+  Storage.save
+    user.hpp:41 [Method] save in Storage
+  MemoryStorage.save
+    user.hpp:50 [Method] save in MemoryStorage
+  FileStorage.save
+    user.hpp:85 [Method] save in FileStorage
