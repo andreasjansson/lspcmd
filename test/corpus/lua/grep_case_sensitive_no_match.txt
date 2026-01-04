@@ -1,0 +1,5 @@
+==================
+grep case sensitive no match
+==================
+leta grep "^storage$" --kind object user.lua -C
+---
