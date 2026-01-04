@@ -327,23 +327,35 @@ class TypeHierarchyItem(BaseModel):
 
 
 class ServerCapabilities(BaseModel, extra="allow"):
+    def _has_capability(self, name: str) -> bool:
+        """Check if a capability exists. Handles True, non-empty dict, or non-None values."""
+        val = getattr(self, name, None)
+        # None means not present
+        if val is None:
+            return False
+        # Empty dict {} means supported (some servers like ruby-lsp use this)
+        if isinstance(val, dict):
+            return True
+        # True/False or other truthy values
+        return bool(val)
+
     def supports_call_hierarchy(self) -> bool:
-        return bool(getattr(self, "callHierarchyProvider", None))
+        return self._has_capability("callHierarchyProvider")
 
     def supports_type_hierarchy(self) -> bool:
-        return bool(getattr(self, "typeHierarchyProvider", None))
+        return self._has_capability("typeHierarchyProvider")
 
     def supports_declaration(self) -> bool:
-        return bool(getattr(self, "declarationProvider", None))
+        return self._has_capability("declarationProvider")
 
     def supports_implementation(self) -> bool:
-        return bool(getattr(self, "implementationProvider", None))
+        return self._has_capability("implementationProvider")
 
     def supports_references(self) -> bool:
-        return bool(getattr(self, "referencesProvider", None))
+        return self._has_capability("referencesProvider")
 
     def supports_rename(self) -> bool:
-        return bool(getattr(self, "renameProvider", None))
+        return self._has_capability("renameProvider")
 
 
 class ServerInfo(BaseModel):
