@@ -1,0 +1,6 @@
+==================
+grep case insensitive (default)
+==================
+leta grep "^user$" src/user.rs
+---
+src/user.rs:5 [Struct] User
