@@ -1,0 +1,28 @@
+==================
+show class definition
+==================
+leta show User
+---
+main.py:27-46
+
+@dataclass
+class User:
+    """Represents a user in the system.
+
+    Attributes:
+        name: The user's full name.
+        email: The user's email address (used as unique identifier).
+        age: The user's age in years.
+    """
+
+    name: str
+    email: str
+    age: int
+
+    def is_adult(self) -> bool:
+        """Check if the user is an adult (18 or older)."""
+        return self.age >= 18
+
+    def display_name(self) -> str:
+        """Get a formatted display name."""
+        return f"{self.name} <{self.email}>"
