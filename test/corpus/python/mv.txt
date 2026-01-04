@@ -27,8 +27,8 @@ restore file back
 leta mv editable_renamed.py editable.py
 ---
 Moved file and updated imports in 2 file(s):
-  editable_consumer.py
   editable.py
+  editable_consumer.py
 
 ==================
 verify import was restored
