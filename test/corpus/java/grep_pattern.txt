@@ -1,0 +1,6 @@
+==================
+grep pattern filter methods
+==================
+leta grep "^create" --kind method -C
+---
+src/main/java/com/example/Main.java:15 [Method] createSampleUser() ( : User) in Main
