@@ -423,7 +423,7 @@ class LSPClient:
             )
         else:
             result = message.get("result")
-            logger.debug(f"LSP RESPONSE [{request_id}]: {type(result).__name__}")
+            logger.info(f"LSP RESPONSE [{request_id}]: {type(result).__name__} - {result}")
             future.set_result(result)
 
     async def _handle_server_request(self, message: dict[str, Any]) -> None:
