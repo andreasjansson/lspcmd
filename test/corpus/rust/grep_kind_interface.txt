@@ -1,0 +1,6 @@
+==================
+grep kind filter interface (trait)
+==================
+leta grep "." --kind interface src/storage.rs -C
+---
+src/storage.rs:5 [Interface] Storage
