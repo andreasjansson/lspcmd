@@ -1,0 +1,6 @@
+==================
+grep workspace wide
+==================
+leta grep "validate" --kind function -C
+---
+user.hpp:140 [Function] validateUser (void (const User &)) in example
