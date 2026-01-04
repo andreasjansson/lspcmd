@@ -1,0 +1,10 @@
+==================
+calls outgoing include non-workspace
+==================
+leta calls --from create_sample_user --include-non-workspace --max-depth 1
+---
+src/main.rs:10 [Function] create_sample_user (fn create_sample_user() -> User)
+
+Outgoing calls:
+  ├── src/user.rs:13 [Function] new (pub fn new(name: String, email: String, age: u32) -> Self)
+  └── [Function] to_string (fn to_string(&self) -> String)
