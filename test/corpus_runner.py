@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 """Corpus test runner for leta.
 
-Runs integration tests defined in corpus files against real language servers.
+A general-purpose command line testing tool.
+
+Test suites are directories containing *.txt test files. Tests within a suite
+run sequentially, but suites run in parallel.
+
+Special files:
+  - _setup.txt: Runs first in a suite (for workspace setup, etc.)
+  - fixture/: If present, copied to temp dir; $FIXTURE_DIR env var set
 
 Usage:
     python -m test.corpus_runner                    # Run all tests
-    python -m test.corpus_runner python             # Run Python tests only
-    python -m test.corpus_runner python/grep_all    # Run specific test file
+    python -m test.corpus_runner languages/python   # Run Python tests only
+    python -m test.corpus_runner languages/python/grep  # Run specific test
     python -m test.corpus_runner --update           # Update expected outputs
     python -m test.corpus_runner --list             # List all tests
 """
 
 import argparse
+import os
 import re
 import shutil
 import subprocess
@@ -26,20 +34,6 @@ from queue import Empty, Queue
 from threading import Thread
 
 CORPUS_DIR = Path(__file__).parent / "corpus"
-
-LANGUAGE_SERVER_COMMANDS: dict[str, str | list[str]] = {
-    "python": "basedpyright-langserver",
-    "go": "gopls",
-    "typescript": "typescript-language-server",
-    "rust": "rust-analyzer",
-    "java": "jdtls",
-    "cpp": "clangd",
-    "ruby": "ruby-lsp",
-    "php": "intelephense",
-    "lua": "lua-language-server",
-    "zig": "zls",
-    "multi_language": ["basedpyright-langserver", "gopls"],
-}
 
 
 @dataclass
@@ -96,7 +90,6 @@ class Colors:
     GREEN = "\033[92m"
     RED = "\033[91m"
     YELLOW = "\033[93m"
-    BLUE = "\033[94m"
     CYAN = "\033[96m"
     BOLD = "\033[1m"
     DIM = "\033[2m"
@@ -107,7 +100,6 @@ class Colors:
         cls.GREEN = ""
         cls.RED = ""
         cls.YELLOW = ""
-        cls.BLUE = ""
         cls.CYAN = ""
         cls.BOLD = ""
         cls.DIM = ""
@@ -155,59 +147,24 @@ def parse_corpus_file(path: Path) -> list[CorpusTest]:
     return tests
 
 
-def check_requirements(suite: str) -> bool:
-    """Check if requirements for a test suite are met.
-    
-    Returns True if no language server is required (not in LANGUAGE_SERVER_COMMANDS).
-    """
-    cmd = LANGUAGE_SERVER_COMMANDS.get(suite)
-    if cmd is None:
-        return True
-    if isinstance(cmd, list):
-        return all(shutil.which(c) is not None for c in cmd)
-    return shutil.which(cmd) is not None
+def discover_suites(base_dir: Path) -> list[Path]:
+    """Discover all test suites (directories with *.txt files)."""
+    suites = []
+    for path in sorted(base_dir.rglob("*.txt")):
+        if path.name.startswith("_"):
+            continue
+        suite_dir = path.parent
+        if suite_dir not in suites:
+            suites.append(suite_dir)
+    return suites
 
 
-def get_language_server_name(suite: str) -> str:
-    """Get display name for language server(s)."""
-    cmd = LANGUAGE_SERVER_COMMANDS.get(suite)
-    if cmd is None:
-        return "none"
-    if isinstance(cmd, list):
-        return ", ".join(cmd)
-    return cmd
-
-
-def setup_workspace(suite: str, work_dir: Path) -> str | None:
-    """Set up a workspace for testing. Returns error message or None."""
-    fixture_dir = CORPUS_DIR / suite / "fixture"
-    
-    if fixture_dir.exists():
-        shutil.copytree(fixture_dir, work_dir, dirs_exist_ok=True)
-
-        result = subprocess.run(
-            ["leta", "workspace", "add", "--root", str(work_dir)],
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode != 0:
-            return f"Failed to add workspace: {result.stderr}"
-
-        result = subprocess.run(
-            ["leta", "grep", "."],
-            cwd=work_dir,
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-
-        time.sleep(1.0)
-    
-    return None
-
-
-def run_command(command: str, work_dir: Path) -> tuple[str, int]:
+def run_command(command: str, work_dir: Path, env: dict[str, str] | None = None) -> tuple[str, int]:
     """Run a shell command and return (output, return_code)."""
+    full_env = os.environ.copy()
+    if env:
+        full_env.update(env)
+    
     result = subprocess.run(
         command,
         shell=True,
@@ -215,16 +172,17 @@ def run_command(command: str, work_dir: Path) -> tuple[str, int]:
         capture_output=True,
         text=True,
         timeout=60,
+        env=full_env,
     )
     output = result.stdout + result.stderr
     return output.rstrip("\n"), result.returncode
 
 
-def run_test(test: CorpusTest, work_dir: Path, suite: str) -> TestResult:
+def run_test(test: CorpusTest, work_dir: Path, suite: str, env: dict[str, str] | None = None) -> TestResult:
     """Run a single test and return the result."""
     start = time.time()
     try:
-        actual_output, _ = run_command(test.command, work_dir)
+        actual_output, _ = run_command(test.command, work_dir, env)
         elapsed = time.time() - start
 
         if actual_output == test.expected_output:
@@ -242,51 +200,63 @@ def run_test(test: CorpusTest, work_dir: Path, suite: str) -> TestResult:
     return result
 
 
-def run_corpus_file(file_path: Path, work_dir: Path, suite: str) -> FileResult:
+def run_corpus_file(file_path: Path, work_dir: Path, suite: str, env: dict[str, str] | None = None) -> FileResult:
     """Run all tests in a corpus file."""
     file_result = FileResult(file_path=file_path)
     tests = parse_corpus_file(file_path)
 
     for test in tests:
-        result = run_test(test, work_dir, suite)
+        result = run_test(test, work_dir, suite, env)
         file_result.results.append(result)
 
     return file_result
 
 
-def run_suite(suite: str, temp_base: Path, filter_pattern: str | None = None) -> SuiteResult:
-    """Run all corpus tests for a suite."""
+def run_suite(suite_dir: Path, filter_pattern: str | None = None) -> SuiteResult:
+    """Run all corpus tests in a suite directory."""
     start_time = time.time()
-    result = SuiteResult(suite=suite)
-
-    if not check_requirements(suite):
-        result.setup_error = f"Language server not installed: {get_language_server_name(suite)}"
+    suite_name = str(suite_dir.relative_to(CORPUS_DIR))
+    result = SuiteResult(suite=suite_name)
+    
+    fixture_dir = suite_dir / "fixture"
+    temp_dir = None
+    env: dict[str, str] = {}
+    
+    try:
+        # Set up temp directory and copy fixture if present
+        if fixture_dir.exists():
+            temp_dir = Path(tempfile.mkdtemp(prefix=f"leta_corpus_{suite_name.replace('/', '_')}_")).resolve()
+            shutil.copytree(fixture_dir, temp_dir, dirs_exist_ok=True)
+            work_dir = temp_dir
+            env["FIXTURE_DIR"] = str(temp_dir)
+        else:
+            work_dir = suite_dir
+        
+        # Run _setup.txt first if it exists
+        setup_file = suite_dir / "_setup.txt"
+        if setup_file.exists():
+            file_result = run_corpus_file(setup_file, work_dir, suite_name, env)
+            result.file_results.append(file_result)
+            if not file_result.passed:
+                result.setup_error = "Setup failed"
+                result.elapsed = time.time() - start_time
+                return result
+        
+        # Run all other test files
+        corpus_files = sorted(f for f in suite_dir.glob("*.txt") if not f.name.startswith("_"))
+        
+        for corpus_file in corpus_files:
+            if filter_pattern and filter_pattern not in corpus_file.stem:
+                continue
+            file_result = run_corpus_file(corpus_file, work_dir, suite_name, env)
+            result.file_results.append(file_result)
+        
         result.elapsed = time.time() - start_time
-        if progress_queue:
-            progress_queue.put(("skip", suite, result.setup_error))
         return result
-
-    work_dir = temp_base / suite
-    work_dir.mkdir(parents=True, exist_ok=True)
-
-    setup_error = setup_workspace(suite, work_dir)
-    if setup_error:
-        result.setup_error = setup_error
-        result.elapsed = time.time() - start_time
-        if progress_queue:
-            progress_queue.put(("skip", suite, setup_error))
-        return result
-
-    corpus_files = sorted((CORPUS_DIR / suite).glob("*.txt"))
-
-    for corpus_file in corpus_files:
-        if filter_pattern and filter_pattern not in corpus_file.stem:
-            continue
-        file_result = run_corpus_file(corpus_file, work_dir, suite)
-        result.file_results.append(file_result)
-
-    result.elapsed = time.time() - start_time
-    return result
+    
+    finally:
+        if temp_dir and temp_dir.exists():
+            shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 def progress_printer_thread(queue: Queue, verbose: bool, stop_event: threading.Event) -> None:
@@ -440,20 +410,24 @@ def print_results(results: list[SuiteResult], elapsed: float) -> None:
 
 def list_tests() -> None:
     """List all available tests."""
-    for suite_dir in sorted(CORPUS_DIR.iterdir()):
-        if not suite_dir.is_dir():
-            continue
-        corpus_files = list(suite_dir.glob("*.txt"))
-        if not corpus_files:
-            continue
+    suites = discover_suites(CORPUS_DIR)
+    
+    for suite_dir in suites:
+        suite_name = str(suite_dir.relative_to(CORPUS_DIR))
+        has_fixture = (suite_dir / "fixture").exists()
+        has_setup = (suite_dir / "_setup.txt").exists()
+        
+        markers = []
+        if has_fixture:
+            markers.append("fixture")
+        if has_setup:
+            markers.append("setup")
+        marker_str = f" [{', '.join(markers)}]" if markers else ""
+        
+        print(f"\n{Colors.BOLD}{suite_name}{Colors.RESET}{marker_str}")
 
-        suite = suite_dir.name
-        server_cmd = get_language_server_name(suite)
-        installed = "✓" if check_requirements(suite) else "✗"
-
-        print(f"\n{Colors.BOLD}{suite}{Colors.RESET} ({server_cmd}) [{installed}]")
-
-        for corpus_file in sorted(corpus_files):
+        corpus_files = sorted(f for f in suite_dir.glob("*.txt") if not f.name.startswith("_"))
+        for corpus_file in corpus_files:
             tests = parse_corpus_file(corpus_file)
             print(f"  {corpus_file.stem}: {len(tests)} test(s)")
             for test in tests:
@@ -485,27 +459,33 @@ def main() -> int:
 
     if args.filter:
         if "/" in args.filter:
-            suite_filter, file_filter = args.filter.split("/", 1)
+            parts = args.filter.rsplit("/", 1)
+            # Check if last part is a file filter or part of suite path
+            potential_suite = CORPUS_DIR / args.filter
+            if potential_suite.is_dir():
+                suite_filter = args.filter
+            else:
+                suite_filter = parts[0]
+                file_filter = parts[1]
         else:
             suite_filter = args.filter
 
+    # Discover all suites
+    all_suites = discover_suites(CORPUS_DIR)
+    
+    # Filter suites
     suites = []
-    for suite_dir in sorted(CORPUS_DIR.iterdir()):
-        if not suite_dir.is_dir():
-            continue
-        corpus_files = list(suite_dir.glob("*.txt"))
-        if not corpus_files:
-            continue
-        suite = suite_dir.name
-        if suite_filter and suite != suite_filter:
-            continue
-        suites.append(suite)
+    for suite_dir in all_suites:
+        suite_name = str(suite_dir.relative_to(CORPUS_DIR))
+        if suite_filter:
+            if not suite_name.startswith(suite_filter):
+                continue
+        suites.append(suite_dir)
 
     if not suites:
         print(f"{Colors.RED}No test suites found{Colors.RESET}")
         return 1
 
-    temp_base = Path(tempfile.mkdtemp(prefix="leta_corpus_")).resolve()
     start_time = time.time()
 
     progress_queue = Queue()
@@ -515,11 +495,11 @@ def main() -> int:
 
     try:
         if args.sequential or len(suites) == 1:
-            results = [run_suite(suite, temp_base, file_filter) for suite in suites]
+            results = [run_suite(suite, file_filter) for suite in suites]
         else:
             results = []
             with ThreadPoolExecutor(max_workers=len(suites)) as executor:
-                futures = {executor.submit(run_suite, suite, temp_base, file_filter): suite for suite in suites}
+                futures = {executor.submit(run_suite, suite, file_filter): suite for suite in suites}
                 for future in as_completed(futures):
                     results.append(future.result())
 
@@ -545,7 +525,6 @@ def main() -> int:
     finally:
         stop_event.set()
         printer_thread.join(timeout=1)
-        shutil.rmtree(temp_base, ignore_errors=True)
 
 
 if __name__ == "__main__":
