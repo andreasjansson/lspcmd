@@ -1,0 +1,15 @@
+==================
+refs with context
+==================
+leta refs create_sample_user -n 1
+---
+src/main.rs:9-11
+/// Creates a sample user for testing.
+fn create_sample_user() -> User {
+    User::new("John Doe".to_string(), "john@example.com".to_string(), 30)
+
+src/main.rs:24-26
+    let mut repo = UserRepository::new(storage);
+    let user = create_sample_user();
+
+
