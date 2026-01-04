@@ -1,0 +1,12 @@
+==================
+show function with context
+==================
+leta show createSampleUser -n 1
+---
+src/main.zig:21-25
+
+/// Creates a sample user for testing.
+pub fn createSampleUser() user.User {
+    return user.User.init("John Doe", "john@example.com", 30);
+}
+
