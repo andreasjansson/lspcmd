@@ -181,20 +181,35 @@ def run_command(command: str, work_dir: Path, env: dict[str, str] | None = None)
     return output.rstrip("\n"), result.returncode
 
 
-def run_test(test: CorpusTest, work_dir: Path, suite: str, env: dict[str, str] | None = None) -> TestResult:
+def apply_template(text: str, variables: dict[str, str]) -> str:
+    """Replace {{ VAR }} placeholders with values from variables dict."""
+    for key, value in variables.items():
+        text = text.replace("{{ " + key + " }}", value)
+    return text
+
+
+def run_test(test: CorpusTest, work_dir: Path, suite: str, template_vars: dict[str, str] | None = None) -> TestResult:
     """Run a single test and return the result.
     
     If expected_output is empty, only checks for exit code 0.
+    Template variables like {{ FIXTURE_DIR }} are replaced in command and expected output.
     """
     start = time.time()
+    
+    command = test.command
+    expected_output = test.expected_output
+    if template_vars:
+        command = apply_template(command, template_vars)
+        expected_output = apply_template(expected_output, template_vars)
+    
     try:
-        actual_output, exit_code = run_command(test.command, work_dir, env)
+        actual_output, exit_code = run_command(command, work_dir)
         elapsed = time.time() - start
 
-        if not test.expected_output:
+        if not expected_output:
             passed = exit_code == 0
         else:
-            passed = actual_output == test.expected_output
+            passed = actual_output == expected_output
         
         if passed:
             result = TestResult(test=test, passed=True, actual_output=actual_output, elapsed=elapsed, suite=suite)
