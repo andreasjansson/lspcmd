@@ -1,0 +1,6 @@
+==================
+supertypes not supported
+==================
+leta supertypes MemoryStorage
+---
+Error: textDocument/prepareTypeHierarchy is not supported by typescript-language-server
