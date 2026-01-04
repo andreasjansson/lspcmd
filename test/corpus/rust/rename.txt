@@ -11,9 +11,9 @@ rename User to Person
 leta rename User Person
 ---
 Renamed in 3 file(s):
-  src/user.rs
   src/main.rs
   src/storage.rs
+  src/user.rs
 
 ==================
 verify rename worked
@@ -28,9 +28,9 @@ restore original name
 leta rename Person User
 ---
 Renamed in 3 file(s):
-  src/user.rs
   src/main.rs
   src/storage.rs
+  src/user.rs
 
 ==================
 verify restore worked
