@@ -1,0 +1,85 @@
+===
+help
+===
+leta --help
+---
+Usage: leta [OPTIONS] COMMAND [ARGS]...
+
+  Leta (LSP Enabled Tools for Agents) is a command line LSP client. It can
+  quickly search for symbols across large code bases with regular expressions,
+  print full function and method bodies, find references, implementations,
+  subtypes, etc. It also has refactoring tools, like renaming symbols across
+  the entire code base.
+
+  `leta grep` can be much better than naive text search tools when you want to
+  understand a code base. Note that `leta grep` only exposes symbols that are
+  declared in its workspace, so use (rip)grep or other search tools when
+  you're looking for specific multi-symbol strings, puncuation, or library
+  functions. `leta grep PATTERN [PATH] --docs` prints function and method
+  documentation for all matching symbols.
+
+  `leta files` is a good starting point when starting work on a project.
+
+  Use `leta show SYMBOL` to print the full body of a symbol. Use `leta refs
+  SYMBOL` to find all uses of a symbol. These two (and other) commands accept
+  `--context N` for surrounding lines.
+
+  See `leta COMMAND --help` for more documentation and command-specific
+  options.
+
+Options:
+  --json      Output as JSON
+  -h, --help  Show this message and exit.
+
+Commands:
+  grep             Search for symbols matching a regex pattern.
+  files            Show source file tree with symbol and line counts.
+  show             Print the definition of a symbol.
+  refs             Find all references to a symbol.
+  calls            Show call hierarchy for a symbol.
+  implementations  Find implementations of an interface or abstract method.
+  supertypes       Find direct supertypes of a type.
+  subtypes         Find direct subtypes of a type.
+  declaration      Find declaration of a symbol.
+  rename           Rename a symbol across the workspace.
+  mv               Move/rename a file and update all imports.
+  raw-lsp-request  Send a raw LSP request.
+  workspace        Manage workspaces.
+  daemon           Manage the leta daemon.
+  config           Print config file location and contents.
+  help-all         Print help for all commands.
+
+===
+workspace help
+===
+leta workspace --help
+---
+Usage: leta workspace [OPTIONS] COMMAND [ARGS]...
+
+  Manage workspaces.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  add      Add a workspace for LSP operations.
+  remove   Remove a workspace and stop its language servers.
+  restart  Restart the language server for a workspace.
+
+===
+daemon help
+===
+leta daemon --help
+---
+Usage: leta daemon [OPTIONS] COMMAND [ARGS]...
+
+  Manage the leta daemon.
+
+Options:
+  -h, --help  Show this message and exit.
+
+Commands:
+  info     Show current daemon state.
+  restart  Restart the leta daemon.
+  start    Start the leta daemon.
+  stop     Stop the leta daemon.
