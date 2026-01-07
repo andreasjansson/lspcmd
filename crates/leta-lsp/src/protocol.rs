@@ -38,12 +38,12 @@ pub struct LanguageServerNotFound {
 }
 
 #[derive(Error, Debug)]
-#[error("Language server '{name}' for {languages} failed to start in workspace {workspace}: {source}")]
+#[error("Language server '{name}' for {languages} failed to start in workspace {workspace}: {message}")]
 pub struct LanguageServerStartupError {
     pub name: String,
     pub languages: String,
     pub workspace: String,
-    pub source: String,
+    pub message: String,
     pub server_log: Option<String>,
     pub log_path: Option<String>,
 }
