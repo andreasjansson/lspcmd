@@ -30,7 +30,7 @@ pub async fn handle_calls(
                 .map_err(|e| e.to_string())?;
             
             workspace.ensure_document_open(&file_path).await?;
-            let client = workspace.client().ok_or("No LSP client")?;
+            let client = workspace.client().await.ok_or("No LSP client")?;
 
             let items = prepare_call_hierarchy(client.clone(), &file_path, from_line, from_column).await?;
             if items.is_empty() {
@@ -76,7 +76,7 @@ pub async fn handle_calls(
                 .map_err(|e| e.to_string())?;
             
             workspace.ensure_document_open(&file_path).await?;
-            let client = workspace.client().ok_or("No LSP client")?;
+            let client = workspace.client().await.ok_or("No LSP client")?;
 
             let items = prepare_call_hierarchy(client.clone(), &file_path, to_line, to_column).await?;
             if items.is_empty() {
@@ -128,7 +128,7 @@ pub async fn handle_calls(
             
             workspace.ensure_document_open(&from_file).await?;
             workspace.ensure_document_open(&to_file).await?;
-            let client = workspace.client().ok_or("No LSP client")?;
+            let client = workspace.client().await.ok_or("No LSP client")?;
 
             let from_items = prepare_call_hierarchy(client.clone(), &from_file, from_line, from_column).await?;
             let to_items = prepare_call_hierarchy(client.clone(), &to_file, to_line, to_column).await?;
@@ -185,6 +185,13 @@ async fn prepare_call_hierarchy(
     line: u32,
     column: u32,
 ) -> Result<Vec<CallHierarchyItem>, String> {
+    if !client.supports_call_hierarchy().await {
+        return Err(format!(
+            "textDocument/prepareCallHierarchy is not supported by {}",
+            client.server_name()
+        ));
+    }
+
     let uri = leta_fs::path_to_uri(file_path);
 
     let response: Option<Vec<CallHierarchyItem>> = client
@@ -202,7 +209,7 @@ async fn prepare_call_hierarchy(
             },
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{}", e))?;
 
     Ok(response.unwrap_or_default())
 }
