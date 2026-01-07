@@ -399,7 +399,7 @@ async fn find_call_path(
         }
 
         if let Some(mut path) = Box::pin(find_call_path(
-            client,
+            client.clone(),
             call_item,
             target_key,
             workspace_root,
