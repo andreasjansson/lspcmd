@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use leta_fs::get_language_id;
@@ -8,6 +8,7 @@ use leta_types::{GrepParams, GrepResult, SymbolInfo};
 use regex::Regex;
 
 use super::{flatten_document_symbols, relative_path, HandlerContext};
+use crate::session::WorkspaceHandle;
 
 pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
     let workspace_root = PathBuf::from(&params.workspace_root);
@@ -74,7 +75,7 @@ async fn collect_symbols_for_paths(
     workspace_root: &Path,
 ) -> Result<Vec<SymbolInfo>, String> {
     let mut all_symbols = Vec::new();
-    let mut files_by_lang: std::collections::HashMap<String, Vec<PathBuf>> = std::collections::HashMap::new();
+    let mut files_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for path_str in paths {
         let path = PathBuf::from(path_str);
@@ -83,7 +84,7 @@ async fn collect_symbols_for_paths(
         }
         let lang = get_language_id(&path);
         if lang != "plaintext" {
-            files_by_lang.entry(lang).or_default().push(path);
+            files_by_lang.entry(lang.to_string()).or_default().push(path);
         }
     }
 
@@ -124,7 +125,7 @@ async fn collect_all_workspace_symbols(
         .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
         .unwrap_or_default();
 
-    let mut files_by_lang: std::collections::HashMap<String, Vec<PathBuf>> = std::collections::HashMap::new();
+    let mut files_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for entry in walkdir::WalkDir::new(workspace_root)
         .into_iter()
@@ -145,15 +146,15 @@ async fn collect_all_workspace_symbols(
         let path = entry.path();
         let lang = get_language_id(path);
         
-        if lang == "plaintext" || excluded_languages.contains(&lang) {
+        if lang == "plaintext" || excluded_languages.contains(lang) {
             continue;
         }
         
-        if get_server_for_language(&lang, None).is_none() {
+        if get_server_for_language(lang, None).is_none() {
             continue;
         }
 
-        files_by_lang.entry(lang).or_default().push(path.to_path_buf());
+        files_by_lang.entry(lang.to_string()).or_default().push(path.to_path_buf());
     }
 
     let mut all_symbols = Vec::new();
@@ -176,7 +177,7 @@ async fn collect_all_workspace_symbols(
 
 async fn get_file_symbols(
     ctx: &HandlerContext,
-    workspace: &crate::session::Workspace,
+    workspace: &WorkspaceHandle<'_>,
     workspace_root: &Path,
     file_path: &Path,
 ) -> Result<Vec<SymbolInfo>, String> {
