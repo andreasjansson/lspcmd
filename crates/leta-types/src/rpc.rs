@@ -1,25 +1,49 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::{CacheInfo, FileInfo, LocationInfo, SymbolInfo, WorkspaceInfo};
+use crate::{CacheInfo, CallNode, FileInfo, LocationInfo, SymbolInfo, WorkspaceInfo};
+
+// ============================================================================
+// RPC Protocol
+// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RpcRequest {
+pub struct RpcRequest<P> {
     pub method: String,
-    #[serde(default)]
-    pub params: serde_json::Value,
+    pub params: P,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RpcResponse {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub result: Option<serde_json::Value>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<String>,
+#[serde(untagged)]
+pub enum RpcResponse<R> {
+    Success { result: R },
+    Error { error: String },
 }
 
-// === Shutdown ===
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl<R> RpcResponse<R> {
+    pub fn success(result: R) -> Self {
+        RpcResponse::Success { result }
+    }
+
+    pub fn error(message: impl Into<String>) -> Self {
+        RpcResponse::Error {
+            error: message.into(),
+        }
+    }
+
+    pub fn into_result(self) -> Result<R, String> {
+        match self {
+            RpcResponse::Success { result } => Ok(result),
+            RpcResponse::Error { error } => Err(error),
+        }
+    }
+}
+
+// ============================================================================
+// Shutdown
+// ============================================================================
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ShutdownParams {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,8 +51,11 @@ pub struct ShutdownResult {
     pub status: String,
 }
 
-// === Describe Session ===
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// ============================================================================
+// Describe Session
+// ============================================================================
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DescribeSessionParams {}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -38,7 +65,10 @@ pub struct DescribeSessionResult {
     pub workspaces: Vec<WorkspaceInfo>,
 }
 
-// === Grep ===
+// ============================================================================
+// Grep
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GrepParams {
     pub workspace_root: String,
@@ -68,7 +98,10 @@ pub struct GrepResult {
     pub warning: Option<String>,
 }
 
-// === Files ===
+// ============================================================================
+// Files
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FilesParams {
     pub workspace_root: String,
@@ -88,7 +121,10 @@ pub struct FilesResult {
     pub total_lines: u32,
 }
 
-// === Show ===
+// ============================================================================
+// Show
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShowParams {
     pub workspace_root: String,
@@ -126,7 +162,10 @@ pub struct ShowResult {
     pub total_lines: Option<u32>,
 }
 
-// === References ===
+// ============================================================================
+// References
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReferencesParams {
     pub workspace_root: String,
@@ -143,7 +182,10 @@ pub struct ReferencesResult {
     pub locations: Vec<LocationInfo>,
 }
 
-// === Declaration ===
+// ============================================================================
+// Declaration
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DeclarationParams {
     pub workspace_root: String,
@@ -160,7 +202,10 @@ pub struct DeclarationResult {
     pub locations: Vec<LocationInfo>,
 }
 
-// === Implementations ===
+// ============================================================================
+// Implementations
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImplementationsParams {
     pub workspace_root: String,
@@ -180,7 +225,10 @@ pub struct ImplementationsResult {
     pub error: Option<String>,
 }
 
-// === Subtypes ===
+// ============================================================================
+// Subtypes
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtypesParams {
     pub workspace_root: String,
@@ -197,7 +245,10 @@ pub struct SubtypesResult {
     pub locations: Vec<LocationInfo>,
 }
 
-// === Supertypes ===
+// ============================================================================
+// Supertypes
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SupertypesParams {
     pub workspace_root: String,
@@ -214,8 +265,11 @@ pub struct SupertypesResult {
     pub locations: Vec<LocationInfo>,
 }
 
-// === Calls ===
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// ============================================================================
+// Calls
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CallsMode {
     Outgoing,
@@ -254,25 +308,6 @@ fn default_max_depth() -> u32 {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CallNode {
-    pub name: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub kind: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub detail: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub line: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub column: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub calls: Option<Vec<CallNode>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub called_by: Option<Vec<CallNode>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CallsResult {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub root: Option<CallNode>,
@@ -284,7 +319,10 @@ pub struct CallsResult {
     pub error: Option<String>,
 }
 
-// === Rename ===
+// ============================================================================
+// Rename
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RenameParams {
     pub workspace_root: String,
@@ -300,7 +338,10 @@ pub struct RenameResult {
     pub files_changed: Vec<String>,
 }
 
-// === Move File ===
+// ============================================================================
+// Move File
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MoveFileParams {
     pub workspace_root: String,
@@ -314,7 +355,10 @@ pub struct MoveFileResult {
     pub imports_updated: bool,
 }
 
-// === Raw LSP Request ===
+// ============================================================================
+// Raw LSP Request
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RawLspRequestParams {
     pub workspace_root: String,
@@ -329,7 +373,10 @@ fn default_language() -> String {
     "python".to_string()
 }
 
-// === Workspace Management ===
+// ============================================================================
+// Workspace Management
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RestartWorkspaceParams {
     pub workspace_root: String,
@@ -350,7 +397,10 @@ pub struct RemoveWorkspaceResult {
     pub servers_stopped: Vec<String>,
 }
 
-// === Resolve Symbol ===
+// ============================================================================
+// Resolve Symbol
+// ============================================================================
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResolveSymbolParams {
     pub workspace_root: String,
@@ -381,4 +431,66 @@ pub struct ResolveSymbolResult {
     pub matches: Option<Vec<SymbolInfo>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub total_matches: Option<u32>,
+}
+
+impl ResolveSymbolResult {
+    pub fn success(
+        path: String,
+        line: u32,
+        column: u32,
+        name: Option<String>,
+        kind: Option<String>,
+        container: Option<String>,
+        range_start_line: Option<u32>,
+        range_end_line: Option<u32>,
+    ) -> Self {
+        Self {
+            path: Some(path),
+            line: Some(line),
+            column: Some(column),
+            name,
+            kind,
+            container,
+            range_start_line,
+            range_end_line,
+            error: None,
+            matches: None,
+            total_matches: None,
+        }
+    }
+
+    pub fn not_found(symbol: &str) -> Self {
+        Self {
+            error: Some(format!("Symbol '{}' not found", symbol)),
+            path: None,
+            line: None,
+            column: None,
+            name: None,
+            kind: None,
+            container: None,
+            range_start_line: None,
+            range_end_line: None,
+            matches: None,
+            total_matches: None,
+        }
+    }
+
+    pub fn ambiguous(symbol: &str, matches: Vec<SymbolInfo>, total: u32) -> Self {
+        Self {
+            error: Some(format!(
+                "Symbol '{}' is ambiguous ({} matches)",
+                symbol, total
+            )),
+            matches: Some(matches),
+            total_matches: Some(total),
+            path: None,
+            line: None,
+            column: None,
+            name: None,
+            kind: None,
+            container: None,
+            range_start_line: None,
+            range_end_line: None,
+        }
+    }
 }
