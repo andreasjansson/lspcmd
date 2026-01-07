@@ -11,12 +11,8 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct OpenDocument {
-    uri: String,
-    version: i32,
     pub content: String,
-    language_id: String,
 }
 
 pub struct Workspace {
