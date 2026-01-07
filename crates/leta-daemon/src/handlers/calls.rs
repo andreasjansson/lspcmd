@@ -32,6 +32,9 @@ pub async fn handle_calls(
             workspace.ensure_document_open(&file_path).await?;
             let client = workspace.client().await.ok_or("No LSP client")?;
 
+            // Wait for indexing to complete to prevent rust-analyzer "content modified" errors
+            client.wait_for_indexing(30).await;
+
             let items = prepare_call_hierarchy(client.clone(), &file_path, from_line, from_column).await?;
             if items.is_empty() {
                 return Ok(CallsResult {
