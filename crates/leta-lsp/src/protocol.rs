@@ -27,6 +27,27 @@ pub struct LspResponseError {
     pub data: Option<Value>,
 }
 
+impl LspResponseError {
+    pub fn is_method_not_found(&self) -> bool {
+        self.code == -32601
+            || self.message.to_lowercase().contains("not found")
+            || self.message.to_lowercase().contains("not yet implemented")
+    }
+
+    pub fn is_unsupported(&self) -> bool {
+        let msg = self.message.to_lowercase();
+        msg.contains("unsupported") || (msg.contains("internal error") && self.code == -32603)
+    }
+
+    /// Check if this error is transient and the request should be retried.
+    /// 
+    /// rust-analyzer returns "content modified" errors when it's still indexing
+    /// or when file contents change during a request. These are transient.
+    pub fn is_retryable(&self) -> bool {
+        self.message.to_lowercase().contains("content modified")
+    }
+}
+
 impl std::fmt::Display for LspResponseError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "LSP error {}: {}", self.code, self.message)
