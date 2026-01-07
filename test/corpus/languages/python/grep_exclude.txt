@@ -3,15 +3,15 @@ grep all functions excluding editable files
 ==================
 leta grep . --kind function -x "editable*"
 ---
-utils.py:9 [Function] validate_email
-utils.py:22 [Function] validate_age
-utils.py:27 [Function] memoize
-utils.py:38 [Function] wrapper in memoize
-utils.py:48 [Function] fibonacci
-utils.py:125 [Function] format_name
 errors.py:4 [Function] undefined_variable
 errors.py:9 [Function] type_error
 errors.py:15 [Function] missing_return
 main.py:114 [Function] create_sample_user
 main.py:119 [Function] process_users
 main.py:128 [Function] main
+utils.py:9 [Function] validate_email
+utils.py:22 [Function] validate_age
+utils.py:27 [Function] memoize
+utils.py:38 [Function] wrapper in memoize
+utils.py:48 [Function] fibonacci
+utils.py:125 [Function] format_name
