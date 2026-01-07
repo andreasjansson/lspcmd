@@ -4,8 +4,8 @@ grep kind filter class
 leta grep "." --kind class -C
 ---
 src/Errors.php:10 [Class] Errors
-src/Main.php:10 [Class] Main
-src/User.php:10 [Class] User
-src/MemoryStorage.php:10 [Class] MemoryStorage
 src/FileStorage.php:10 [Class] FileStorage
+src/Main.php:10 [Class] Main
+src/MemoryStorage.php:10 [Class] MemoryStorage
+src/User.php:10 [Class] User
 src/UserRepository.php:10 [Class] UserRepository
