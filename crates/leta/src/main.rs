@@ -348,9 +348,6 @@ fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
         require_literal_leading_dot: true,
     };
 
-    eprintln!("DEBUG expand_path_pattern: pattern={}", pattern);
-    eprintln!("DEBUG expand_path_pattern: cwd={:?}", std::env::current_dir());
-
     if !pattern.contains('*') && !pattern.contains('?') {
         let path = PathBuf::from(pattern).canonicalize()
             .unwrap_or_else(|_| PathBuf::from(pattern));
@@ -359,6 +356,7 @@ fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
                 let matches: Vec<PathBuf> = glob::glob_with(&format!("{}/**/*", path.display()), glob_options)?
                     .filter_map(|e| e.ok())
                     .filter(|p| p.is_file())
+                    .map(|p| p.canonicalize().unwrap_or(p))
                     .collect();
                 if matches.is_empty() {
                     return Err(anyhow!("No files found in directory: {}", pattern));
@@ -371,6 +369,7 @@ fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
             let matches: Vec<PathBuf> = glob::glob_with(&format!("**/{}", pattern), glob_options)?
                 .filter_map(|e| e.ok())
                 .filter(|p| p.is_file())
+                .map(|p| p.canonicalize().unwrap_or(p))
                 .collect();
             if !matches.is_empty() {
                 return Ok(matches);
@@ -384,15 +383,12 @@ fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
     } else {
         pattern.to_string()
     };
-    
-    eprintln!("DEBUG expand_path_pattern: search_pattern={}", search_pattern);
 
     let matches: Vec<PathBuf> = glob::glob_with(&search_pattern, glob_options)?
         .filter_map(|e| e.ok())
         .filter(|p| p.is_file())
+        .map(|p| p.canonicalize().unwrap_or(p))
         .collect();
-        
-    eprintln!("DEBUG expand_path_pattern: matches={:?}", matches);
 
     if matches.is_empty() {
         return Err(anyhow!("No files match pattern: {}", pattern));
