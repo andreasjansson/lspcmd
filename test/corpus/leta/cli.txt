@@ -8,15 +8,15 @@ Usage: leta [OPTIONS] COMMAND [ARGS]...
   Leta (LSP Enabled Tools for Agents) is a command line LSP client. It can
   quickly search for symbols across large code bases with regular expressions,
   print full function and method bodies, find references, implementations,
-  subtypes, etc. It also has refactoring tools, like renaming symbols across
-  the entire code base.
+  subtypes, etc. It also has refactoring tools, like renaming symbols across the
+  entire code base.
 
   `leta grep` can be much better than naive text search tools when you want to
   understand a code base. Note that `leta grep` only exposes symbols that are
-  declared in its workspace, so use (rip)grep or other search tools when
-  you're looking for specific multi-symbol strings, puncuation, or library
-  functions. `leta grep PATTERN [PATH] --docs` prints function and method
-  documentation for all matching symbols.
+  declared in its workspace, so use (rip)grep or other search tools when you're
+  looking for specific multi-symbol strings, puncuation, or library functions.
+  `leta grep PATTERN [PATH] --docs` prints function and method documentation for
+  all matching symbols.
 
   `leta files` is a good starting point when starting work on a project.
 
@@ -24,8 +24,7 @@ Usage: leta [OPTIONS] COMMAND [ARGS]...
   SYMBOL` to find all uses of a symbol. These two (and other) commands accept
   `--context N` for surrounding lines.
 
-  See `leta COMMAND --help` for more documentation and command-specific
-  options.
+  See `leta COMMAND --help` for more documentation and command-specific options.
 
 Options:
   --json      Output as JSON
@@ -48,7 +47,6 @@ Commands:
   daemon           Manage the leta daemon.
   config           Print config file location and contents.
   help-all         Print help for all commands.
-
 ===
 workspace help
 ===

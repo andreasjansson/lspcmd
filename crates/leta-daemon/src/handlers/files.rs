@@ -115,7 +115,7 @@ pub async fn handle_files(
             Err(_) => continue,
         };
 
-        let client = match workspace.client() {
+        let client = match workspace.client().await {
             Some(c) => c,
             None => continue,
         };

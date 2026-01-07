@@ -45,7 +45,7 @@ pub async fn handle_show(ctx: &HandlerContext, params: ShowParams) -> Result<Sho
             .map_err(|e| e.to_string())?;
         
         workspace.ensure_document_open(&file_path).await?;
-        let client = workspace.client().ok_or("No LSP client")?;
+        let client = workspace.client().await.ok_or("No LSP client")?;
         let uri = leta_fs::path_to_uri(&file_path);
 
         let response: Option<DocumentSymbolResponse> = client

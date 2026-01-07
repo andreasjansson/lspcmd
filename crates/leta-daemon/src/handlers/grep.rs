@@ -212,7 +212,7 @@ async fn get_file_symbols(
         return Ok(cached);
     }
 
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(file_path);
 
     workspace.ensure_document_open(file_path).await?;
@@ -250,7 +250,7 @@ async fn get_symbol_documentation(
 ) -> Option<String> {
     let file_path = workspace_root.join(rel_path);
     let workspace = ctx.session.get_workspace_for_file(&file_path).await?;
-    let client = workspace.client()?;
+    let client = workspace.client().await?;
 
     let file_sha = leta_fs::file_sha(&file_path);
     let cache_key = format!("hover:{}:{}:{}:{}", file_path.display(), line, column, file_sha);

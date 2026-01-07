@@ -287,7 +287,7 @@ async fn collect_outgoing_calls(
     for call in calls {
         let call_item = &call.to;
         
-        if !include_non_workspace && is_stdlib_path(call_item.uri.as_str()) {
+        if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
 
@@ -352,7 +352,7 @@ async fn collect_incoming_calls(
     for call in calls {
         let call_item = &call.from;
         
-        if !include_non_workspace && is_stdlib_path(call_item.uri.as_str()) {
+        if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
 
@@ -423,7 +423,7 @@ async fn find_call_path(
     for call in calls {
         let call_item = &call.to;
         
-        if !include_non_workspace && is_stdlib_path(call_item.uri.as_str()) {
+        if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
 
