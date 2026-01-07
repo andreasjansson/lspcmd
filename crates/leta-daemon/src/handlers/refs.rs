@@ -12,7 +12,7 @@ use leta_types::{
     SupertypesParams, SupertypesResult,
 };
 
-use super::{format_locations, format_type_hierarchy_items, HandlerContext};
+use super::{format_locations, format_type_hierarchy_items_from_json, HandlerContext};
 
 pub async fn handle_references(
     ctx: &HandlerContext,
