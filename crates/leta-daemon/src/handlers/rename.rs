@@ -123,23 +123,135 @@ pub async fn handle_move_file(
         .ok()
         .flatten();
 
-    if let Some(parent) = new_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
-    }
-    std::fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to move file: {}", e))?;
+    let mut files_changed = Vec::new();
+    let mut file_moved_by_edit = false;
 
-    let (files_changed, imports_updated) = if let Some(edit) = response {
-        let files = apply_workspace_edit(&edit, &workspace_root)?;
-        let imports_updated = !files.is_empty();
-        (files, imports_updated)
-    } else {
-        (vec![relative_path(&new_path, &workspace_root)], false)
-    };
+    // Apply workspace edit FIRST (it may contain the rename operation)
+    if let Some(ref edit) = response {
+        let (files, was_moved) = apply_workspace_edit_for_move(edit, &workspace_root, &old_path, &new_path)?;
+        files_changed = files;
+        file_moved_by_edit = was_moved;
+    }
+
+    // Only manually move if the edit didn't already move it
+    if !file_moved_by_edit {
+        if let Some(parent) = new_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        }
+        std::fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to move file: {}", e))?;
+        files_changed.push(relative_path(&new_path, &workspace_root));
+    }
+
+    // Deduplicate
+    let mut seen = HashSet::new();
+    files_changed.retain(|f| seen.insert(f.clone()));
+    files_changed.sort();
+
+    let imports_updated = files_changed.iter().any(|f| {
+        f != &relative_path(&new_path, &workspace_root)
+    });
 
     Ok(MoveFileResult {
         files_changed,
         imports_updated,
     })
+}
+
+/// Apply a workspace edit for a move operation, returning (changed_files, file_was_moved).
+/// This tracks whether the file was moved by the edit so we don't move it twice.
+fn apply_workspace_edit_for_move(
+    edit: &WorkspaceEdit,
+    workspace_root: &PathBuf,
+    move_old_path: &PathBuf,
+    move_new_path: &PathBuf,
+) -> Result<(Vec<String>, bool), String> {
+    let mut changed_files = Vec::new();
+    let mut file_moved = false;
+
+    if let Some(changes) = &edit.changes {
+        for (uri, edits) in changes {
+            let file_path = uri_to_path(uri.as_str());
+            apply_text_edits(&file_path, edits)?;
+            changed_files.push(relative_path(&file_path, workspace_root));
+        }
+    }
+
+    if let Some(document_changes) = &edit.document_changes {
+        match document_changes {
+            DocumentChanges::Edits(edits) => {
+                for edit in edits {
+                    let mut file_path = uri_to_path(edit.text_document.uri.as_str());
+                    // If this edit targets the old path, apply to new path instead
+                    if file_path == *move_old_path {
+                        file_path = move_new_path.clone();
+                    }
+                    let text_edits: Vec<_> = edit.edits.iter().map(|e| match e {
+                        leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                        leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
+                    }).collect();
+                    if !text_edits.is_empty() {
+                        apply_text_edits(&file_path, &text_edits)?;
+                    }
+                    changed_files.push(relative_path(&file_path, workspace_root));
+                }
+            }
+            DocumentChanges::Operations(ops) => {
+                for op in ops {
+                    match op {
+                        leta_lsp::lsp_types::DocumentChangeOperation::Edit(edit) => {
+                            let mut file_path = uri_to_path(edit.text_document.uri.as_str());
+                            if file_path == *move_old_path {
+                                file_path = move_new_path.clone();
+                            }
+                            let text_edits: Vec<_> = edit.edits.iter().map(|e| match e {
+                                leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                                leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
+                            }).collect();
+                            if !text_edits.is_empty() {
+                                apply_text_edits(&file_path, &text_edits)?;
+                            }
+                            changed_files.push(relative_path(&file_path, workspace_root));
+                        }
+                        leta_lsp::lsp_types::DocumentChangeOperation::Op(resource_op) => {
+                            match resource_op {
+                                leta_lsp::lsp_types::ResourceOp::Create(create) => {
+                                    let path = uri_to_path(create.uri.as_str());
+                                    if let Some(parent) = path.parent() {
+                                        let _ = std::fs::create_dir_all(parent);
+                                    }
+                                    let _ = std::fs::write(&path, "");
+                                    changed_files.push(relative_path(&path, workspace_root));
+                                }
+                                leta_lsp::lsp_types::ResourceOp::Rename(rename) => {
+                                    let old_path = uri_to_path(rename.old_uri.as_str());
+                                    let new_path = uri_to_path(rename.new_uri.as_str());
+                                    
+                                    // Check if this is the file we're trying to move
+                                    if old_path == *move_old_path && new_path == *move_new_path {
+                                        file_moved = true;
+                                    }
+                                    
+                                    if let Some(parent) = new_path.parent() {
+                                        let _ = std::fs::create_dir_all(parent);
+                                    }
+                                    if old_path.exists() {
+                                        let _ = std::fs::rename(&old_path, &new_path);
+                                    }
+                                    changed_files.push(relative_path(&new_path, workspace_root));
+                                }
+                                leta_lsp::lsp_types::ResourceOp::Delete(delete) => {
+                                    let path = uri_to_path(delete.uri.as_str());
+                                    let _ = std::fs::remove_file(&path);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((changed_files, file_moved))
 }
 
 fn apply_workspace_edit(edit: &WorkspaceEdit, workspace_root: &PathBuf) -> Result<Vec<String>, String> {
