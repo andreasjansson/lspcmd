@@ -79,14 +79,14 @@ impl LspClient {
             reader_client.read_loop(stdout).await;
         });
 
-        client.initialize(&workspace_uri, init_options).await?;
+        client.initialize(workspace_root, &workspace_uri, init_options).await?;
 
         Ok(client)
     }
 
-    async fn initialize(&self, workspace_uri: &Uri, init_options: Option<Value>) -> Result<(), LspProtocolError> {
+    async fn initialize(&self, workspace_root: &Path, workspace_uri: &Uri, init_options: Option<Value>) -> Result<(), LspProtocolError> {
         let caps: ClientCapabilities = serde_json::from_value(get_client_capabilities())
-            .map_err(|e| LspProtocolError::Json(e))?;
+            .map_err(LspProtocolError::Json)?;
 
         let workspace_name = workspace_root
             .file_name()
