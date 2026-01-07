@@ -55,6 +55,7 @@ impl LspClient {
 
         let stdin = process.stdin.take().expect("Failed to get stdin");
         let stdout = process.stdout.take().expect("Failed to get stdout");
+        let stderr = process.stderr.take();
 
         let workspace_uri: Uri = format!("file://{}", workspace_root.display())
             .parse()
