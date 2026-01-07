@@ -3,5 +3,5 @@ grep combined filters Storage classes
 ==================
 leta grep "Storage" --kind class -C
 ---
-src/MemoryStorage.php:10 [Class] MemoryStorage
 src/FileStorage.php:10 [Class] FileStorage
+src/MemoryStorage.php:10 [Class] MemoryStorage
