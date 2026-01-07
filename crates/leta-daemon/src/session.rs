@@ -154,10 +154,10 @@ impl Workspace {
         let language_id = get_language_id(path).to_string();
         
         let doc = OpenDocument {
-            uri: uri.clone(),
-            version: 1,
+            _uri: uri.clone(),
+            _version: 1,
             content: content.clone(),
-            language_id: language_id.clone(),
+            _language_id: language_id.clone(),
         };
         
         self.open_documents.insert(uri.clone(), doc);
