@@ -572,7 +572,7 @@ impl LspClient {
     }
 
     pub async fn supports_call_hierarchy(&self) -> bool {
-        use leta_lsp::lsp_types::CallHierarchyServerCapability;
+        use crate::lsp_types::CallHierarchyServerCapability;
         let caps = self.capabilities.read().await;
         match &caps.call_hierarchy_provider {
             Some(CallHierarchyServerCapability::Simple(true)) => true,
