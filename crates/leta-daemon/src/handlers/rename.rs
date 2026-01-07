@@ -127,6 +127,9 @@ pub async fn handle_move_file(
     let old_uri = leta_fs::path_to_uri(&old_path);
     let new_uri = leta_fs::path_to_uri(&new_path);
 
+    tracing::info!("mv: old_path={:?} new_path={:?}", old_path, new_path);
+    tracing::info!("mv: old_uri={} new_uri={}", old_uri, new_uri);
+
     let response: Option<WorkspaceEdit> = client
         .send_request(
             "workspace/willRenameFiles",
