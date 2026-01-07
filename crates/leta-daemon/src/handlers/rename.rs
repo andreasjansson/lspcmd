@@ -62,10 +62,29 @@ pub async fn handle_move_file(
     let old_path = PathBuf::from(&params.old_path);
     let new_path = PathBuf::from(&params.new_path);
 
+    if !old_path.exists() {
+        return Err(format!("Source file does not exist: {}", old_path.display()));
+    }
+    if new_path.exists() {
+        return Err(format!("Destination already exists: {}", new_path.display()));
+    }
+
     let workspace = ctx.session.get_or_create_workspace(&old_path, &workspace_root).await
         .map_err(|e| e.to_string())?;
     
     let client = workspace.client().ok_or("No LSP client")?;
+    let server_name = workspace.server_name();
+    
+    let caps = client.capabilities().await;
+    let supports_will_rename = caps.workspace.as_ref()
+        .and_then(|w| w.file_operations.as_ref())
+        .and_then(|fo| fo.will_rename.as_ref())
+        .is_some();
+
+    if !supports_will_rename {
+        return Err(format!("move-file is not supported by {}", server_name));
+    }
+
     let old_uri = leta_fs::path_to_uri(&old_path);
     let new_uri = leta_fs::path_to_uri(&new_path);
 
