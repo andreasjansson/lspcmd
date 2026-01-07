@@ -23,7 +23,7 @@ pub struct LMDBCache {
 
 impl LMDBCache {
     pub fn new(path: &Path, max_bytes: u64) -> Result<Self, CacheError> {
-        std::fs::create_dir_all(path.parent().unwrap_or(Path::new(".")))?;
+        std::fs::create_dir_all(path)?;
 
         let env = unsafe {
             EnvOpenOptions::new()
