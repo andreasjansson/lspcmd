@@ -96,7 +96,7 @@ impl LMDBCache {
     }
 
     pub fn close(self) {
-        drop(self.db);
+        let _ = self.db;
         drop(self.env);
     }
 
