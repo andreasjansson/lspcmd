@@ -20,7 +20,7 @@ pub async fn handle_grep(ctx: &HandlerContext, params: Value) -> Result<Value, S
     let case_sensitive = params.get("case_sensitive")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
-    let include_docs = params.get("include_docs")
+    let _include_docs = params.get("include_docs")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
     let paths: Option<Vec<PathBuf>> = params.get("paths")
