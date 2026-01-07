@@ -296,8 +296,11 @@ fn format_symbols(symbols: &[SymbolInfo]) -> String {
     for sym in symbols {
         let location = format!("{}:{}", sym.path, sym.line);
         let mut parts = vec![location, format!("[{}]", sym.kind), sym.name.clone()];
+        // Don't show empty parentheses - some LSP servers return "()" as detail
         if let Some(detail) = &sym.detail {
-            parts.push(format!("({})", detail));
+            if !detail.is_empty() && detail != "()" {
+                parts.push(format!("({})", detail));
+            }
         }
         if let Some(container) = &sym.container {
             parts.push(format!("in {}", container));
