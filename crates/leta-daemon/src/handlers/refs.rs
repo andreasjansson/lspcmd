@@ -116,7 +116,10 @@ pub async fn handle_implementations(
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
 
-    if !client.supports_implementation().await {
+    let supports = client.supports_implementation().await;
+    tracing::debug!("handle_implementations: server={} supports_implementation={}", workspace.server_name(), supports);
+    
+    if !supports {
         return Err(format!(
             "Server '{}' does not support implementations (may require a license)",
             workspace.server_name()
