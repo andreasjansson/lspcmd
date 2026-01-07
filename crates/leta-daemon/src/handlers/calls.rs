@@ -265,7 +265,7 @@ async fn collect_outgoing_calls(
         let mut node = call_hierarchy_item_to_node(call_item, workspace_root);
         
         let children = Box::pin(collect_outgoing_calls(
-            client,
+            client.clone(),
             call_item,
             workspace_root,
             current_depth + 1,
