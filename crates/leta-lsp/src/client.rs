@@ -241,18 +241,22 @@ impl LspClient {
         self.pending_requests.insert(id, tx);
 
         let encoded = encode_message(&request);
-        debug!("LSP REQUEST [{}] {}", id, method);
+        debug!("LSP REQUEST [{}] {} - acquiring stdin lock", id, method);
 
         {
             let mut stdin = self.stdin.lock().await;
+            debug!("LSP REQUEST [{}] {} - got stdin lock, writing", id, method);
             stdin.write_all(&encoded).await?;
             stdin.flush().await?;
+            debug!("LSP REQUEST [{}] {} - written, releasing lock", id, method);
         }
 
+        debug!("LSP REQUEST [{}] {} - waiting for response (timeout={}s)", id, method, REQUEST_TIMEOUT_SECS);
         let result = tokio::time::timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS), rx)
             .await
             .map_err(|_| {
                 self.pending_requests.remove(&id);
+                warn!("LSP REQUEST [{}] {} - TIMEOUT after {}s", id, method, REQUEST_TIMEOUT_SECS);
                 LspProtocolError::Timeout(format!(
                     "Request {} timed out after {}s",
                     method, REQUEST_TIMEOUT_SECS
