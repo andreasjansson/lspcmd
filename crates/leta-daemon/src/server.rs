@@ -88,16 +88,20 @@ impl DaemonServer {
     }
 
     async fn handle_client(&self, mut stream: UnixStream) -> anyhow::Result<()> {
+        tracing::debug!("handle_client: reading request data");
         let mut data = Vec::new();
         stream.read_to_end(&mut data).await?;
+        tracing::debug!("handle_client: read {} bytes", data.len());
 
         if data.is_empty() {
+            tracing::debug!("handle_client: empty request, returning");
             return Ok(());
         }
 
         let request: Value = serde_json::from_slice(&data)?;
         let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(json!({}));
+        tracing::debug!("handle_client: method={}", method);
 
         let ctx = HandlerContext::new(
             Arc::clone(&self.session),
