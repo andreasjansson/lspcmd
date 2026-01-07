@@ -4,8 +4,8 @@ grep kind filter function
 leta grep "." --kind function src/main.ts -C
 ---
 src/main.ts:6 [Function] createSampleUser
-src/main.ts:55 [Function] main
-src/main.ts:75 [Function] names.forEach() callback in main
 src/main.ts:13 [Function] processUsers
 src/main.ts:14 [Function] map() callback in processUsers
 src/main.ts:20 [Function] validateEmail
+src/main.ts:55 [Function] main
+src/main.ts:75 [Function] names.forEach() callback in main
