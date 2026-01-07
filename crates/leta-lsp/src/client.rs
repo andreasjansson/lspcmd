@@ -8,11 +8,11 @@ use std::time::Duration;
 use dashmap::DashMap;
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializeResult, InitializedParams,
-    NumberOrString, ProgressParams, ProgressParamsValue, ServerCapabilities, 
-    Uri, WorkDoneProgress, WorkspaceFolder,
+    NumberOrString, ProgressParams, ServerCapabilities, Uri, WorkDoneProgress,
+    WorkspaceFolder,
 };
-use serde::Deserialize;
-use serde_json::{json, Value};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use tokio::sync::{oneshot, Mutex, RwLock};
@@ -20,6 +20,53 @@ use tracing::{debug, error, info, warn};
 
 use crate::capabilities::get_client_capabilities;
 use crate::protocol::{encode_message, read_message, LspProtocolError, LspResponseError};
+
+#[derive(Debug, Clone, Serialize)]
+struct JsonRpcRequest<P> {
+    jsonrpc: &'static str,
+    id: u64,
+    method: &'static str,
+    params: P,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct JsonRpcNotification<P> {
+    jsonrpc: &'static str,
+    method: &'static str,
+    params: P,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct JsonRpcResponse {
+    jsonrpc: &'static str,
+    id: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    result: Option<Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    error: Option<JsonRpcError>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+struct JsonRpcError {
+    code: i32,
+    message: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct IncomingMessage {
+    id: Option<Value>,
+    method: Option<String>,
+    result: Option<Value>,
+    error: Option<IncomingError>,
+    params: Option<Value>,
+}
+
+#[derive(Debug, Deserialize)]
+struct IncomingError {
+    code: i64,
+    message: String,
+    data: Option<Value>,
+}
 
 #[derive(Debug, Deserialize)]
 struct LanguageStatusParams {
