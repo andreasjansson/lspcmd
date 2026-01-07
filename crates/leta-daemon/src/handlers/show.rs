@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use leta_fs::{path_to_uri, read_file_content};
-use leta_lsp::{DocumentSymbol, DocumentSymbolResponse, SymbolInformation};
+use leta_lsp::lsp_types::{DocumentSymbol, DocumentSymbolResponse, SymbolInformation};
 use serde_json::{json, Value};
 
 use super::{relative_path, HandlerContext};
