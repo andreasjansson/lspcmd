@@ -1,9 +1,0 @@
-TraceValue
-
-A TraceValue represents the level of verbosity with which the server
-systematically reports its execution trace using $/logTrace notifications. The
-initial trace value is set by the client at initialization and can be modified later
-using the $/setTrace notification.
-
-export type TraceValue = 'off' | 'messages' | 'verbose';
-
