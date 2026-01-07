@@ -395,6 +395,8 @@ async fn collect_all_symbols(ctx: &HandlerContext, workspace_root: &PathBuf) -> 
             Err(_) => continue,
         };
 
+        workspace.wait_for_ready(30).await;
+
         let client = match workspace.client().await {
             Some(c) => c,
             None => continue,
