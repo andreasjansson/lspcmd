@@ -225,6 +225,14 @@ pub async fn handle_supertypes(
     
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
+
+    if !client.supports_type_hierarchy().await {
+        return Err(format!(
+            "textDocument/prepareTypeHierarchy is not supported by {}",
+            workspace.server_name()
+        ));
+    }
+
     let uri = leta_fs::path_to_uri(&file_path);
 
     let prepare_response: Option<Vec<TypeHierarchyItem>> = client
@@ -242,7 +250,7 @@ pub async fn handle_supertypes(
             },
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{}", e))?;
 
     let items = match prepare_response {
         Some(items) if !items.is_empty() => items,
@@ -259,7 +267,7 @@ pub async fn handle_supertypes(
             },
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{}", e))?;
 
     let locations = supertypes_response
         .map(|items| format_type_hierarchy_items(&items, &workspace_root, params.context))
