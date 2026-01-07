@@ -14,10 +14,10 @@ members = [
 
 [workspace.package]
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 authors = ["Anthropic"]
 license = "MIT"
-rust-version = "1.85"
+rust-version = "1.75"
 
 [workspace.dependencies]
 # Async runtime
