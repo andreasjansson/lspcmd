@@ -257,18 +257,19 @@ async fn ensure_daemon_running() -> Result<()> {
 async fn send_request(method: &str, params: Value) -> Result<Value> {
     let socket_path = get_socket_path();
 
-    let mut stream = UnixStream::connect(&socket_path).await?;
+    let stream = UnixStream::connect(&socket_path).await?;
+    let (mut read_half, mut write_half) = stream.into_split();
 
     let request = json!({
         "method": method,
         "params": params,
     });
 
-    stream.write_all(serde_json::to_vec(&request)?.as_slice()).await?;
-    stream.shutdown().await?;
+    write_half.write_all(serde_json::to_vec(&request)?.as_slice()).await?;
+    write_half.shutdown().await?;
 
     let mut response_data = Vec::new();
-    stream.read_to_end(&mut response_data).await?;
+    read_half.read_to_end(&mut response_data).await?;
 
     let response: Value = serde_json::from_slice(&response_data)?;
 
@@ -323,7 +324,7 @@ async fn resolve_symbol(symbol: &str, workspace_root: &Path) -> Result<ResolveSy
                 let container = m.container.as_ref().map(|c| format!(" in {}", c)).unwrap_or_default();
                 let kind = format!("[{}] ", m.kind);
                 let detail = m.detail.as_ref().map(|d| format!(" ({})", d)).unwrap_or_default();
-                let ref_str = m.r#ref.as_deref().unwrap_or("");
+                let ref_str = m.reference.as_deref().unwrap_or("");
                 msg.push_str(&format!("\n  {}", ref_str));
                 msg.push_str(&format!("\n    {}:{} {}{}{}{}", m.path, m.line, kind, m.name, detail, container));
             }
