@@ -101,7 +101,7 @@ pub async fn handle_files(
 
         let lang = get_language_id(path);
         if lang != "plaintext" && get_server_for_language(&lang, None).is_some() {
-            source_files_by_lang.entry(lang).or_default().push(path.to_path_buf());
+            source_files_by_lang.entry(lang.to_string()).or_default().push(path.to_path_buf());
         }
 
         total_bytes += bytes;
@@ -146,6 +146,8 @@ pub async fn handle_files(
                     file_info.symbols = count_symbols(&symbols);
                 }
             }
+
+            workspace.close_document(&file_path).await;
         }
     }
 
