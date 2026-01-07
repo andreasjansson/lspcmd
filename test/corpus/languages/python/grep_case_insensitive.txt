@@ -5,13 +5,13 @@ leta grep "user" main.py
 ---
 main.py:27 [Class] User
 main.py:81 [Class] UserRepository
+main.py:88 [Variable] _users in UserRepository
 main.py:90 [Method] add_user in UserRepository
 main.py:90 [Variable] user in add_user
 main.py:94 [Method] get_user in UserRepository
 main.py:98 [Method] delete_user in UserRepository
 main.py:105 [Method] list_users in UserRepository
 main.py:109 [Method] count_users in UserRepository
-main.py:88 [Variable] _users in UserRepository
 main.py:114 [Function] create_sample_user
 main.py:119 [Function] process_users
 main.py:131 [Variable] user in main
