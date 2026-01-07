@@ -25,7 +25,7 @@ pub async fn handle_references(
         .map_err(|e| e.to_string())?;
     
     workspace.ensure_document_open(&file_path).await?;
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
 
     let response: Option<Vec<Location>> = client
@@ -67,7 +67,15 @@ pub async fn handle_declaration(
         .map_err(|e| e.to_string())?;
     
     workspace.ensure_document_open(&file_path).await?;
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
+
+    if !client.supports_declaration().await {
+        return Err(format!(
+            "textDocument/declaration is not supported by {}",
+            workspace.server_name()
+        ));
+    }
+
     let uri = leta_fs::path_to_uri(&file_path);
 
     let response: Option<GotoDefinitionResponse> = client
@@ -86,7 +94,7 @@ pub async fn handle_declaration(
             },
         )
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| format!("{}", e))?;
 
     let locations = response
         .map(|resp| definition_response_to_locations(&resp, &workspace_root, params.context))
@@ -106,7 +114,7 @@ pub async fn handle_implementations(
         .map_err(|e| e.to_string())?;
     
     workspace.ensure_document_open(&file_path).await?;
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
 
     let response: Option<GotoDefinitionResponse> = client
@@ -145,7 +153,7 @@ pub async fn handle_subtypes(
         .map_err(|e| e.to_string())?;
     
     workspace.ensure_document_open(&file_path).await?;
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
 
     let prepare_response: Option<Vec<TypeHierarchyItem>> = client
@@ -200,7 +208,7 @@ pub async fn handle_supertypes(
         .map_err(|e| e.to_string())?;
     
     workspace.ensure_document_open(&file_path).await?;
-    let client = workspace.client().ok_or("No LSP client")?;
+    let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
 
     let prepare_response: Option<Vec<TypeHierarchyItem>> = client
