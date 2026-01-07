@@ -197,3 +197,69 @@ pub fn format_type_hierarchy_items(
     result.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
     result
 }
+
+pub fn format_type_hierarchy_items_from_json(
+    items: &[serde_json::Value],
+    workspace_root: &Path,
+    context: u32,
+) -> Vec<LocationInfo> {
+    let mut result = Vec::new();
+    let mut seen = std::collections::HashSet::new();
+
+    for item in items {
+        let uri = match item.get("uri").and_then(|v| v.as_str()) {
+            Some(u) => u,
+            None => continue,
+        };
+        let name = match item.get("name").and_then(|v| v.as_str()) {
+            Some(n) => n.to_string(),
+            None => continue,
+        };
+        let kind_num = item.get("kind").and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let selection_range = match item.get("selectionRange") {
+            Some(r) => r,
+            None => continue,
+        };
+        let start_line = selection_range
+            .get("start")
+            .and_then(|s| s.get("line"))
+            .and_then(|l| l.as_u64())
+            .unwrap_or(0) as u32;
+        let start_char = selection_range
+            .get("start")
+            .and_then(|s| s.get("character"))
+            .and_then(|c| c.as_u64())
+            .unwrap_or(0) as u32;
+        let detail = item.get("detail").and_then(|v| v.as_str()).map(String::from);
+
+        let file_path = uri_to_path(uri);
+        let rel_path = relative_path(&file_path, workspace_root);
+        let line = start_line + 1;
+
+        let key = (rel_path.clone(), line);
+        if seen.contains(&key) {
+            continue;
+        }
+        seen.insert(key);
+
+        let lsp_kind = leta_lsp::lsp_types::SymbolKind::from(kind_num as leta_lsp::lsp_types::SymbolKind);
+        let mut info = LocationInfo::new(rel_path, line);
+        info.column = start_char;
+        info.name = Some(name);
+        info.kind = Some(SymbolKind::from_lsp(lsp_kind).to_string());
+        info.detail = detail;
+
+        if context > 0 && file_path.exists() {
+            if let Ok(content) = read_file_content(&file_path) {
+                let (lines, start, _) = get_lines_around(&content, start_line as usize, context as usize);
+                info.context_lines = Some(lines);
+                info.context_start = Some(start as u32 + 1);
+            }
+        }
+
+        result.push(info);
+    }
+
+    result.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
+    result
+}
