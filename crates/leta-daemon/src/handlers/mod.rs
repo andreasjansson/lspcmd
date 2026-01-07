@@ -48,6 +48,26 @@ pub fn relative_path(path: &Path, workspace_root: &Path) -> String {
         .unwrap_or_else(|_| path.to_string_lossy().to_string())
 }
 
+pub fn find_source_files_with_extension(workspace_root: &Path, extension: &str) -> Vec<std::path::PathBuf> {
+    let mut files = Vec::new();
+    let walker = ignore::WalkBuilder::new(workspace_root)
+        .hidden(true)
+        .git_ignore(true)
+        .build();
+    
+    for entry in walker.flatten() {
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                if ext == extension {
+                    files.push(path.to_path_buf());
+                }
+            }
+        }
+    }
+    files
+}
+
 pub fn flatten_document_symbols(
     symbols: &DocumentSymbolResponse,
     file_path: &str,
