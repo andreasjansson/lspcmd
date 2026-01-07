@@ -80,6 +80,13 @@ impl LspClient {
             reader_client.read_loop(stdout).await;
         });
 
+        if let Some(stderr) = stderr {
+            let name = server_name.to_string();
+            tokio::spawn(async move {
+                drain_stderr(stderr, &name).await;
+            });
+        }
+
         client.initialize(workspace_root, &workspace_uri, init_options).await?;
 
         Ok(client)
