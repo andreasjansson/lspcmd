@@ -21,6 +21,22 @@ use crate::protocol::{encode_message, read_message, LspProtocolError, LspRespons
 
 const REQUEST_TIMEOUT_SECS: u64 = 30;
 
+async fn drain_stderr(stderr: ChildStderr, server_name: &str) {
+    let mut reader = BufReader::new(stderr);
+    let mut line = String::new();
+    
+    loop {
+        line.clear();
+        match reader.read_line(&mut line).await {
+            Ok(0) => break,
+            Ok(_) => {
+                debug!("[{}] stderr: {}", server_name, line.trim_end());
+            }
+            Err(_) => break,
+        }
+    }
+}
+
 pub struct LspClient {
     process: Child,
     stdin: Mutex<ChildStdin>,
