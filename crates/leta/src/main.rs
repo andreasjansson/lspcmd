@@ -208,6 +208,7 @@ async fn main() -> Result<()> {
         Commands::Daemon { command } => handle_daemon_command(command).await,
         Commands::Workspace { command } => handle_workspace_command(command).await,
         Commands::Config => handle_config(),
+        Commands::HelpAll => handle_help_all(),
         _ => {
             ensure_daemon_running().await?;
             let config = Config::load()?;
@@ -250,6 +251,34 @@ async fn main() -> Result<()> {
             }
         }
     }
+}
+
+fn handle_help_all() -> Result<()> {
+    use clap::CommandFactory;
+    
+    let mut cmd = Cli::command();
+    
+    // Print main help
+    cmd.write_long_help(&mut std::io::stdout())?;
+    println!("\n");
+    
+    // Print help for each subcommand
+    let subcommands: Vec<_> = cmd.get_subcommands().map(|c| c.get_name().to_string()).collect();
+    for name in subcommands {
+        if name == "help-all" || name == "help" {
+            continue;
+        }
+        let mut subcmd = Cli::command();
+        if let Some(sub) = subcmd.find_subcommand_mut(&name) {
+            println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            println!("leta {}", name);
+            println!("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+            sub.write_long_help(&mut std::io::stdout())?;
+            println!("\n");
+        }
+    }
+    
+    Ok(())
 }
 
 async fn ensure_daemon_running() -> Result<()> {
