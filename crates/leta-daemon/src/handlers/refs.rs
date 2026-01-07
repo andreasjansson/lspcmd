@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use leta_fs::path_to_uri;
-use leta_lsp::{Location, TypeHierarchyItem};
+use leta_lsp::lsp_types::{Location, TypeHierarchyItem};
 use serde_json::{json, Value};
 
 use super::{format_locations, format_type_hierarchy_items, HandlerContext};
