@@ -1,25 +1,31 @@
 use std::sync::Arc;
 
-use leta_cache::LMDBCache;
-use leta_config::{get_pid_path, get_socket_path, write_pid, remove_pid, Config};
+use leta_cache::LmdbCache;
+use leta_config::{get_pid_path, get_socket_path, write_pid, remove_pid};
+use leta_types::*;
 use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::{UnixListener, UnixStream};
 use tokio::sync::broadcast;
 use tracing::{error, info};
 
-use crate::handlers::{HandlerContext, handle_request};
+use crate::handlers::{
+    HandlerContext, handle_grep, handle_show, handle_references, handle_declaration,
+    handle_implementations, handle_subtypes, handle_supertypes, handle_calls,
+    handle_rename, handle_move_file, handle_files, handle_resolve_symbol,
+    handle_describe_session, handle_shutdown, handle_restart_workspace, handle_remove_workspace,
+};
 use crate::session::Session;
 
 pub struct DaemonServer {
     session: Arc<Session>,
-    hover_cache: Arc<LMDBCache>,
-    symbol_cache: Arc<LMDBCache>,
+    hover_cache: Arc<LmdbCache>,
+    symbol_cache: Arc<LmdbCache>,
     shutdown_tx: broadcast::Sender<()>,
 }
 
 impl DaemonServer {
-    pub fn new(config: Config, hover_cache: LMDBCache, symbol_cache: LMDBCache) -> Self {
+    pub fn new(config: Value, hover_cache: LmdbCache, symbol_cache: LmdbCache) -> Self {
         let (shutdown_tx, _) = broadcast::channel(1);
         Self {
             session: Arc::new(Session::new(config)),
@@ -93,19 +99,64 @@ impl DaemonServer {
         let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(json!({}));
 
-        let ctx = HandlerContext {
-            session: Arc::clone(&self.session),
-            hover_cache: Arc::clone(&self.hover_cache),
-            symbol_cache: Arc::clone(&self.symbol_cache),
-            shutdown_tx: self.shutdown_tx.clone(),
-        };
+        let ctx = HandlerContext::new(
+            Arc::clone(&self.session),
+            Arc::clone(&self.hover_cache),
+            Arc::clone(&self.symbol_cache),
+        );
 
-        let response = handle_request(&ctx, method, params).await;
+        let response = self.dispatch(&ctx, method, params).await;
 
         stream.write_all(serde_json::to_vec(&response)?.as_slice()).await?;
         stream.shutdown().await?;
 
         Ok(())
+    }
+
+    async fn dispatch(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
+        match method {
+            "grep" => self.handle::<GrepParams, GrepResult>(ctx, params, handle_grep).await,
+            "show" => self.handle::<ShowParams, _>(ctx, params, handle_show).await,
+            "references" => self.handle::<ReferencesParams, ReferencesResult>(ctx, params, handle_references).await,
+            "declaration" => self.handle::<DeclarationParams, DeclarationResult>(ctx, params, handle_declaration).await,
+            "implementations" => self.handle::<ImplementationsParams, ImplementationsResult>(ctx, params, handle_implementations).await,
+            "subtypes" => self.handle::<SubtypesParams, SubtypesResult>(ctx, params, handle_subtypes).await,
+            "supertypes" => self.handle::<SupertypesParams, SupertypesResult>(ctx, params, handle_supertypes).await,
+            "calls" => self.handle::<CallsParams, CallsResult>(ctx, params, handle_calls).await,
+            "rename" => self.handle::<RenameParams, RenameResult>(ctx, params, handle_rename).await,
+            "move-file" => self.handle::<MoveFileParams, MoveFileResult>(ctx, params, handle_move_file).await,
+            "files" => self.handle::<FilesParams, FilesResult>(ctx, params, handle_files).await,
+            "resolve-symbol" => self.handle::<ResolveSymbolParams, ResolveSymbolResult>(ctx, params, handle_resolve_symbol).await,
+            "describe-session" => self.handle::<DescribeSessionParams, DescribeSessionResult>(ctx, params, handle_describe_session).await,
+            "restart-workspace" => self.handle::<RestartWorkspaceParams, RestartWorkspaceResult>(ctx, params, handle_restart_workspace).await,
+            "remove-workspace" => self.handle::<RemoveWorkspaceParams, RemoveWorkspaceResult>(ctx, params, handle_remove_workspace).await,
+            "shutdown" => {
+                let _ = self.shutdown_tx.send(());
+                json!({"result": {"status": "shutting_down"}})
+            }
+            "raw-lsp-request" => {
+                json!({"error": "raw-lsp-request not yet implemented"})
+            }
+            _ => json!({"error": format!("Unknown method: {}", method)}),
+        }
+    }
+
+    async fn handle<P, R, F, Fut>(&self, ctx: &HandlerContext, params: Value, handler: F) -> Value
+    where
+        P: serde::de::DeserializeOwned,
+        R: serde::Serialize,
+        F: FnOnce(&HandlerContext, P) -> Fut,
+        Fut: std::future::Future<Output = Result<R, String>>,
+    {
+        let typed_params: P = match serde_json::from_value(params) {
+            Ok(p) => p,
+            Err(e) => return json!({"error": format!("Invalid params: {}", e)}),
+        };
+
+        match handler(ctx, typed_params).await {
+            Ok(result) => json!({"result": result}),
+            Err(e) => json!({"error": e}),
+        }
     }
 
     async fn shutdown(&self) {
