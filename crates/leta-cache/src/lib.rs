@@ -86,7 +86,7 @@ impl LMDBCache {
             .unwrap_or(0) as u64;
 
         let info = self.env.info();
-        let current_bytes = info.last_pgno as u64 * 4096;
+        let current_bytes = info.last_page_number as u64 * 4096;
 
         CacheInfo {
             current_bytes,
