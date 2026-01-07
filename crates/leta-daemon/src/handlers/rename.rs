@@ -106,6 +106,24 @@ pub async fn handle_move_file(
         return Err(format!("move-file is not supported by {}", server_name));
     }
 
+    // Open all source files so LSP can compute import updates
+    // This is needed for servers like basedpyright that only update imports
+    // for files they know about
+    let extension = old_path.extension().and_then(|e| e.to_str()).unwrap_or("");
+    let source_files = super::find_source_files_with_extension(&workspace_root, extension);
+    let mut opened_for_indexing = Vec::new();
+    for file_path in source_files {
+        if file_path != old_path && !workspace.is_document_open(&file_path).await {
+            workspace.ensure_document_open(&file_path).await?;
+            opened_for_indexing.push(file_path);
+        }
+    }
+    
+    // Wait for LSP to index the opened files
+    if !opened_for_indexing.is_empty() {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    }
+
     let old_uri = leta_fs::path_to_uri(&old_path);
     let new_uri = leta_fs::path_to_uri(&new_path);
 
@@ -122,6 +140,11 @@ pub async fn handle_move_file(
         .await
         .ok()
         .flatten();
+    
+    // Close the documents we opened for indexing
+    for file_path in opened_for_indexing {
+        let _ = workspace.close_document(&file_path).await;
+    }
 
     let mut files_changed = Vec::new();
     let mut file_moved_by_edit = false;
