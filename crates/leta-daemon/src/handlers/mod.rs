@@ -7,8 +7,7 @@ mod files;
 mod resolve;
 mod session;
 
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync::Arc;
 
 use leta_fs::{get_lines_around, read_file_content, uri_to_path};
@@ -22,7 +21,7 @@ pub use calls::handle_calls;
 pub use rename::{handle_rename, handle_move_file};
 pub use files::handle_files;
 pub use resolve::handle_resolve_symbol;
-pub use session::{handle_describe_session, handle_shutdown, handle_restart_workspace, handle_remove_workspace};
+pub use session::{handle_describe_session, handle_restart_workspace, handle_remove_workspace};
 
 use crate::session::Session;
 use leta_cache::LmdbCache;
