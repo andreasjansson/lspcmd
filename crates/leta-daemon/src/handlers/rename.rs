@@ -141,6 +141,8 @@ pub async fn handle_move_file(
         .ok()
         .flatten();
     
+    tracing::info!("workspace/willRenameFiles response: {:?}", response);
+    
     // Close the documents we opened for indexing
     for file_path in opened_for_indexing {
         let _ = workspace.close_document(&file_path).await;
