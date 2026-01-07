@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use leta_fs::uri_to_path;
 use leta_lsp::lsp_types::{
     DocumentChanges, FileRename, Position, RenameFilesParams, RenameParams as LspRenameParams,
-    TextDocumentEdit, TextDocumentIdentifier, TextEdit, WorkspaceEdit,
+    TextDocumentIdentifier, TextEdit, WorkspaceEdit,
 };
 use leta_types::{MoveFileParams, MoveFileResult, RenameParams, RenameResult};
 
