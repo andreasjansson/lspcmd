@@ -1,0 +1,28 @@
+[package]
+name = "leta-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "leta-daemon"
+path = "src/main.rs"
+
+[dependencies]
+leta-types = { workspace = true }
+leta-config = { workspace = true }
+leta-lsp = { workspace = true }
+leta-cache = { workspace = true }
+leta-servers = { workspace = true }
+leta-fs = { workspace = true }
+
+tokio = { workspace = true }
+futures = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+regex = { workspace = true }
+globset = { workspace = true }
+walkdir = { workspace = true }
