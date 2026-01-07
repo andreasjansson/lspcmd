@@ -59,11 +59,6 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
         }
     }
 
-    // Sort by path and line for deterministic output
-    filtered.sort_by(|a, b| {
-        (&a.path, a.line).cmp(&(&b.path, b.line))
-    });
-
     let warning = if filtered.is_empty() && params.pattern.contains(r"\|") {
         Some("No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')".to_string())
     } else {
