@@ -234,7 +234,7 @@ impl Session {
         workspace_root: &Path,
     ) -> Result<WorkspaceHandle, String> {
         let config = self.config.read().await;
-        let server_config = get_server_for_file(file_path, Some(&*config))
+        let server_config = get_server_for_file(file_path, Some(&config))
             .ok_or_else(|| format!("No language server found for {}", file_path.display()))?;
 
         self.get_or_create_workspace_for_server(workspace_root, server_config).await
@@ -246,7 +246,7 @@ impl Session {
         workspace_root: &Path,
     ) -> Result<WorkspaceHandle, String> {
         let config = self.config.read().await;
-        let server_config = get_server_for_language(language_id, Some(&*config))
+        let server_config = get_server_for_language(language_id, Some(&config))
             .ok_or_else(|| format!("No language server found for language {}", language_id))?;
 
         self.get_or_create_workspace_for_server(workspace_root, server_config).await
