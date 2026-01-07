@@ -14,6 +14,10 @@ pub enum LspProtocolError {
     MissingContentLength,
     #[error("Connection closed")]
     ConnectionClosed,
+    #[error("Request timeout: {0}")]
+    Timeout(String),
+    #[error("LSP response error: {0}")]
+    Response(LspResponseError),
 }
 
 #[derive(Error, Debug, Clone)]
