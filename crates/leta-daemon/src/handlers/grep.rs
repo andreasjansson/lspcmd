@@ -119,11 +119,11 @@ async fn collect_all_workspace_symbols(
 
     let config = ctx.session.config().await;
     let excluded_languages: HashSet<String> = config
-        .get("workspaces")
-        .and_then(|w| w.get("excluded_languages"))
-        .and_then(|e| e.as_array())
-        .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
-        .unwrap_or_default();
+        .workspaces
+        .excluded_languages
+        .iter()
+        .cloned()
+        .collect();
 
     let mut files_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
