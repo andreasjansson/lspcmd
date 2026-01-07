@@ -237,7 +237,8 @@ pub async fn handle_supertypes(
 
     let uri = leta_fs::path_to_uri(&file_path);
 
-    let prepare_response: Option<Vec<TypeHierarchyItem>> = client
+    // Use serde_json::Value to work around lsp-types bug with tags field
+    let prepare_response: Option<Vec<serde_json::Value>> = client
         .send_request(
             "textDocument/prepareTypeHierarchy",
             TypeHierarchyPrepareParams {
@@ -259,20 +260,17 @@ pub async fn handle_supertypes(
         _ => return Ok(SupertypesResult { locations: vec![] }),
     };
 
-    let supertypes_response: Option<Vec<TypeHierarchyItem>> = client
+    // Send supertypes request with just the item field
+    let supertypes_response: Option<Vec<serde_json::Value>> = client
         .send_request(
             "typeHierarchy/supertypes",
-            TypeHierarchySupertypesParams {
-                item: items[0].clone(),
-                work_done_progress_params: Default::default(),
-                partial_result_params: Default::default(),
-            },
+            serde_json::json!({ "item": items[0] }),
         )
         .await
         .map_err(|e| format!("{}", e))?;
 
     let locations = supertypes_response
-        .map(|items| format_type_hierarchy_items(&items, &workspace_root, params.context))
+        .map(|items| format_type_hierarchy_items_from_json(&items, &workspace_root, params.context))
         .unwrap_or_default();
 
     Ok(SupertypesResult { locations })
