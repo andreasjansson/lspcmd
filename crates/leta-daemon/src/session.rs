@@ -7,9 +7,10 @@ use leta_fs::{get_language_id, path_to_uri, read_file_content};
 use leta_lsp::LspClient;
 use leta_servers::{get_server_env, get_server_for_file, get_server_for_language, ServerConfig};
 use tokio::sync::RwLock;
-use tracing::{info, warn};
+use tracing::info;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct OpenDocument {
     pub uri: String,
     pub version: i32,
