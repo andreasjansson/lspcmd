@@ -305,11 +305,11 @@ impl Session {
         let mut result = Vec::new();
 
         for (root, servers) in workspaces.iter() {
-            for (name, ws) in servers.iter() {
+            for (_, ws) in servers.iter() {
                 let server_pid = ws.client.as_ref().and_then(|c| c.pid());
                 result.push((
                     root.to_string_lossy().to_string(),
-                    name.clone(),
+                    ws.server_name().to_string(),
                     server_pid,
                     ws.open_document_uris(),
                 ));
