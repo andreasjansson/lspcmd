@@ -84,7 +84,7 @@ impl LspClient {
         Ok(client)
     }
 
-    async fn initialize(&self, workspace_uri: &Url, init_options: Option<Value>) -> Result<(), LspProtocolError> {
+    async fn initialize(&self, workspace_uri: &Uri, init_options: Option<Value>) -> Result<(), LspProtocolError> {
         let caps: ClientCapabilities = serde_json::from_value(get_client_capabilities())
             .map_err(|e| LspProtocolError::Json(e))?;
 
