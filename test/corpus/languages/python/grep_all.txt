@@ -17,15 +17,16 @@ main.py:40 [Method] is_adult in User
 main.py:44 [Method] display_name in User
 main.py:49 [Class] MemoryStorage
 main.py:52 [Method] __init__ in MemoryStorage
+main.py:53 [Variable] _data in MemoryStorage
 main.py:55 [Method] save in MemoryStorage
 main.py:55 [Variable] key in save
 main.py:55 [Variable] value in save
 main.py:58 [Method] load in MemoryStorage
 main.py:58 [Variable] key in load
-main.py:53 [Variable] _data in MemoryStorage
 main.py:62 [Class] FileStorage
 main.py:65 [Method] __init__ in FileStorage
 main.py:65 [Variable] base_path in __init__
+main.py:66 [Variable] _base_path in FileStorage
 main.py:68 [Method] save in FileStorage
 main.py:68 [Variable] key in save
 main.py:68 [Variable] value in save
@@ -35,9 +36,9 @@ main.py:73 [Method] load in FileStorage
 main.py:73 [Variable] key in load
 main.py:74 [Variable] path in load
 main.py:76 [Variable] f in load
-main.py:66 [Variable] _base_path in FileStorage
 main.py:81 [Class] UserRepository
 main.py:87 [Method] __init__ in UserRepository
+main.py:88 [Variable] _users in UserRepository
 main.py:90 [Method] add_user in UserRepository
 main.py:90 [Variable] user in add_user
 main.py:94 [Method] get_user in UserRepository
@@ -46,7 +47,6 @@ main.py:98 [Method] delete_user in UserRepository
 main.py:98 [Variable] email in delete_user
 main.py:105 [Method] list_users in UserRepository
 main.py:109 [Method] count_users in UserRepository
-main.py:88 [Variable] _users in UserRepository
 main.py:114 [Function] create_sample_user
 main.py:119 [Function] process_users
 main.py:119 [Variable] repo in process_users
