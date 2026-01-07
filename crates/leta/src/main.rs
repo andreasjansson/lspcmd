@@ -310,7 +310,9 @@ async fn ensure_daemon_running() -> Result<()> {
 async fn send_request(method: &str, params: Value) -> Result<Value> {
     let socket_path = get_socket_path();
 
+    eprintln!("[DEBUG CLI] send_request: {} connecting to {:?}", method, socket_path);
     let stream = UnixStream::connect(&socket_path).await?;
+    eprintln!("[DEBUG CLI] send_request: {} connected", method);
     let (mut read_half, mut write_half) = stream.into_split();
 
     let request = json!({
@@ -318,11 +320,15 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
         "params": params,
     });
 
+    eprintln!("[DEBUG CLI] send_request: {} writing request", method);
     write_half.write_all(serde_json::to_vec(&request)?.as_slice()).await?;
+    eprintln!("[DEBUG CLI] send_request: {} shutting down write", method);
     write_half.shutdown().await?;
+    eprintln!("[DEBUG CLI] send_request: {} reading response", method);
 
     let mut response_data = Vec::new();
     read_half.read_to_end(&mut response_data).await?;
+    eprintln!("[DEBUG CLI] send_request: {} got {} bytes", method, response_data.len());
 
     let response: Value = serde_json::from_slice(&response_data)?;
 
