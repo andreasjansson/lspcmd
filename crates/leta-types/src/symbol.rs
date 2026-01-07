@@ -32,34 +32,34 @@ pub enum SymbolKind {
 }
 
 impl SymbolKind {
-    pub fn from_lsp_kind(kind: u32) -> Self {
+    pub fn from_lsp(kind: lsp_types::SymbolKind) -> Self {
         match kind {
-            1 => SymbolKind::File,
-            2 => SymbolKind::Module,
-            3 => SymbolKind::Namespace,
-            4 => SymbolKind::Package,
-            5 => SymbolKind::Class,
-            6 => SymbolKind::Method,
-            7 => SymbolKind::Property,
-            8 => SymbolKind::Field,
-            9 => SymbolKind::Constructor,
-            10 => SymbolKind::Enum,
-            11 => SymbolKind::Interface,
-            12 => SymbolKind::Function,
-            13 => SymbolKind::Variable,
-            14 => SymbolKind::Constant,
-            15 => SymbolKind::String,
-            16 => SymbolKind::Number,
-            17 => SymbolKind::Boolean,
-            18 => SymbolKind::Array,
-            19 => SymbolKind::Object,
-            20 => SymbolKind::Key,
-            21 => SymbolKind::Null,
-            22 => SymbolKind::EnumMember,
-            23 => SymbolKind::Struct,
-            24 => SymbolKind::Event,
-            25 => SymbolKind::Operator,
-            26 => SymbolKind::TypeParameter,
+            lsp_types::SymbolKind::FILE => SymbolKind::File,
+            lsp_types::SymbolKind::MODULE => SymbolKind::Module,
+            lsp_types::SymbolKind::NAMESPACE => SymbolKind::Namespace,
+            lsp_types::SymbolKind::PACKAGE => SymbolKind::Package,
+            lsp_types::SymbolKind::CLASS => SymbolKind::Class,
+            lsp_types::SymbolKind::METHOD => SymbolKind::Method,
+            lsp_types::SymbolKind::PROPERTY => SymbolKind::Property,
+            lsp_types::SymbolKind::FIELD => SymbolKind::Field,
+            lsp_types::SymbolKind::CONSTRUCTOR => SymbolKind::Constructor,
+            lsp_types::SymbolKind::ENUM => SymbolKind::Enum,
+            lsp_types::SymbolKind::INTERFACE => SymbolKind::Interface,
+            lsp_types::SymbolKind::FUNCTION => SymbolKind::Function,
+            lsp_types::SymbolKind::VARIABLE => SymbolKind::Variable,
+            lsp_types::SymbolKind::CONSTANT => SymbolKind::Constant,
+            lsp_types::SymbolKind::STRING => SymbolKind::String,
+            lsp_types::SymbolKind::NUMBER => SymbolKind::Number,
+            lsp_types::SymbolKind::BOOLEAN => SymbolKind::Boolean,
+            lsp_types::SymbolKind::ARRAY => SymbolKind::Array,
+            lsp_types::SymbolKind::OBJECT => SymbolKind::Object,
+            lsp_types::SymbolKind::KEY => SymbolKind::Key,
+            lsp_types::SymbolKind::NULL => SymbolKind::Null,
+            lsp_types::SymbolKind::ENUM_MEMBER => SymbolKind::EnumMember,
+            lsp_types::SymbolKind::STRUCT => SymbolKind::Struct,
+            lsp_types::SymbolKind::EVENT => SymbolKind::Event,
+            lsp_types::SymbolKind::OPERATOR => SymbolKind::Operator,
+            lsp_types::SymbolKind::TYPE_PARAMETER => SymbolKind::TypeParameter,
             _ => SymbolKind::Variable,
         }
     }
@@ -102,6 +102,42 @@ impl std::fmt::Display for SymbolKind {
     }
 }
 
+impl std::str::FromStr for SymbolKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "file" => Ok(SymbolKind::File),
+            "module" => Ok(SymbolKind::Module),
+            "namespace" => Ok(SymbolKind::Namespace),
+            "package" => Ok(SymbolKind::Package),
+            "class" => Ok(SymbolKind::Class),
+            "method" => Ok(SymbolKind::Method),
+            "property" => Ok(SymbolKind::Property),
+            "field" => Ok(SymbolKind::Field),
+            "constructor" => Ok(SymbolKind::Constructor),
+            "enum" => Ok(SymbolKind::Enum),
+            "interface" => Ok(SymbolKind::Interface),
+            "function" => Ok(SymbolKind::Function),
+            "variable" => Ok(SymbolKind::Variable),
+            "constant" => Ok(SymbolKind::Constant),
+            "string" => Ok(SymbolKind::String),
+            "number" => Ok(SymbolKind::Number),
+            "boolean" => Ok(SymbolKind::Boolean),
+            "array" => Ok(SymbolKind::Array),
+            "object" => Ok(SymbolKind::Object),
+            "key" => Ok(SymbolKind::Key),
+            "null" => Ok(SymbolKind::Null),
+            "enummember" => Ok(SymbolKind::EnumMember),
+            "struct" => Ok(SymbolKind::Struct),
+            "event" => Ok(SymbolKind::Event),
+            "operator" => Ok(SymbolKind::Operator),
+            "typeparameter" => Ok(SymbolKind::TypeParameter),
+            _ => Err(format!("Unknown symbol kind: {}", s)),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SymbolInfo {
     pub name: String,
@@ -120,15 +156,15 @@ pub struct SymbolInfo {
     pub range_start_line: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub range_end_line: Option<u32>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub r#ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none", rename = "ref")]
+    pub reference: Option<String>,
 }
 
 impl SymbolInfo {
     pub fn new(name: String, kind: SymbolKind, path: String, line: u32) -> Self {
         Self {
             name,
-            kind: kind.as_str().to_string(),
+            kind: kind.to_string(),
             path,
             line,
             column: 0,
@@ -137,7 +173,7 @@ impl SymbolInfo {
             documentation: None,
             range_start_line: None,
             range_end_line: None,
-            r#ref: None,
+            reference: None,
         }
     }
 }
