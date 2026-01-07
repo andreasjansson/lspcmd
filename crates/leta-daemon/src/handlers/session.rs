@@ -3,8 +3,7 @@ use std::path::PathBuf;
 
 use leta_types::{
     CacheInfo, DescribeSessionParams, DescribeSessionResult, RemoveWorkspaceParams,
-    RemoveWorkspaceResult, RestartWorkspaceParams, RestartWorkspaceResult, ShutdownParams,
-    ShutdownResult, WorkspaceInfo,
+    RemoveWorkspaceResult, RestartWorkspaceParams, RestartWorkspaceResult, WorkspaceInfo,
 };
 
 use super::HandlerContext;
@@ -43,15 +42,6 @@ pub async fn handle_describe_session(
         daemon_pid: std::process::id(),
         caches,
         workspaces,
-    })
-}
-
-pub async fn handle_shutdown(
-    _ctx: &HandlerContext,
-    _params: ShutdownParams,
-) -> Result<ShutdownResult, String> {
-    Ok(ShutdownResult {
-        status: "shutting_down".to_string(),
     })
 }
 
