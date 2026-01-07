@@ -110,9 +110,12 @@ impl DaemonServer {
         );
 
         let response = self.dispatch(&ctx, method, params).await;
+        tracing::debug!("handle_client: dispatch complete for {}, writing response", method);
 
         stream.write_all(serde_json::to_vec(&response)?.as_slice()).await?;
+        tracing::debug!("handle_client: wrote response for {}, shutting down stream", method);
         stream.shutdown().await?;
+        tracing::debug!("handle_client: done for {}", method);
 
         Ok(())
     }
