@@ -466,10 +466,16 @@ impl LspClient {
                     let quiescent = p.quiescent.unwrap_or(false);
                     let health = p.health.as_deref().unwrap_or("ok");
                     
+                    debug!("Server {} serverStatus: quiescent={}, health={}", self.server_name, quiescent, health);
+                    
                     if quiescent && health != "error" {
                         *self.indexing_done.write().await = true;
                         info!("Server {} is quiescent (ready)", self.server_name);
                     } else {
+                        let was_done = *self.indexing_done.read().await;
+                        if was_done {
+                            info!("Server {} is no longer quiescent (was ready, now busy)", self.server_name);
+                        }
                         *self.indexing_done.write().await = false;
                     }
                 }
