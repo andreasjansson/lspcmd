@@ -159,7 +159,11 @@ impl LspClient {
         self.pending_requests.insert(id, tx);
 
         let encoded = encode_message(&message);
-        debug!("LSP REQUEST [{}] {}", id, method);
+        if method != "initialize" {
+            debug!("LSP REQUEST [{}] {} params={}", id, method, serde_json::to_string(&message.get("params")).unwrap_or_default());
+        } else {
+            debug!("LSP REQUEST [{}] {}", id, method);
+        }
 
         {
             let mut stdin = self.stdin.lock().await;
