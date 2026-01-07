@@ -1,14 +1,56 @@
 use std::collections::HashSet;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use leta_fs::uri_to_path;
 use leta_lsp::lsp_types::{
     DocumentChanges, FileRename, Position, RenameFilesParams, RenameParams as LspRenameParams,
-    TextDocumentIdentifier, TextEdit, WorkspaceEdit,
+    TextDocumentIdentifier, TextEdit, WorkspaceEdit, FileChangeType,
 };
 use leta_types::{MoveFileParams, MoveFileResult, RenameParams, RenameResult};
 
 use super::{relative_path, HandlerContext};
+
+fn get_files_from_workspace_edit(edit: &WorkspaceEdit, workspace_root: &Path) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    
+    if let Some(changes) = &edit.changes {
+        for uri in changes.keys() {
+            files.push(uri_to_path(uri.as_str()));
+        }
+    }
+    
+    if let Some(document_changes) = &edit.document_changes {
+        match document_changes {
+            DocumentChanges::Edits(edits) => {
+                for edit in edits {
+                    files.push(uri_to_path(edit.text_document.uri.as_str()));
+                }
+            }
+            DocumentChanges::Operations(ops) => {
+                for op in ops {
+                    match op {
+                        leta_lsp::lsp_types::DocumentChangeOperation::Edit(edit) => {
+                            files.push(uri_to_path(edit.text_document.uri.as_str()));
+                        }
+                        leta_lsp::lsp_types::DocumentChangeOperation::Op(resource_op) => {
+                            match resource_op {
+                                leta_lsp::lsp_types::ResourceOp::Rename(rename) => {
+                                    files.push(uri_to_path(rename.old_uri.as_str()));
+                                }
+                                leta_lsp::lsp_types::ResourceOp::Delete(delete) => {
+                                    files.push(uri_to_path(delete.uri.as_str()));
+                                }
+                                leta_lsp::lsp_types::ResourceOp::Create(_) => {}
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    files
+}
 
 pub async fn handle_rename(
     ctx: &HandlerContext,
@@ -43,7 +85,39 @@ pub async fn handle_rename(
         .map_err(|e| e.to_string())?;
 
     let edit = response.ok_or("Rename not supported or failed")?;
-    let files_changed = apply_workspace_edit(&edit, &workspace_root)?;
+    
+    // Close ALL documents that will be modified BEFORE applying edits
+    // This is critical for servers that won't reindex files if the document is still open
+    let files_to_modify = get_files_from_workspace_edit(&edit, &workspace_root);
+    tracing::info!("Closing {} documents before rename: {:?}", files_to_modify.len(), files_to_modify);
+    for file_path in &files_to_modify {
+        let _ = workspace.close_document(file_path).await;
+    }
+    
+    let (files_changed, renamed_files) = apply_workspace_edit(&edit, &workspace_root)?;
+    
+    // Build list of file changes for didChangeWatchedFiles notification
+    // For modified files, we send DELETE first to remove old index entries,
+    // then CREATE to add new ones
+    let mut file_changes: Vec<(PathBuf, FileChangeType)> = Vec::new();
+    for (old_path, new_path) in &renamed_files {
+        file_changes.push((old_path.clone(), FileChangeType::DELETED));
+        file_changes.push((new_path.clone(), FileChangeType::CREATED));
+    }
+    let renamed_new_paths: HashSet<_> = renamed_files.iter().map(|(_, new)| new.clone()).collect();
+    for rel_path in &files_changed {
+        let abs_path = workspace_root.join(rel_path);
+        if abs_path.exists() && !renamed_new_paths.contains(&abs_path) {
+            file_changes.push((abs_path.clone(), FileChangeType::DELETED));
+            file_changes.push((abs_path, FileChangeType::CREATED));
+        }
+    }
+    
+    // Notify LSP about file changes
+    if !file_changes.is_empty() {
+        tracing::info!("Notifying LSP about {} file changes", file_changes.len());
+        let _ = workspace.notify_files_changed(&file_changes).await;
+    }
 
     // WORKAROUND: Restart ruby-lsp after rename to force a full reindex.
     //
