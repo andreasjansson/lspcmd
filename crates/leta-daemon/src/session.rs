@@ -365,8 +365,8 @@ pub struct WorkspaceHandle<'a> {
 }
 
 impl<'a> WorkspaceHandle<'a> {
-    pub fn client(&self) -> Option<Arc<LspClient>> {
-        let workspaces = futures::executor::block_on(self.session.workspaces.read());
+    pub async fn client(&self) -> Option<Arc<LspClient>> {
+        let workspaces = self.session.workspaces.read().await;
         workspaces
             .get(&self.workspace_root)
             .and_then(|servers| servers.get(&self.server_name))
