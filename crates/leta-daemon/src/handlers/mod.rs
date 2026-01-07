@@ -5,7 +5,7 @@ use std::sync::Arc;
 use globset::Glob;
 use leta_cache::LMDBCache;
 use leta_fs::{get_language_id, path_to_uri, read_file_content, uri_to_path};
-use leta_lsp::{DocumentSymbol, DocumentSymbolResponse, Location, TypeHierarchyItem};
+use leta_lsp::lsp_types::{DocumentSymbol, DocumentSymbolResponse, Location, TypeHierarchyItem};
 use leta_servers::get_server_for_language;
 use leta_types::{SymbolInfo, SymbolKind};
 use serde_json::{json, Value};
