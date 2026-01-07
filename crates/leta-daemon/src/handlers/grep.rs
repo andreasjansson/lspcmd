@@ -57,7 +57,7 @@ pub async fn handle_grep(ctx: &HandlerContext, params: Value) -> Result<Value, S
         symbols.retain(|s| kinds_set.contains(&s.kind.to_lowercase()));
     }
 
-    let mut symbol_values: Vec<Value> = symbols.into_iter().map(|s| {
+    let symbol_values: Vec<Value> = symbols.into_iter().map(|s| {
         let mut obj = json!({
             "name": s.name,
             "kind": s.kind,
