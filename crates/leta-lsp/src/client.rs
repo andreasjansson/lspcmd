@@ -88,14 +88,20 @@ impl LspClient {
         let caps: ClientCapabilities = serde_json::from_value(get_client_capabilities())
             .map_err(|e| LspProtocolError::Json(e))?;
 
+        let workspace_name = workspace_root
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("workspace")
+            .to_string();
+
         let params = InitializeParams {
             process_id: Some(std::process::id()),
             root_uri: Some(workspace_uri.clone()),
-            root_path: Some(workspace_uri.path().to_string()),
+            root_path: Some(workspace_root.display().to_string()),
             capabilities: caps,
             workspace_folders: Some(vec![WorkspaceFolder {
                 uri: workspace_uri.clone(),
-                name: workspace_uri.path().split('/').last().unwrap_or("workspace").to_string(),
+                name: workspace_name,
             }]),
             initialization_options: init_options,
             ..Default::default()
