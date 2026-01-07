@@ -3,7 +3,7 @@ grep kind filter class
 ==================
 leta grep "." --kind class src/user.ts -C
 ---
-src/user.ts:62 [Class] FileStorage
-src/user.ts:39 [Class] MemoryStorage
 src/user.ts:4 [Class] User
+src/user.ts:39 [Class] MemoryStorage
+src/user.ts:62 [Class] FileStorage
 src/user.ts:92 [Class] UserRepository
