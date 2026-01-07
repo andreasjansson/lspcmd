@@ -197,7 +197,17 @@ impl LspClient {
             ..Default::default()
         };
 
-        let result: InitializeResult = self.send_request("initialize", params).await?;
+        // Use raw request to preserve all capability fields including ones not in lsp-types
+        let raw_result = self.send_request_raw("initialize", serde_json::to_value(params).unwrap()).await?;
+        
+        // Store raw capabilities for fields not in lsp-types ServerCapabilities struct
+        // (e.g. typeHierarchyProvider was added in LSP 3.17 but lsp-types 0.97.0 omits it)
+        if let Some(caps) = raw_result.get("capabilities") {
+            *self.raw_capabilities.write().await = caps.clone();
+        }
+        
+        let result: InitializeResult = serde_json::from_value(raw_result)
+            .map_err(LspProtocolError::Json)?;
         *self.capabilities.write().await = result.capabilities;
 
         self.send_notification("initialized", InitializedParams {}).await?;
