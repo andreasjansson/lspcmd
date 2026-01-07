@@ -114,12 +114,21 @@ impl DaemonServer {
     }
 
     async fn dispatch(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
+        let start = std::time::Instant::now();
+        info!("dispatch: {} starting", method);
+        
         macro_rules! handle {
             ($params_ty:ty, $handler:expr) => {{
                 match serde_json::from_value::<$params_ty>(params) {
                     Ok(p) => match $handler(ctx, p).await {
-                        Ok(result) => json!({"result": result}),
-                        Err(e) => json!({"error": e}),
+                        Ok(result) => {
+                            info!("dispatch: {} completed in {:?}", method, start.elapsed());
+                            json!({"result": result})
+                        },
+                        Err(e) => {
+                            info!("dispatch: {} failed in {:?}: {}", method, start.elapsed(), e);
+                            json!({"error": e})
+                        },
                     },
                     Err(e) => json!({"error": format!("Invalid params: {}", e)}),
                 }
