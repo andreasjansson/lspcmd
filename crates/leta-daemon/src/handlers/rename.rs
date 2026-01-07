@@ -59,13 +59,16 @@ pub async fn handle_rename(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
+    tracing::info!("rename: getting workspace for {}", file_path.display());
     let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
         .map_err(|e| e.to_string())?;
     
+    tracing::info!("rename: ensuring document open");
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
 
+    tracing::info!("rename: sending textDocument/rename request to {}", workspace.server_name());
     let response: Option<WorkspaceEdit> = client
         .send_request(
             "textDocument/rename",
@@ -83,6 +86,7 @@ pub async fn handle_rename(
         )
         .await
         .map_err(|e| e.to_string())?;
+    tracing::info!("rename: got response from LSP");
 
     let edit = response.ok_or("Rename not supported or failed")?;
     
