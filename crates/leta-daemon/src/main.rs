@@ -1,4 +1,4 @@
-use leta_config::{get_cache_dir, get_log_dir, Config};
+use leta_config::{get_cache_dir, get_log_dir, Config, DaemonLock};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
 
@@ -21,6 +21,14 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(log_file)
         .with_ansi(false)
         .init();
+
+    let _lock = match DaemonLock::acquire() {
+        Some(lock) => lock,
+        None => {
+            info!("Another daemon instance is already running, exiting");
+            return Ok(());
+        }
+    };
 
     let config = Config::load()?;
 
