@@ -1,6 +1,5 @@
 use std::path::PathBuf;
 
-use leta_fs::uri_to_path;
 use leta_lsp::lsp_types::{
     GotoDefinitionParams, GotoDefinitionResponse, Location, Position, ReferenceContext,
     ReferenceParams, TextDocumentIdentifier, TextDocumentPositionParams,
