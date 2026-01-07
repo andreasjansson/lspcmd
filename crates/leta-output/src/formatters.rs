@@ -250,8 +250,11 @@ fn format_locations(locations: &[LocationInfo]) -> String {
                 format!("[{}]", loc.kind.as_ref().unwrap()),
                 loc.name.clone().unwrap(),
             ];
+            // Don't show empty parentheses
             if let Some(detail) = &loc.detail {
-                parts.push(format!("({})", detail));
+                if !detail.is_empty() && detail != "()" {
+                    parts.push(format!("({})", detail));
+                }
             }
             lines.push(parts.join(" "));
         } else if let Some(context) = &loc.context_lines {
