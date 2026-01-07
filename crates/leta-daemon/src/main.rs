@@ -33,8 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let hover_cache = leta_cache::LmdbCache::new(&cache_dir.join("hover_cache.lmdb"), hover_cache_size)?;
     let symbol_cache = leta_cache::LmdbCache::new(&cache_dir.join("symbol_cache.lmdb"), symbol_cache_size)?;
 
-    let config_value = serde_json::to_value(&config)?;
-    let daemon = server::DaemonServer::new(config_value, hover_cache, symbol_cache);
+    let daemon = server::DaemonServer::new(config, hover_cache, symbol_cache);
     
     info!("Starting leta daemon");
     daemon.run().await?;
