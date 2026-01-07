@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use leta_cache::LmdbCache;
-use leta_config::{get_pid_path, get_socket_path, write_pid, remove_pid};
+use leta_config::{get_pid_path, get_socket_path, write_pid, remove_pid, Config};
 use leta_types::*;
 use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
@@ -25,7 +25,7 @@ pub struct DaemonServer {
 }
 
 impl DaemonServer {
-    pub fn new(config: Value, hover_cache: LmdbCache, symbol_cache: LmdbCache) -> Self {
+    pub fn new(config: Config, hover_cache: LmdbCache, symbol_cache: LmdbCache) -> Self {
         let (shutdown_tx, _) = broadcast::channel(1);
         Self {
             session: Arc::new(Session::new(config)),
