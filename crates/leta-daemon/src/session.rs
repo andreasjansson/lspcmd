@@ -432,4 +432,15 @@ impl<'a> WorkspaceHandle<'a> {
         }
         tracing::trace!("WorkspaceHandle::close_document releasing write lock");
     }
+
+    pub async fn is_document_open(&self, path: &Path) -> bool {
+        let uri = path_to_uri(path);
+        let workspaces = self.session.workspaces.read().await;
+        if let Some(servers) = workspaces.get(&self.workspace_root) {
+            if let Some(workspace) = servers.get(&self.server_name) {
+                return workspace.open_documents.contains(&uri);
+            }
+        }
+        false
+    }
 }
