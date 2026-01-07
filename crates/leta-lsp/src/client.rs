@@ -592,7 +592,7 @@ impl LspClient {
     }
 
     pub async fn supports_declaration(&self) -> bool {
-        use leta_lsp::lsp_types::DeclarationCapability;
+        use crate::lsp_types::DeclarationCapability;
         let caps = self.capabilities.read().await;
         match &caps.declaration_provider {
             Some(DeclarationCapability::Simple(true)) => true,
@@ -603,7 +603,7 @@ impl LspClient {
     }
 
     pub async fn supports_implementation(&self) -> bool {
-        use leta_lsp::lsp_types::ImplementationProviderCapability;
+        use crate::lsp_types::ImplementationProviderCapability;
         let caps = self.capabilities.read().await;
         // Check for actual support - Some(Simple(false)) means explicitly disabled
         match &caps.implementation_provider {
