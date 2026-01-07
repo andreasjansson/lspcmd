@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use leta_lsp::lsp_types::{
     GotoDefinitionParams, GotoDefinitionResponse, Location, Position, ReferenceContext,
     ReferenceParams, TextDocumentIdentifier, TextDocumentPositionParams,
-    TypeHierarchyItem, TypeHierarchyPrepareParams, TypeHierarchySubtypesParams,
-    TypeHierarchySupertypesParams,
+    TypeHierarchyPrepareParams,
 };
 use leta_types::{
     DeclarationParams, DeclarationResult, ImplementationsParams, ImplementationsResult,
