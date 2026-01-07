@@ -8,7 +8,7 @@ use std::time::Duration;
 use dashmap::DashMap;
 use lsp_types::{
     ClientCapabilities, InitializeParams, InitializeResult, InitializedParams,
-    ServerCapabilities, Url, WorkspaceFolder,
+    ServerCapabilities, Uri, WorkspaceFolder,
 };
 use serde_json::{json, Value};
 use tokio::io::{AsyncWriteExt, BufReader};
