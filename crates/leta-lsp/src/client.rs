@@ -556,9 +556,12 @@ impl LspClient {
     }
 
     pub async fn supports_type_hierarchy(&self) -> bool {
-        // type_hierarchy_provider is not in lsp-types 0.97.0 ServerCapabilities
-        // Most servers that support it will return proper errors, so we'll try and catch
-        false
+        // type_hierarchy_provider is not in lsp-types 0.97.0 ServerCapabilities struct,
+        // but servers do advertise it. Check the raw_capabilities JSON.
+        self.raw_capabilities.read().await
+            .get("typeHierarchyProvider")
+            .map(|v| !v.is_null())
+            .unwrap_or(false)
     }
 
     pub async fn supports_declaration(&self) -> bool {
