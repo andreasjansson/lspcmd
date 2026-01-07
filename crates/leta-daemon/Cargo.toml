@@ -26,3 +26,6 @@ tracing-subscriber = { workspace = true }
 regex = { workspace = true }
 globset = { workspace = true }
 walkdir = { workspace = true }
+anyhow = { workspace = true }
+libc = "0.2"
+blake3 = { workspace = true }
