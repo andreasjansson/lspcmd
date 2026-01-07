@@ -32,7 +32,7 @@ pub async fn handle_calls(
             workspace.ensure_document_open(&file_path).await?;
             let client = workspace.client().ok_or("No LSP client")?;
 
-            let items = prepare_call_hierarchy(client, &file_path, from_line, from_column).await?;
+            let items = prepare_call_hierarchy(client.clone(), &file_path, from_line, from_column).await?;
             if items.is_empty() {
                 return Ok(CallsResult {
                     message: Some("No call hierarchy item found at location".to_string()),
@@ -45,7 +45,7 @@ pub async fn handle_calls(
             let item = &items[0];
             let mut visited = HashSet::new();
             let calls = collect_outgoing_calls(
-                client,
+                client.clone(),
                 item,
                 &workspace_root,
                 0,
@@ -78,7 +78,7 @@ pub async fn handle_calls(
             workspace.ensure_document_open(&file_path).await?;
             let client = workspace.client().ok_or("No LSP client")?;
 
-            let items = prepare_call_hierarchy(client, &file_path, to_line, to_column).await?;
+            let items = prepare_call_hierarchy(client.clone(), &file_path, to_line, to_column).await?;
             if items.is_empty() {
                 return Ok(CallsResult {
                     message: Some("No call hierarchy item found at location".to_string()),
@@ -130,8 +130,8 @@ pub async fn handle_calls(
             workspace.ensure_document_open(&to_file).await?;
             let client = workspace.client().ok_or("No LSP client")?;
 
-            let from_items = prepare_call_hierarchy(client, &from_file, from_line, from_column).await?;
-            let to_items = prepare_call_hierarchy(client, &to_file, to_line, to_column).await?;
+            let from_items = prepare_call_hierarchy(client.clone(), &from_file, from_line, from_column).await?;
+            let to_items = prepare_call_hierarchy(client.clone(), &to_file, to_line, to_column).await?;
 
             if from_items.is_empty() || to_items.is_empty() {
                 return Ok(CallsResult {
@@ -180,7 +180,7 @@ pub async fn handle_calls(
 }
 
 async fn prepare_call_hierarchy(
-    client: &Arc<LspClient>,
+    client: Arc<LspClient>,
     file_path: &PathBuf,
     line: u32,
     column: u32,
@@ -220,7 +220,7 @@ fn is_stdlib_path(uri: &str) -> bool {
 }
 
 async fn collect_outgoing_calls(
-    client: &Arc<LspClient>,
+    client: Arc<LspClient>,
     item: &CallHierarchyItem,
     workspace_root: &PathBuf,
     current_depth: u32,
@@ -285,7 +285,7 @@ async fn collect_outgoing_calls(
 }
 
 async fn collect_incoming_calls(
-    client: &Arc<LspClient>,
+    client: Arc<LspClient>,
     item: &CallHierarchyItem,
     workspace_root: &PathBuf,
     current_depth: u32,
@@ -350,7 +350,7 @@ async fn collect_incoming_calls(
 }
 
 async fn find_call_path(
-    client: &Arc<LspClient>,
+    client: Arc<LspClient>,
     item: &CallHierarchyItem,
     target_key: &str,
     workspace_root: &PathBuf,
