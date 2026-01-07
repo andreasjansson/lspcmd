@@ -58,7 +58,7 @@ pub struct LspMethodNotSupported {
     pub method: String,
 }
 
-pub fn encode_message(message: &Value) -> Vec<u8> {
+pub fn encode_message<T: serde::Serialize>(message: &T) -> Vec<u8> {
     let content = serde_json::to_vec(message).expect("Failed to serialize message");
     let header = format!("Content-Length: {}\r\n\r\n", content.len());
     let mut result = header.into_bytes();
