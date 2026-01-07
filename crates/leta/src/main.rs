@@ -228,22 +228,6 @@ async fn main() -> Result<()> {
     }
 }
 
-fn is_daemon_running() -> bool {
-    let pid_path = get_pid_path();
-    if !pid_path.exists() {
-        return false;
-    }
-    if let Ok(pid_str) = std::fs::read_to_string(&pid_path) {
-        if let Ok(pid) = pid_str.trim().parse::<i32>() {
-            unsafe { libc::kill(pid, 0) == 0 }
-        } else {
-            false
-        }
-    } else {
-        false
-    }
-}
-
 async fn ensure_daemon_running() -> Result<()> {
     let socket_path = get_socket_path();
 
