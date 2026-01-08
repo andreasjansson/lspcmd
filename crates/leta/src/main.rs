@@ -738,7 +738,8 @@ fn format_profiling(stats: &[FunctionStats]) -> String {
             .strip_prefix("leta_daemon::handlers::")
             .or_else(|| stat.name.strip_prefix("leta_daemon::"))
             .or_else(|| stat.name.strip_prefix("leta_"))
-            .unwrap_or(&stat.name);
+            .unwrap_or(&stat.name)
+            .trim_end_matches("::{{closure}}");
         
         output.push_str(&format!(
             "{:<60} {:>6} {:>10} {:>10} {:>12}\n",
