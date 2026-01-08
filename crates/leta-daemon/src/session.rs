@@ -427,16 +427,82 @@ impl<'a> WorkspaceHandle<'a> {
     }
 
     pub async fn ensure_document_open(&self, path: &Path) -> Result<(), String> {
-        tracing::trace!("WorkspaceHandle::ensure_document_open acquiring write lock for {:?}", path);
-        let mut workspaces = self.session.workspaces.write().await;
-        tracing::trace!("WorkspaceHandle::ensure_document_open got write lock");
-        let workspace = workspaces
-            .get_mut(&self.workspace_root)
-            .and_then(|servers| servers.get_mut(&self.server_name))
-            .ok_or_else(|| "Workspace not found".to_string())?;
-        let result = workspace.ensure_document_open(path).await;
-        tracing::trace!("WorkspaceHandle::ensure_document_open releasing write lock");
-        result
+        let uri = path_to_uri(path);
+        
+        // First check if document needs updating (read lock only)
+        let (needs_open, needs_reopen, client) = {
+            let workspaces = self.session.workspaces.read().await;
+            let workspace = workspaces
+                .get(&self.workspace_root)
+                .and_then(|servers| servers.get(&self.server_name))
+                .ok_or_else(|| "Workspace not found".to_string())?;
+            
+            let client = workspace.client();
+            
+            if let Some(doc) = workspace.open_documents.get(&uri) {
+                let current_content = read_file_content(path).map_err(|e| e.to_string())?;
+                if current_content != doc.content {
+                    (false, true, client) // needs reopen (close then open)
+                } else {
+                    (false, false, client) // already open with same content
+                }
+            } else {
+                (true, false, client) // needs open
+            }
+        };
+        
+        if !needs_open && !needs_reopen {
+            return Ok(());
+        }
+        
+        // Close first if needed
+        if needs_reopen {
+            self.close_document(path).await;
+        }
+        
+        // Read file content
+        let content = read_file_content(path).map_err(|e| e.to_string())?;
+        let language_id = get_language_id(path).to_string();
+        
+        // Insert document record (write lock, but no LSP call)
+        {
+            let mut workspaces = self.session.workspaces.write().await;
+            let workspace = workspaces
+                .get_mut(&self.workspace_root)
+                .and_then(|servers| servers.get_mut(&self.server_name))
+                .ok_or_else(|| "Workspace not found".to_string())?;
+            
+            let doc = OpenDocument {
+                _uri: uri.clone(),
+                _version: 1,
+                content: content.clone(),
+                _language_id: language_id.clone(),
+            };
+            workspace.open_documents.insert(uri.clone(), doc);
+        }
+        
+        // Send LSP notification OUTSIDE the lock
+        if let Some(client) = client {
+            let params = serde_json::json!({
+                "textDocument": {
+                    "uri": uri,
+                    "languageId": language_id,
+                    "version": 1,
+                    "text": content,
+                }
+            });
+            let _ = client.send_notification("textDocument/didOpen", params).await;
+
+            // ruby-lsp processes messages asynchronously in a queue
+            if client.server_name() == "ruby-lsp" {
+                let symbol_params = serde_json::json!({
+                    "textDocument": {"uri": uri}
+                });
+                let _ = client.send_request_raw("textDocument/documentSymbol", symbol_params).await;
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn close_document(&self, path: &Path) {
