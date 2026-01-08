@@ -4,10 +4,13 @@ use std::collections::HashMap;
 use crate::{CacheInfo, CallNode, FileInfo, LocationInfo, SymbolInfo, WorkspaceInfo};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SpanInfo {
+pub struct FunctionStats {
     pub name: String,
-    pub duration_us: u64,
-    pub depth: u32,
+    pub calls: u32,
+    pub total_us: u64,
+    pub avg_us: u64,
+    pub p90_us: u64,
+    pub max_us: u64,
 }
 
 // ============================================================================
