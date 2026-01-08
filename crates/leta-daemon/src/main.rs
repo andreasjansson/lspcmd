@@ -3,6 +3,7 @@ use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 mod handlers;
+mod profiling;
 mod server;
 mod session;
 
