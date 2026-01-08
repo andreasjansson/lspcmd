@@ -553,27 +553,19 @@ async fn handle_workspace_command(command: WorkspaceCommands) -> Result<()> {
                 detected.unwrap_or(cwd)
             };
 
-            if config.workspaces.roots.contains(&workspace_root.to_string_lossy().to_string()) {
-                println!("Workspace already added: {}", workspace_root.display());
-            } else {
-                config.add_workspace_root(&workspace_root)?;
-                println!("Added workspace: {}", workspace_root.display());
-            }
-            
-            println!("Indexing workspace (this may take a moment)...");
             ensure_daemon_running().await?;
             
-            let result = send_request("index-workspace", json!({
+            let result = send_request("add-workspace", json!({
                 "workspace_root": workspace_root.to_string_lossy(),
             })).await?;
             
-            let index_result: IndexWorkspaceResult = serde_json::from_value(result)?;
-            println!(
-                "Indexed {} files across {} languages: {}",
-                index_result.files_indexed,
-                index_result.languages.len(),
-                index_result.languages.join(", ")
-            );
+            let add_result: AddWorkspaceResult = serde_json::from_value(result)?;
+            if add_result.added {
+                println!("Added workspace: {}", add_result.workspace_root);
+                println!("Symbol cache population started in background");
+            } else {
+                println!("Workspace already added: {}", add_result.workspace_root);
+            }
         }
         WorkspaceCommands::Remove { path } => {
             let workspace_root = if let Some(path) = path {
