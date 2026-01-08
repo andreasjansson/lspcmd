@@ -145,8 +145,22 @@ pub async fn handle_files(
         };
 
         let symbols_start = std::time::Instant::now();
+        let mut cache_hits = 0;
+        let mut cache_misses = 0;
+        
         for file_path in files {
             let rel_path = relative_path(file_path, &workspace_root);
+            let file_sha = leta_fs::file_sha(file_path);
+            let cache_key = format!("files:{}:{}:{}", file_path.display(), workspace_root.display(), file_sha);
+            
+            if let Some(cached) = ctx.symbol_cache.get::<SymbolCounts>(&cache_key) {
+                if let Some(file_info) = files_info.get_mut(&rel_path) {
+                    file_info.symbols = cached;
+                }
+                cache_hits += 1;
+                lsp_files_processed += 1;
+                continue;
+            }
             
             if let Err(_) = workspace.ensure_document_open(file_path).await {
                 continue;
@@ -167,15 +181,19 @@ pub async fn handle_files(
                 .flatten();
 
             if let Some(symbols) = response {
+                let counts = count_symbols(&symbols);
+                ctx.symbol_cache.set(&cache_key, &counts);
                 if let Some(file_info) = files_info.get_mut(&rel_path) {
-                    file_info.symbols = count_symbols(&symbols);
+                    file_info.symbols = counts;
                 }
             }
 
             workspace.close_document(file_path).await;
+            cache_misses += 1;
             lsp_files_processed += 1;
         }
-        info!("documentSymbol requests for {} ({} files) took {:?}", lang, file_count, symbols_start.elapsed());
+        info!("documentSymbol for {} ({} files): {:?} (hits={}, misses={})", 
+              lang, file_count, symbols_start.elapsed(), cache_hits, cache_misses);
     }
     info!("total LSP processing took {:?}, processed {} files", lsp_start.elapsed(), lsp_files_processed);
 
