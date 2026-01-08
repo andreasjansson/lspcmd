@@ -536,33 +536,8 @@ async fn collect_all_symbols(ctx: &HandlerContext, workspace_root: &PathBuf) -> 
 
         workspace.wait_for_ready(30).await;
 
-        let client = match workspace.client().await {
-            Some(c) => c,
-            None => continue,
-        };
-
         for file_path in files {
-            if workspace.ensure_document_open(&file_path).await.is_err() {
-                continue;
-            }
-
-            let uri = leta_fs::path_to_uri(&file_path);
-            let response: Option<leta_lsp::lsp_types::DocumentSymbolResponse> = client
-                .send_request(
-                    "textDocument/documentSymbol",
-                    DocumentSymbolParams {
-                        text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
-                        work_done_progress_params: Default::default(),
-                        partial_result_params: Default::default(),
-                    },
-                )
-                .await
-                .ok()
-                .flatten();
-
-            if let Some(resp) = response {
-                let rel_path = relative_path(&file_path, workspace_root);
-                let symbols = flatten_document_symbols(&resp, &rel_path);
+            if let Ok(symbols) = super::get_file_symbols(ctx, &workspace, workspace_root, &file_path).await {
                 all_symbols.extend(symbols);
             }
         }
