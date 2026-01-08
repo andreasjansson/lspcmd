@@ -374,6 +374,59 @@ fn ref_resolves_uniquely(ref_str: &str, target_sym: &SymbolInfo, all_matches: &[
     candidates.len() == 1 && candidates[0].path == target_sym.path && candidates[0].line == target_sym.line
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_go_method_parts_simple() {
+        let parts = extract_go_method_parts("(*User).Save").unwrap();
+        assert_eq!(parts.receiver, "User");
+        assert_eq!(parts.method, "Save");
+    }
+
+    #[test]
+    fn test_extract_go_method_parts_value_receiver() {
+        let parts = extract_go_method_parts("(User).Save").unwrap();
+        assert_eq!(parts.receiver, "User");
+        assert_eq!(parts.method, "Save");
+    }
+
+    #[test]
+    fn test_extract_go_method_parts_generic() {
+        let parts = extract_go_method_parts("(*Result[T]).IsOk").unwrap();
+        assert_eq!(parts.receiver, "Result[T]");
+        assert_eq!(parts.method, "IsOk");
+    }
+
+    #[test]
+    fn test_extract_go_method_parts_not_go_style() {
+        assert!(extract_go_method_parts("User.Save").is_none());
+        assert!(extract_go_method_parts("Save").is_none());
+    }
+
+    #[test]
+    fn test_strip_generics() {
+        assert_eq!(strip_generics("Result[T]"), "Result");
+        assert_eq!(strip_generics("Map[K, V]"), "Map");
+        assert_eq!(strip_generics("User"), "User");
+    }
+
+    #[test]
+    fn test_normalize_symbol_name_go_method() {
+        assert_eq!(normalize_symbol_name("(*User).Save"), "Save");
+        assert_eq!(normalize_symbol_name("(User).Save"), "Save");
+        assert_eq!(normalize_symbol_name("(*Result[T]).IsOk"), "IsOk");
+    }
+
+    #[test]
+    fn test_name_matches_go_generic_method() {
+        assert!(name_matches("(*Result[T]).IsOk", "IsOk"));
+        assert!(name_matches("(*Result[T]).UnwrapOr", "UnwrapOr"));
+        assert!(!name_matches("(*Result[T]).IsOk", "IsErr"));
+    }
+}
+
 async fn collect_all_symbols(ctx: &HandlerContext, workspace_root: &PathBuf) -> Result<Vec<SymbolInfo>, String> {
     let skip_dirs: HashSet<&str> = [
         "node_modules", "__pycache__", ".git", "venv", ".venv",
