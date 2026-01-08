@@ -333,7 +333,8 @@ async fn ensure_daemon_running() -> Result<()> {
 }
 
 async fn send_request(method: &str, params: Value) -> Result<Value> {
-    let _p = profile_start(&format!("send_request({})", method));
+    let method_name = format!("send_request({})", method);
+    let _p = profile_start(&method_name);
     let socket_path = get_socket_path();
 
     let connect_start = profile_start("  connect");
