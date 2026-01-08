@@ -11,4 +11,4 @@ test/fixtures/rust_project/Cargo.lock
 test/fixtures/rust_project/target/
 test/fixtures/zig_project/.*
 
-target/
+target/test/corpus/languages/rust/fixture/target/
