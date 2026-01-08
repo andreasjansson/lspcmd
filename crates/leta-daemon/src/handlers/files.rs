@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use fastrace::prelude::*;
 use leta_fs::get_language_id;
 use leta_servers::get_server_for_language;
 use leta_types::{FileInfo, FilesParams, FilesResult, SymbolInfo};
-use tracing::{info, instrument};
+use tracing::info;
 
 use super::{get_file_symbols, relative_path, HandlerContext};
 
