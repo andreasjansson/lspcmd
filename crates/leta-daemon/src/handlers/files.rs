@@ -115,27 +115,42 @@ pub async fn handle_files(
     info!("walk_dir took {:?}, found {} files, {} source files by language", 
           walk_start.elapsed(), files_info.len(), source_files_by_lang.len());
 
-    for (lang, files) in source_files_by_lang {
-        let workspace = match ctx.session.get_or_create_workspace_for_language(&lang, &workspace_root).await {
+    let lsp_start = std::time::Instant::now();
+    let mut lsp_files_processed = 0;
+    for (lang, files) in &source_files_by_lang {
+        let lang_start = std::time::Instant::now();
+        let file_count = files.len();
+        
+        let workspace = match ctx.session.get_or_create_workspace_for_language(lang, &workspace_root).await {
             Ok(ws) => ws,
-            Err(_) => continue,
+            Err(e) => {
+                info!("Failed to get workspace for {}: {}", lang, e);
+                continue;
+            }
         };
+        info!("get_or_create_workspace for {} took {:?}", lang, lang_start.elapsed());
 
+        let ready_start = std::time::Instant::now();
         workspace.wait_for_ready(30).await;
+        info!("wait_for_ready for {} took {:?}", lang, ready_start.elapsed());
 
         let client = match workspace.client().await {
             Some(c) => c,
-            None => continue,
+            None => {
+                info!("No client for {}", lang);
+                continue;
+            }
         };
 
+        let symbols_start = std::time::Instant::now();
         for file_path in files {
-            let rel_path = relative_path(&file_path, &workspace_root);
+            let rel_path = relative_path(file_path, &workspace_root);
             
-            if let Err(_) = workspace.ensure_document_open(&file_path).await {
+            if let Err(_) = workspace.ensure_document_open(file_path).await {
                 continue;
             }
 
-            let uri = leta_fs::path_to_uri(&file_path);
+            let uri = leta_fs::path_to_uri(file_path);
             let response: Option<DocumentSymbolResponse> = client
                 .send_request(
                     "textDocument/documentSymbol",
@@ -155,9 +170,12 @@ pub async fn handle_files(
                 }
             }
 
-            workspace.close_document(&file_path).await;
+            workspace.close_document(file_path).await;
+            lsp_files_processed += 1;
         }
+        info!("documentSymbol requests for {} ({} files) took {:?}", lang, file_count, symbols_start.elapsed());
     }
+    info!("total LSP processing took {:?}, processed {} files", lsp_start.elapsed(), lsp_files_processed);
 
     let total_files = files_info.len() as u32;
 
