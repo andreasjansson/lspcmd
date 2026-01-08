@@ -216,8 +216,10 @@ pub async fn get_file_symbols(
     let cache_key = format!("{}:{}:{}", file_path.display(), workspace_root.display(), file_sha);
 
     if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
+        tracing::debug!("cache HIT for {}", file_path.display());
         return Ok(cached);
     }
+    tracing::debug!("cache MISS for {} (sha={})", file_path.display(), file_sha);
 
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(file_path);
