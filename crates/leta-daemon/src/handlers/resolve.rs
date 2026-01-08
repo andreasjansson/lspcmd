@@ -463,6 +463,18 @@ mod tests {
         assert!(name_matches("(*Result[T]).UnwrapOr", "UnwrapOr"));
         assert!(!name_matches("(*Result[T]).IsOk", "IsErr"));
     }
+
+    #[test]
+    fn test_looks_like_lua_method() {
+        assert!(looks_like_lua_method("User:isAdult"));
+        assert!(looks_like_lua_method("Storage:save"));
+        assert!(looks_like_lua_method("MemoryStorage:load"));
+        // Not Lua methods
+        assert!(!looks_like_lua_method("User.isAdult")); // dot instead of colon
+        assert!(!looks_like_lua_method("file.lua:User")); // file path
+        assert!(!looks_like_lua_method("main.go:123:func")); // two colons
+        assert!(!looks_like_lua_method("User")); // no colon
+    }
 }
 
 async fn collect_all_symbols(ctx: &HandlerContext, workspace_root: &PathBuf) -> Result<Vec<SymbolInfo>, String> {
