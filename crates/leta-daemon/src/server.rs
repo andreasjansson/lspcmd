@@ -14,6 +14,7 @@ use crate::handlers::{
     handle_implementations, handle_subtypes, handle_supertypes, handle_calls,
     handle_rename, handle_move_file, handle_files, handle_resolve_symbol,
     handle_describe_session, handle_restart_workspace, handle_remove_workspace,
+    handle_index_workspace,
 };
 use crate::session::Session;
 
