@@ -145,6 +145,7 @@ impl Workspace {
         self.open_documents.clear();
     }
 
+    #[trace]
     pub async fn ensure_document_open(&mut self, path: &Path) -> Result<(), String> {
         let uri = path_to_uri(path);
 
