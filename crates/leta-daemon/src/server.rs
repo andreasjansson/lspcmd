@@ -143,7 +143,7 @@ impl DaemonServer {
             "describe-session" => handle!(DescribeSessionParams, handle_describe_session),
             "restart-workspace" => handle!(RestartWorkspaceParams, handle_restart_workspace),
             "remove-workspace" => handle!(RemoveWorkspaceParams, handle_remove_workspace),
-            "index-workspace" => handle!(IndexWorkspaceParams, handle_index_workspace),
+            "add-workspace" => handle!(AddWorkspaceParams, handle_add_workspace),
             "shutdown" => {
                 let _ = self.shutdown_tx.send(());
                 json!({"result": {"status": "shutting_down"}})
