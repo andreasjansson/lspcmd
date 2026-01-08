@@ -574,15 +574,16 @@ async fn handle_workspace_command(command: WorkspaceCommands) -> Result<()> {
                 get_workspace_root(&config)?
             };
 
-            if config.remove_workspace_root(&workspace_root)? {
-                if is_daemon_running() {
-                    let _ = send_request("remove-workspace", json!({
-                        "workspace_root": workspace_root.to_string_lossy(),
-                    })).await;
-                }
-                println!("Removed workspace: {}", workspace_root.display());
-            } else {
-                return Err(anyhow!("Workspace not found: {}", workspace_root.display()));
+            ensure_daemon_running().await?;
+            
+            let result = send_request("remove-workspace", json!({
+                "workspace_root": workspace_root.to_string_lossy(),
+            })).await?;
+            
+            let remove_result: RemoveWorkspaceResult = serde_json::from_value(result)?;
+            println!("Removed workspace: {}", workspace_root.display());
+            if !remove_result.servers_stopped.is_empty() {
+                println!("Stopped servers: {}", remove_result.servers_stopped.join(", "));
             }
         }
         WorkspaceCommands::Restart { path } => {
