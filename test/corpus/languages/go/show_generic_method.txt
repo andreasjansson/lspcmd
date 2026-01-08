@@ -1,0 +1,10 @@
+==================
+show generic method by simple name
+==================
+leta show IsOk
+---
+utils.go:74-76
+
+func (r *Result[T]) IsOk() bool {
+	return r.err == nil
+}
