@@ -16,7 +16,7 @@ use leta_lsp::lsp_types::{DocumentSymbol, DocumentSymbolResponse, Location, Symb
 use leta_types::{LocationInfo, SymbolInfo, SymbolKind};
 
 pub use grep::{handle_grep, get_file_symbols};
-pub use index::handle_index_workspace;
+pub use index::handle_add_workspace;
 pub use show::handle_show;
 pub use refs::{handle_references, handle_declaration, handle_implementations, handle_subtypes, handle_supertypes};
 pub use calls::handle_calls;
