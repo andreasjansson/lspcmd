@@ -46,6 +46,7 @@ Commands:
 
 Options:
       --json     Output as JSON
+      --profile  Print timing information for profiling
   -h, --help     Print help
   -V, --version  Print version
 ===
@@ -61,11 +62,13 @@ Commands:
   add      Add a workspace for LSP operations.
   remove   Remove a workspace and stop its language servers.
   restart  Restart the language server for a workspace.
+  info     Show workspace info for current directory.
   help     Print this message or the help of the given subcommand(s)
 
 Options:
-      --json  Output as JSON
-  -h, --help  Print help
+      --json     Output as JSON
+      --profile  Print timing information for profiling
+  -h, --help     Print help
 
 ===
 daemon help
@@ -84,5 +87,6 @@ Commands:
   help     Print this message or the help of the given subcommand(s)
 
 Options:
-      --json  Output as JSON
-  -h, --help  Print help
+      --json     Output as JSON
+      --profile  Print timing information for profiling
+  -h, --help     Print help
