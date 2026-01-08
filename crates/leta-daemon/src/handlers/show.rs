@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use fastrace::trace;
 use leta_fs::read_file_content;
 use leta_lsp::lsp_types::{DocumentSymbol, DocumentSymbolParams, DocumentSymbolResponse, SymbolInformation, TextDocumentIdentifier};
 use leta_types::ShowParams;
@@ -20,6 +21,7 @@ pub struct ShowResult {
     pub total_lines: Option<u32>,
 }
 
+#[trace]
 pub async fn handle_show(ctx: &HandlerContext, params: ShowParams) -> Result<ShowResult, String> {
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
