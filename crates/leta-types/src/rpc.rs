@@ -81,8 +81,8 @@ impl<R> RpcResponse<R> {
         })
     }
 
-    pub fn success_with_profiling(result: R, profiling: Vec<FunctionStats>) -> Self {
-        let profiling = if profiling.is_empty() {
+    pub fn success_with_profiling(result: R, profiling: ProfilingData) -> Self {
+        let profiling = if profiling.functions.is_empty() {
             None
         } else {
             Some(profiling)
