@@ -660,6 +660,9 @@ async fn handle_files(
     exclude: Vec<String>,
     include: Vec<String>,
 ) -> Result<()> {
+    let _p = profile_start("handle_files");
+
+    let ws_start = profile_start("get_workspace_root");
     let (workspace_root, subpath) = if let Some(path) = path {
         let target = PathBuf::from(&path).canonicalize()?;
         let workspace_root = get_workspace_root_for_path(config, &target)?;
@@ -667,6 +670,7 @@ async fn handle_files(
     } else {
         (get_workspace_root(config)?, None)
     };
+    profile_end(ws_start);
 
     let result = send_request("files", json!({
         "workspace_root": workspace_root.to_string_lossy(),
@@ -675,13 +679,19 @@ async fn handle_files(
         "include_patterns": include,
     })).await?;
 
+    let deser_start = profile_start("deserialize_result");
     let files_result: FilesResult = serde_json::from_value(result)?;
+    profile_end(deser_start);
 
+    let format_start = profile_start("format_output");
     if json_output {
         println!("{}", serde_json::to_string_pretty(&files_result)?);
     } else {
         println!("{}", format_files_result(&files_result));
     }
+    profile_end(format_start);
+
+    profile_end(_p);
     Ok(())
 }
 
