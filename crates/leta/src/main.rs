@@ -602,6 +602,17 @@ async fn handle_workspace_command(command: WorkspaceCommands) -> Result<()> {
             let restart: RestartWorkspaceResult = serde_json::from_value(result)?;
             println!("{}", format_restart_workspace_result(&restart));
         }
+        WorkspaceCommands::Info => {
+            let cwd = std::env::current_dir()?;
+            match get_workspace_root(&config) {
+                Ok(root) => {
+                    println!("{}", root.display());
+                }
+                Err(_) => {
+                    return Err(anyhow!("No workspace found for {}\nRun: leta workspace add", cwd.display()));
+                }
+            }
+        }
     }
     Ok(())
 }
