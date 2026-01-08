@@ -409,7 +409,7 @@ pub struct IndexWorkspaceParams {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IndexWorkspaceResult {
     pub status: String,
-    pub files_indexed: u32,
+    pub files_to_index: u32,
     pub languages: Vec<String>,
 }
 
