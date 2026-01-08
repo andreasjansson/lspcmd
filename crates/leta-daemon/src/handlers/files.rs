@@ -2,14 +2,11 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use leta_fs::get_language_id;
-use leta_lsp::lsp_types::{DocumentSymbolParams, DocumentSymbolResponse, TextDocumentIdentifier};
 use leta_servers::get_server_for_language;
-use leta_types::{FileInfo, FilesParams, FilesResult, SymbolKind};
-use tracing::{debug, info, instrument};
+use leta_types::{FileInfo, FilesParams, FilesResult, SymbolInfo};
+use tracing::{info, instrument};
 
-use super::{relative_path, HandlerContext};
-
-type SymbolCounts = HashMap<String, u32>;
+use super::{get_file_symbols, relative_path, HandlerContext};
 
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     ".git", "__pycache__", "node_modules", ".venv", "venv", "target",
