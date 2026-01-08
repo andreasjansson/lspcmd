@@ -133,65 +133,24 @@ pub async fn handle_files(
         workspace.wait_for_ready(30).await;
         info!("wait_for_ready for {} took {:?}", lang, ready_start.elapsed());
 
-        let client = match workspace.client().await {
-            Some(c) => c,
-            None => {
-                info!("No client for {}", lang);
-                continue;
-            }
-        };
-
         let symbols_start = std::time::Instant::now();
-        let mut cache_hits = 0;
-        let mut cache_misses = 0;
         
         for file_path in files {
             let rel_path = relative_path(file_path, &workspace_root);
-            let file_sha = leta_fs::file_sha(file_path);
-            let cache_key = format!("files:{}:{}:{}", file_path.display(), workspace_root.display(), file_sha);
             
-            if let Some(cached) = ctx.symbol_cache.get::<SymbolCounts>(&cache_key) {
-                if let Some(file_info) = files_info.get_mut(&rel_path) {
-                    file_info.symbols = cached;
+            match get_file_symbols(ctx, &workspace, &workspace_root, file_path).await {
+                Ok(symbols) => {
+                    if let Some(file_info) = files_info.get_mut(&rel_path) {
+                        file_info.symbols = count_symbols(&symbols);
+                    }
                 }
-                cache_hits += 1;
-                lsp_files_processed += 1;
-                continue;
-            }
-            debug!("cache miss for {}", cache_key);
-            
-            if let Err(_) = workspace.ensure_document_open(file_path).await {
-                continue;
-            }
-
-            let uri = leta_fs::path_to_uri(file_path);
-            let response: Option<DocumentSymbolResponse> = client
-                .send_request(
-                    "textDocument/documentSymbol",
-                    DocumentSymbolParams {
-                        text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
-                        work_done_progress_params: Default::default(),
-                        partial_result_params: Default::default(),
-                    },
-                )
-                .await
-                .ok()
-                .flatten();
-
-            if let Some(symbols) = response {
-                let counts = count_symbols(&symbols);
-                ctx.symbol_cache.set(&cache_key, &counts);
-                if let Some(file_info) = files_info.get_mut(&rel_path) {
-                    file_info.symbols = counts;
+                Err(e) => {
+                    info!("Failed to get symbols for {}: {}", rel_path, e);
                 }
             }
-
-            workspace.close_document(file_path).await;
-            cache_misses += 1;
             lsp_files_processed += 1;
         }
-        info!("documentSymbol for {} ({} files): {:?} (hits={}, misses={})", 
-              lang, file_count, symbols_start.elapsed(), cache_hits, cache_misses);
+        info!("documentSymbol for {} ({} files): {:?}", lang, file_count, symbols_start.elapsed());
     }
     info!("total LSP processing took {:?}, processed {} files", lsp_start.elapsed(), lsp_files_processed);
 
