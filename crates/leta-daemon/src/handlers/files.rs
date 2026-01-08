@@ -33,7 +33,7 @@ pub async fn handle_files(
     params: FilesParams,
 ) -> Result<FilesResult, String> {
     let workspace_root = PathBuf::from(&params.workspace_root);
-    let target_path = params.subpath
+    let target_path = params.subpath.clone()
         .map(PathBuf::from)
         .unwrap_or_else(|| workspace_root.clone());
 
@@ -45,17 +45,18 @@ pub async fn handle_files(
 
     let binary_exts: HashSet<&str> = BINARY_EXTENSIONS.iter().copied().collect();
 
-    let (files_info, source_files_by_lang, total_bytes, total_lines) = {
+    let (mut files_info, source_files_by_lang, total_bytes, total_lines) = {
         let _span = LocalSpan::enter_with_local_parent("walk_dir");
         walk_directory(&target_path, &workspace_root, &exclude_dirs, &binary_exts, &params)
     };
 
-    let mut files_info = files_info;
+    let total_files = files_info.len() as u32;
     
     {
         let _span = LocalSpan::enter_with_local_parent("fetch_symbols");
         for (lang, files) in &source_files_by_lang {
-            let _lang_span = LocalSpan::enter_with_local_parent(&format!("lang:{}", lang));
+            let lang_name: &'static str = Box::leak(lang.clone().into_boxed_str());
+            let _lang_span = LocalSpan::enter_with_local_parent(lang_name);
             
             let workspace = {
                 let _span = LocalSpan::enter_with_local_parent("get_workspace");
