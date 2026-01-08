@@ -171,33 +171,13 @@ fn count_lines(path: &Path) -> u32 {
         .unwrap_or(0)
 }
 
-fn count_symbols(response: &DocumentSymbolResponse) -> HashMap<String, u32> {
+fn count_symbols(symbols: &[SymbolInfo]) -> HashMap<String, u32> {
     let mut counts: HashMap<String, u32> = HashMap::new();
-    
-    match response {
-        DocumentSymbolResponse::Flat(symbols) => {
-            for sym in symbols {
-                let kind = SymbolKind::from_lsp(sym.kind).to_string().to_lowercase();
-                *counts.entry(kind).or_insert(0) += 1;
-            }
-        }
-        DocumentSymbolResponse::Nested(symbols) => {
-            count_nested_symbols(symbols, &mut counts);
-        }
-    }
-    
-    counts
-}
-
-fn count_nested_symbols(symbols: &[leta_lsp::lsp_types::DocumentSymbol], counts: &mut HashMap<String, u32>) {
     for sym in symbols {
-        let kind = SymbolKind::from_lsp(sym.kind).to_string().to_lowercase();
+        let kind = sym.kind.to_string().to_lowercase();
         *counts.entry(kind).or_insert(0) += 1;
-        
-        if let Some(children) = &sym.children {
-            count_nested_symbols(children, counts);
-        }
     }
+    counts
 }
 
 fn is_excluded_by_patterns(path: &Path, workspace_root: &Path, patterns: &[String]) -> bool {
