@@ -202,19 +202,21 @@ enum DaemonCommands {
 enum WorkspaceCommands {
     #[command(about = "Add a workspace for LSP operations.")]
     Add {
-        #[arg(long, help = "Workspace root directory")]
-        root: Option<String>,
+        #[arg(help = "Workspace root directory (default: current directory)")]
+        path: Option<String>,
     },
     #[command(about = "Remove a workspace and stop its language servers.")]
     Remove {
-        #[arg(help = "Workspace path")]
+        #[arg(help = "Workspace path (default: current directory)")]
         path: Option<String>,
     },
     #[command(about = "Restart the language server for a workspace.")]
     Restart {
-        #[arg(help = "Workspace path")]
+        #[arg(help = "Workspace path (default: current directory)")]
         path: Option<String>,
     },
+    #[command(about = "Show workspace info for current directory.")]
+    Info,
 }
 
 #[tokio::main]
