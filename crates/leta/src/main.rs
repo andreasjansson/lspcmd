@@ -408,7 +408,7 @@ async fn send_request_with_profile(method: &str, params: Value, profile: bool) -
     }
 
     let result = response.get("result").cloned().unwrap_or(Value::Null);
-    let profiling: Option<Vec<FunctionStats>> = response.get("profiling")
+    let profiling: Option<ProfilingData> = response.get("profiling")
         .and_then(|p| serde_json::from_value(p.clone()).ok());
 
     Ok(DaemonResponse { result, profiling })
