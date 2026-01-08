@@ -15,7 +15,7 @@ pub enum ConfigError {
     TomlSerialize(#[from] toml::ser::Error),
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DaemonConfig {
     #[serde(default = "default_log_level")]
     pub log_level: String,
@@ -25,6 +25,17 @@ pub struct DaemonConfig {
     pub hover_cache_size: u64,
     #[serde(default = "default_cache_size")]
     pub symbol_cache_size: u64,
+}
+
+impl Default for DaemonConfig {
+    fn default() -> Self {
+        Self {
+            log_level: default_log_level(),
+            request_timeout: default_request_timeout(),
+            hover_cache_size: default_cache_size(),
+            symbol_cache_size: default_cache_size(),
+        }
+    }
 }
 
 fn default_log_level() -> String {
