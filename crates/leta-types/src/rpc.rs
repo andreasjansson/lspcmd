@@ -63,7 +63,7 @@ pub struct RpcRequest<P> {
 pub struct RpcSuccessResponse<R> {
     pub result: R,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub profiling: Option<Vec<FunctionStats>>,
+    pub profiling: Option<ProfilingData>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
