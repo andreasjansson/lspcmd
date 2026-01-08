@@ -356,6 +356,22 @@ fn display_profiling(profiling: Option<ProfilingData>) {
     }
 }
 
+fn merge_profiling(a: Option<ProfilingData>, b: Option<ProfilingData>) -> Option<ProfilingData> {
+    match (a, b) {
+        (None, None) => None,
+        (Some(a), None) => Some(a),
+        (None, Some(b)) => Some(b),
+        (Some(mut a), Some(b)) => {
+            a.functions.extend(b.functions);
+            a.cache.symbol_hits += b.cache.symbol_hits;
+            a.cache.symbol_misses += b.cache.symbol_misses;
+            a.cache.hover_hits += b.cache.hover_hits;
+            a.cache.hover_misses += b.cache.hover_misses;
+            Some(a)
+        }
+    }
+}
+
 async fn send_request_with_profile(method: &str, params: Value, profile: bool) -> Result<DaemonResponse> {
     let socket_path = get_socket_path();
 
