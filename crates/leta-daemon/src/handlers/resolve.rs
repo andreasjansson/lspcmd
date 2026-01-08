@@ -245,6 +245,29 @@ fn normalize_symbol_name(name: &str) -> String {
     name.to_string()
 }
 
+struct GoMethodParts {
+    receiver: String,
+    method: String,
+}
+
+fn extract_go_method_parts(name: &str) -> Option<GoMethodParts> {
+    // Match (*Type).Method or (Type).Method, including generics like (*Result[T]).IsOk
+    let re = Regex::new(r"^\(\*?([^)]+)\)\.(\w+)$").ok()?;
+    let captures = re.captures(name)?;
+    Some(GoMethodParts {
+        receiver: captures.get(1)?.as_str().to_string(),
+        method: captures.get(2)?.as_str().to_string(),
+    })
+}
+
+fn strip_generics(name: &str) -> String {
+    if let Some(idx) = name.find('[') {
+        name[..idx].to_string()
+    } else {
+        name.to_string()
+    }
+}
+
 fn normalize_container(container: &str) -> String {
     if let Some(captures) = Regex::new(r"^\(\*?(\w+)\)$").ok().and_then(|r| r.captures(container)) {
         return captures.get(1).map(|m| m.as_str().to_string()).unwrap_or_else(|| container.to_string());
