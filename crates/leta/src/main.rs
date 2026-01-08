@@ -54,6 +54,9 @@ struct Cli {
     #[arg(long, global = true, help = "Output as JSON")]
     json: bool,
 
+    #[arg(long, global = true, help = "Print timing information for profiling")]
+    profile: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
