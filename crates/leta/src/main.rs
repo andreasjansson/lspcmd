@@ -578,7 +578,6 @@ async fn handle_workspace_command(command: WorkspaceCommands) -> Result<()> {
             let add_result: AddWorkspaceResult = serde_json::from_value(result)?;
             if add_result.added {
                 println!("Added workspace: {}", add_result.workspace_root);
-                println!("Symbol cache population started in background");
             } else {
                 println!("Workspace already added: {}", add_result.workspace_root);
             }
