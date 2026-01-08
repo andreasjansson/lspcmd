@@ -14,3 +14,4 @@ thiserror = { workspace = true }
 tracing = { workspace = true }
 dashmap = { workspace = true }
 lsp-types = "0.97"
+fastrace = { version = "0.7", features = ["enable"] }
