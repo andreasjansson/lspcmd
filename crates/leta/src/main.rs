@@ -272,7 +272,10 @@ async fn main() -> Result<()> {
                 _ => unreachable!(),
             }
         }
-    }
+    };
+
+    profile_end(total_start);
+    result
 }
 
 fn handle_help_all() -> Result<()> {
