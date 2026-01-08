@@ -57,6 +57,7 @@ pub async fn handle_references(
     Ok(ReferencesResult { locations })
 }
 
+#[trace]
 pub async fn handle_declaration(
     ctx: &HandlerContext,
     params: DeclarationParams,
@@ -104,6 +105,7 @@ pub async fn handle_declaration(
     Ok(DeclarationResult { locations })
 }
 
+#[trace]
 pub async fn handle_implementations(
     ctx: &HandlerContext,
     params: ImplementationsParams,
@@ -154,6 +156,7 @@ pub async fn handle_implementations(
     Ok(ImplementationsResult { locations, error: None })
 }
 
+#[trace]
 pub async fn handle_subtypes(
     ctx: &HandlerContext,
     params: SubtypesParams,
@@ -216,6 +219,7 @@ pub async fn handle_subtypes(
     Ok(SubtypesResult { locations })
 }
 
+#[trace]
 pub async fn handle_supertypes(
     ctx: &HandlerContext,
     params: SupertypesParams,
