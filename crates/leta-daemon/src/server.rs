@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use fastrace::collector::Config as FastraceConfig;
+use fastrace::prelude::*;
 use leta_cache::LmdbCache;
 use leta_config::{get_pid_path, get_socket_path, write_pid, remove_pid, Config};
 use leta_types::*;
@@ -16,6 +18,7 @@ use crate::handlers::{
     handle_describe_session, handle_restart_workspace, handle_remove_workspace,
     handle_add_workspace,
 };
+use crate::profiling::CollectingReporter;
 use crate::session::Session;
 
 pub struct DaemonServer {
@@ -99,6 +102,7 @@ impl DaemonServer {
         let request: Value = serde_json::from_slice(&data)?;
         let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(json!({}));
+        let profile = request.get("profile").and_then(|p| p.as_bool()).unwrap_or(false);
 
         let ctx = HandlerContext::new(
             Arc::clone(&self.session),
@@ -106,12 +110,41 @@ impl DaemonServer {
             Arc::clone(&self.symbol_cache),
         );
 
-        let response = self.dispatch(&ctx, method, params).await;
+        let response = if profile {
+            self.dispatch_with_profiling(&ctx, method, params).await
+        } else {
+            self.dispatch(&ctx, method, params).await
+        };
 
         stream.write_all(serde_json::to_vec(&response)?.as_slice()).await?;
         stream.shutdown().await?;
 
         Ok(())
+    }
+
+    async fn dispatch_with_profiling(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
+        let (reporter, collector) = CollectingReporter::new();
+        fastrace::set_reporter(reporter, FastraceConfig::default());
+
+        let method_owned: &'static str = Box::leak(method.to_string().into_boxed_str());
+        let root = Span::root(method_owned, SpanContext::random());
+        let _guard = root.set_local_parent();
+
+        let mut response = self.dispatch(ctx, method, params).await;
+        
+        drop(_guard);
+        drop(root);
+        fastrace::flush();
+
+        let profiling = collector.collect_and_aggregate();
+        
+        if let Some(obj) = response.as_object_mut() {
+            if obj.contains_key("result") && !profiling.is_empty() {
+                obj.insert("profiling".to_string(), serde_json::to_value(&profiling).unwrap());
+            }
+        }
+
+        response
     }
 
     async fn dispatch(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
