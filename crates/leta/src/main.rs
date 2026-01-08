@@ -541,7 +541,7 @@ async fn handle_daemon_command(command: DaemonCommands) -> Result<()> {
 }
 
 async fn handle_workspace_command(command: WorkspaceCommands) -> Result<()> {
-    let mut config = Config::load()?;
+    let config = Config::load()?;
 
     match command {
         WorkspaceCommands::Add { root } => {
