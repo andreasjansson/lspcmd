@@ -179,6 +179,7 @@ pub async fn handle_files(
 
     let total_files = files_info.len() as u32;
 
+    info!("handle_files total time: {:?}", start.elapsed());
     Ok(FilesResult {
         files: files_info,
         total_files,
