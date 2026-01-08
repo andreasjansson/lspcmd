@@ -333,14 +333,17 @@ async fn ensure_daemon_running() -> Result<()> {
 }
 
 async fn send_request(method: &str, params: Value) -> Result<Value> {
+    let _p = profile_start(&format!("send_request({})", method));
     let socket_path = get_socket_path();
 
+    let connect_start = profile_start("  connect");
     let stream = tokio::time::timeout(
         Duration::from_secs(5),
         UnixStream::connect(&socket_path)
     ).await
         .map_err(|_| anyhow!("Timeout connecting to daemon"))?
         ?;
+    profile_end(connect_start);
     
     let (mut read_half, mut write_half) = stream.into_split();
 
@@ -349,9 +352,12 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
         "params": params,
     });
 
+    let write_start = profile_start("  write_request");
     write_half.write_all(serde_json::to_vec(&request)?.as_slice()).await?;
     write_half.shutdown().await?;
+    profile_end(write_start);
 
+    let read_start = profile_start("  read_response");
     let mut response_data = Vec::new();
     tokio::time::timeout(
         Duration::from_secs(30),
@@ -359,8 +365,11 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
     ).await
         .map_err(|_| anyhow!("Timeout waiting for daemon response (method: {})", method))?
         ?;
+    profile_end(read_start);
 
+    let parse_start = profile_start("  parse_response");
     let response: Value = serde_json::from_slice(&response_data)?;
+    profile_end(parse_start);
 
     if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
         if error.contains("Internal error") || error.to_lowercase().contains("internal error") {
@@ -377,11 +386,14 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
                 }
             }
             msg.push_str(&format!("\n\nFull logs: {}", log_path.display()));
+            profile_end(_p);
             return Err(anyhow!(msg));
         }
+        profile_end(_p);
         return Err(anyhow!("{}", error));
     }
 
+    profile_end(_p);
     Ok(response.get("result").cloned().unwrap_or(Value::Null))
 }
 
