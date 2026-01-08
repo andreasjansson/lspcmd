@@ -123,7 +123,7 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
     let mut total_indexed = 0u32;
 
     for (lang, files) in files_by_lang {
-        let file_count = files.len();
+        let _file_count = files.len();
         
         let workspace = match ctx.session.get_or_create_workspace_for_language(&lang, &workspace_root).await {
             Ok(ws) => ws,
