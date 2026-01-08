@@ -225,7 +225,6 @@ pub async fn get_file_symbols(
         return Ok(cached);
     }
     ctx.cache_stats.symbol_misses.fetch_add(1, Ordering::Relaxed);
-    debug!("CACHE MISS: {}", file_path.display());
 
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(file_path);
