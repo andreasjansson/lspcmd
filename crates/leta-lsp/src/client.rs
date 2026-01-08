@@ -16,6 +16,7 @@ use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout};
 use tokio::sync::{oneshot, Mutex, RwLock};
+use fastrace::trace;
 use tracing::{debug, error, info, warn};
 
 use crate::capabilities::get_client_capabilities;
