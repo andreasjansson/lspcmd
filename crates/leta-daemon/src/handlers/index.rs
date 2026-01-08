@@ -33,10 +33,9 @@ pub async fn handle_index_workspace(
     ctx: &HandlerContext,
     params: IndexWorkspaceParams,
 ) -> Result<IndexWorkspaceResult, String> {
-    let start = std::time::Instant::now();
     let workspace_root = PathBuf::from(&params.workspace_root);
     
-    info!("Starting workspace indexing for {}", workspace_root.display());
+    info!("Scanning workspace for indexing: {}", workspace_root.display());
 
     let exclude_dirs: HashSet<&str> = DEFAULT_EXCLUDE_DIRS.iter().copied().collect();
     let binary_exts: HashSet<&str> = BINARY_EXTENSIONS.iter().copied().collect();
@@ -76,20 +75,44 @@ pub async fn handle_index_workspace(
     }
 
     let languages: Vec<String> = files_by_lang.keys().cloned().collect();
-    let total_files: usize = files_by_lang.values().map(|v| v.len()).sum();
+    let files_to_index: u32 = files_by_lang.values().map(|v| v.len() as u32).sum();
     
-    info!("Found {} source files across {} languages", total_files, languages.len());
+    info!("Found {} source files across {} languages, starting background indexing", 
+          files_to_index, languages.len());
 
+    let ctx = HandlerContext::new(
+        Arc::clone(&ctx.session),
+        Arc::clone(&ctx.hover_cache),
+        Arc::clone(&ctx.symbol_cache),
+    );
+
+    tokio::spawn(async move {
+        index_files_background(ctx, workspace_root, files_by_lang).await;
+    });
+
+    Ok(IndexWorkspaceResult {
+        status: "indexing_started".to_string(),
+        files_to_index,
+        languages,
+    })
+}
+
+async fn index_files_background(
+    ctx: HandlerContext,
+    workspace_root: PathBuf,
+    files_by_lang: std::collections::HashMap<String, Vec<PathBuf>>,
+) {
+    let start = std::time::Instant::now();
     let num_cpus = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
     let semaphore = Arc::new(Semaphore::new(num_cpus));
     
-    let mut files_indexed = 0u32;
+    let mut total_indexed = 0u32;
 
     for (lang, files) in files_by_lang {
         let file_count = files.len();
-        info!("Indexing {} {} files with {} parallel workers", file_count, lang, num_cpus);
+        info!("Background indexing {} {} files with {} parallel workers", file_count, lang, num_cpus);
         
         let workspace = match ctx.session.get_or_create_workspace_for_language(&lang, &workspace_root).await {
             Ok(ws) => ws,
@@ -131,17 +154,11 @@ pub async fn handle_index_workspace(
             }
         }
         
-        files_indexed += lang_indexed;
-        info!("Indexed {} {} files in {:?}", lang_indexed, lang, lang_start.elapsed());
+        total_indexed += lang_indexed;
+        info!("Background indexed {} {} files in {:?}", lang_indexed, lang, lang_start.elapsed());
     }
 
-    info!("Workspace indexing complete: {} files in {:?}", files_indexed, start.elapsed());
-
-    Ok(IndexWorkspaceResult {
-        status: "complete".to_string(),
-        files_indexed,
-        languages,
-    })
+    info!("Background indexing complete: {} files in {:?}", total_indexed, start.elapsed());
 }
 
 async fn index_single_file(
