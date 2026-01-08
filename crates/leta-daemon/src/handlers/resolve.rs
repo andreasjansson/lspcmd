@@ -479,6 +479,7 @@ mod tests {
     }
 }
 
+#[trace]
 async fn collect_all_symbols(ctx: &HandlerContext, workspace_root: &PathBuf) -> Result<Vec<SymbolInfo>, String> {
     let skip_dirs: HashSet<&str> = [
         "node_modules", "__pycache__", ".git", "venv", ".venv",
