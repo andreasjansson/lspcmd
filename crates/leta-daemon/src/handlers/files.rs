@@ -9,6 +9,8 @@ use tracing::{info, instrument};
 
 use super::{relative_path, HandlerContext};
 
+type SymbolCounts = HashMap<String, u32>;
+
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     ".git", "__pycache__", "node_modules", ".venv", "venv", "target",
     "build", "dist", ".tox", ".mypy_cache", ".pytest_cache", ".eggs",
