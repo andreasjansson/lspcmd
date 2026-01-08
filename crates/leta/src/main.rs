@@ -341,33 +341,36 @@ async fn can_connect_to_daemon(socket_path: &std::path::Path) -> bool {
     tokio::net::UnixStream::connect(socket_path).await.is_ok()
 }
 
+struct DaemonResponse {
+    result: Value,
+    profiling: Option<Vec<FunctionStats>>,
+}
+
 async fn send_request(method: &str, params: Value) -> Result<Value> {
-    let method_name = format!("send_request({})", method);
-    let _p = profile_start(&method_name);
+    send_request_with_profile(method, params, false).await.map(|r| r.result)
+}
+
+async fn send_request_with_profile(method: &str, params: Value, profile: bool) -> Result<DaemonResponse> {
     let socket_path = get_socket_path();
 
-    let connect_start = profile_start("  connect");
     let stream = tokio::time::timeout(
         Duration::from_secs(5),
         UnixStream::connect(&socket_path)
     ).await
         .map_err(|_| anyhow!("Timeout connecting to daemon"))?
         ?;
-    profile_end(connect_start);
     
     let (mut read_half, mut write_half) = stream.into_split();
 
     let request = json!({
         "method": method,
         "params": params,
+        "profile": profile,
     });
 
-    let write_start = profile_start("  write_request");
     write_half.write_all(serde_json::to_vec(&request)?.as_slice()).await?;
     write_half.shutdown().await?;
-    profile_end(write_start);
 
-    let read_start = profile_start("  read_response");
     let mut response_data = Vec::new();
     tokio::time::timeout(
         Duration::from_secs(30),
@@ -375,11 +378,8 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
     ).await
         .map_err(|_| anyhow!("Timeout waiting for daemon response (method: {})", method))?
         ?;
-    profile_end(read_start);
 
-    let parse_start = profile_start("  parse_response");
     let response: Value = serde_json::from_slice(&response_data)?;
-    profile_end(parse_start);
 
     if let Some(error) = response.get("error").and_then(|e| e.as_str()) {
         if error.contains("Internal error") || error.to_lowercase().contains("internal error") {
@@ -396,15 +396,16 @@ async fn send_request(method: &str, params: Value) -> Result<Value> {
                 }
             }
             msg.push_str(&format!("\n\nFull logs: {}", log_path.display()));
-            profile_end(_p);
             return Err(anyhow!(msg));
         }
-        profile_end(_p);
         return Err(anyhow!("{}", error));
     }
 
-    profile_end(_p);
-    Ok(response.get("result").cloned().unwrap_or(Value::Null))
+    let result = response.get("result").cloned().unwrap_or(Value::Null);
+    let profiling: Option<Vec<FunctionStats>> = response.get("profiling")
+        .and_then(|p| serde_json::from_value(p.clone()).ok());
+
+    Ok(DaemonResponse { result, profiling })
 }
 
 fn get_workspace_root(config: &Config) -> Result<PathBuf> {
