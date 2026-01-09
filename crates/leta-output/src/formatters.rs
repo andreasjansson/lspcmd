@@ -295,6 +295,43 @@ fn format_duration_us(us: u64) -> String {
     }
 }
 
+fn format_function_name(name: &str) -> &str {
+    name.strip_prefix("leta_daemon::handlers::")
+        .or_else(|| name.strip_prefix("leta_daemon::"))
+        .or_else(|| name.strip_prefix("leta_lsp::"))
+        .or_else(|| name.strip_prefix("leta_"))
+        .unwrap_or(name)
+        .trim_end_matches("::{{closure}}")
+}
+
+pub fn format_function_stats(
+    functions: &[FunctionStats],
+    indent: &str,
+    max_lines: usize,
+) -> Vec<String> {
+    let mut lines = Vec::new();
+    for func in functions.iter().take(max_lines) {
+        let name = format_function_name(&func.name);
+        let calls_str = if func.calls > 1 {
+            format!(
+                " ({}x, avg {})",
+                func.calls,
+                format_duration_us(func.avg_us)
+            )
+        } else {
+            String::new()
+        };
+        lines.push(format!(
+            "{}{:50} {:>8}{}",
+            indent,
+            name,
+            format_duration_us(func.total_us),
+            calls_str
+        ));
+    }
+    lines
+}
+
 pub fn format_resolve_symbol_result(result: &ResolveSymbolResult) -> String {
     if let Some(error) = &result.error {
         let mut lines = vec![format!("Error: {}", error)];
