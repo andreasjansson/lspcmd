@@ -141,7 +141,10 @@ pub fn format_calls_result(result: &CallsResult) -> String {
     String::new()
 }
 
-pub fn format_describe_session_result(result: &DescribeSessionResult) -> String {
+pub fn format_describe_session_result(
+    result: &DescribeSessionResult,
+    show_profiling: bool,
+) -> String {
     let mut lines = vec![format!("Daemon PID: {}", result.daemon_pid)];
 
     if !result.caches.is_empty() {
@@ -196,6 +199,54 @@ pub fn format_describe_session_result(result: &DescribeSessionResult) -> String 
                     ));
                 }
             }
+        }
+    }
+
+    if show_profiling {
+        if let Some(ref indexing_stats) = result.indexing_stats {
+            if !indexing_stats.is_empty() {
+                lines.push("\nStartup & Indexing Profiling:".to_string());
+                for stats in indexing_stats {
+                    lines.push(format!("\n  {}", stats.workspace_root));
+                    lines.push(format!(
+                        "    Total: {}ms ({} files)",
+                        stats.total_time_ms, stats.total_files
+                    ));
+
+                    if !stats.server_startups.is_empty() {
+                        lines.push("    Server startups:".to_string());
+                        for startup in &stats.server_startups {
+                            lines.push(format!(
+                                "      {}: {}ms (init: {}ms, ready: {}ms)",
+                                startup.server_name,
+                                startup.total_time_ms,
+                                startup.init_time_ms,
+                                startup.ready_time_ms
+                            ));
+                        }
+                    }
+
+                    if !stats.time_by_language.is_empty() {
+                        lines.push("    Indexing by language:".to_string());
+                        let mut lang_times: Vec<_> = stats.time_by_language.iter().collect();
+                        lang_times.sort_by(|a, b| b.1.cmp(a.1));
+                        for (lang, time_ms) in lang_times {
+                            let file_count = stats.files_by_language.get(lang).unwrap_or(&0);
+                            lines.push(format!(
+                                "      {}: {}ms ({} files)",
+                                lang, time_ms, file_count
+                            ));
+                        }
+                    }
+                }
+            } else {
+                lines.push(
+                    "\nNo indexing profiling data available (add a workspace to collect data)"
+                        .to_string(),
+                );
+            }
+        } else {
+            lines.push("\nNo indexing profiling data available".to_string());
         }
     }
 
