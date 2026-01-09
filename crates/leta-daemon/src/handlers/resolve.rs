@@ -50,84 +50,10 @@ pub async fn handle_resolve_symbol(
     }
 
     let (path_filter, line_filter, symbol_name) = parse_symbol_path(&symbol_path)?;
-    let parts: Vec<&str> = symbol_name.split('.').collect();
-
-    let mut filtered = all_symbols.clone();
-
-    if let Some(ref pf) = path_filter {
-        filtered = filtered
-            .into_iter()
-            .filter(|s| matches_path(&s.path, pf))
-            .collect();
-    }
-
-    if let Some(line) = line_filter {
-        filtered = filtered.into_iter().filter(|s| s.line == line).collect();
-    }
-
-    let target_name = parts.last().unwrap_or(&"");
-
-    tracing::info!("resolve: before filtering {:?}", start.elapsed());
-
-    let matches: Vec<SymbolInfo> = if parts.len() == 1 {
-        filtered
-            .into_iter()
-            .filter(|s| name_matches(&s.name, target_name))
-            .collect()
-    } else {
-        let container_parts = &parts[..parts.len() - 1];
-        let container_str = container_parts.join(".");
-        let full_qualified = symbol_name.clone();
-
-        filtered
-            .into_iter()
-            .filter(|sym| {
-                let sym_name = &sym.name;
-
-                let go_style = format!("(*{}).{}", container_str, target_name);
-                let go_style_val = format!("({}).{}", container_str, target_name);
-                if sym_name == &go_style || sym_name == &go_style_val {
-                    return true;
-                }
-
-                // Go generics: (*Result[T]).IsOk should match Result.IsOk
-                if let Some(go_match) = extract_go_method_parts(sym_name) {
-                    if go_match.method == *target_name
-                        && strip_generics(&go_match.receiver) == container_str
-                    {
-                        return true;
-                    }
-                }
-
-                if sym_name == &full_qualified {
-                    return true;
-                }
-
-                let lua_colon = format!("{}:{}", container_str, target_name);
-                if sym_name == &lua_colon {
-                    return true;
-                }
-
-                if !name_matches(sym_name, target_name) {
-                    return false;
-                }
-
-                let sym_container = sym.container.as_deref().unwrap_or("");
-                let normalized_container = normalize_container(sym_container);
-                let module_name = get_module_name(&sym.path);
-
-                let full_container = if normalized_container.is_empty() {
-                    module_name.clone()
-                } else {
-                    format!("{}.{}", module_name, normalized_container)
-                };
-
-                normalized_container == container_str
-                    || sym_container == container_str
-                    || strip_generics(&normalized_container) == container_str
-                    || strip_generics(sym_container) == container_str
-                    || full_container == container_str
-                    || full_container.ends_with(&format!(".{}", container_str))
+    
+    tracing::info!("resolve: before filter_symbols {:?}", start.elapsed());
+    let matches = filter_symbols(all_symbols, path_filter.as_deref(), line_filter, &symbol_name);
+    tracing::info!("resolve: after filter_symbols {:?}, {} matches", start.elapsed(), matches.len());
                     || (container_parts.len() == 1 && container_parts[0] == module_name)
             })
             .collect()
