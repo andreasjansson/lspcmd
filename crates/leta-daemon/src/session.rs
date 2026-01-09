@@ -49,9 +49,18 @@ impl Workspace {
     }
 
     #[trace]
-    pub async fn start_server(&mut self) -> Result<(), String> {
+    pub async fn start_server(&mut self) -> Result<leta_types::ServerStartupStats, String> {
+        let total_start = std::time::Instant::now();
+
         if self.client.is_some() {
-            return Ok(());
+            return Ok(leta_types::ServerStartupStats {
+                server_name: self.server_config.name.to_string(),
+                workspace_root: self.root.to_string_lossy().to_string(),
+                start_time_ms: 0,
+                init_time_ms: 0,
+                ready_time_ms: 0,
+                total_time_ms: 0,
+            });
         }
 
         info!(
@@ -65,17 +74,35 @@ impl Workspace {
 
         let cmd: Vec<&str> = self.server_config.command.iter().map(|s| *s).collect();
 
+        let start_time = std::time::Instant::now();
         match LspClient::start(&cmd, &self.root, self.server_config.name, env, init_options).await {
             Ok(client) => {
+                let init_time = start_time.elapsed();
+
+                let ready_start = std::time::Instant::now();
                 client.wait_for_indexing(60).await;
+                let ready_time = ready_start.elapsed();
 
                 if self.server_config.name == "clangd" {
                     self.ensure_workspace_indexed(&client).await;
                 }
 
                 self.client = Some(client);
-                info!("Server {} initialized and ready", self.server_config.name);
-                Ok(())
+                let total_time = total_start.elapsed();
+
+                info!(
+                    "Server {} initialized and ready in {:?}",
+                    self.server_config.name, total_time
+                );
+
+                Ok(leta_types::ServerStartupStats {
+                    server_name: self.server_config.name.to_string(),
+                    workspace_root: self.root.to_string_lossy().to_string(),
+                    start_time_ms: 0,
+                    init_time_ms: init_time.as_millis() as u64,
+                    ready_time_ms: ready_time.as_millis() as u64,
+                    total_time_ms: total_time.as_millis() as u64,
+                })
             }
             Err(e) => Err(format!(
                 "Language server '{}' for {} failed to start in workspace {}: {}",
