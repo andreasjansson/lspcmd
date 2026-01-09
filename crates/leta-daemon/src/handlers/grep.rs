@@ -119,7 +119,7 @@ async fn collect_symbols_for_paths(
 }
 
 #[trace]
-async fn collect_all_workspace_symbols(
+pub async fn collect_all_workspace_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
 ) -> Result<Vec<SymbolInfo>, String> {
