@@ -23,21 +23,29 @@ pub async fn handle_calls(
 
     match params.mode {
         CallsMode::Outgoing => {
-            let from_path = params.from_path.ok_or("from_path required for outgoing mode")?;
-            let from_line = params.from_line.ok_or("from_line required for outgoing mode")?;
+            let from_path = params
+                .from_path
+                .ok_or("from_path required for outgoing mode")?;
+            let from_line = params
+                .from_line
+                .ok_or("from_line required for outgoing mode")?;
             let from_column = params.from_column.unwrap_or(0);
 
             let file_path = PathBuf::from(&from_path);
-            let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+            let workspace = ctx
+                .session
+                .get_or_create_workspace(&file_path, &workspace_root)
+                .await
                 .map_err(|e| e.to_string())?;
-            
+
             workspace.ensure_document_open(&file_path).await?;
             let client = workspace.client().await.ok_or("No LSP client")?;
 
             // Wait for indexing to complete to prevent rust-analyzer "content modified" errors
             client.wait_for_indexing(30).await;
 
-            let items = prepare_call_hierarchy(client.clone(), &file_path, from_line, from_column).await?;
+            let items =
+                prepare_call_hierarchy(client.clone(), &file_path, from_line, from_column).await?;
             if items.is_empty() {
                 return Ok(CallsResult {
                     message: Some("No call hierarchy item found at location".to_string()),
@@ -57,7 +65,8 @@ pub async fn handle_calls(
                 params.max_depth,
                 params.include_non_workspace,
                 &mut visited,
-            ).await;
+            )
+            .await;
 
             let root = call_hierarchy_item_to_node(item, &workspace_root);
             Ok(CallsResult {
@@ -77,16 +86,20 @@ pub async fn handle_calls(
             let to_column = params.to_column.unwrap_or(0);
 
             let file_path = PathBuf::from(&to_path);
-            let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+            let workspace = ctx
+                .session
+                .get_or_create_workspace(&file_path, &workspace_root)
+                .await
                 .map_err(|e| e.to_string())?;
-            
+
             workspace.ensure_document_open(&file_path).await?;
             let client = workspace.client().await.ok_or("No LSP client")?;
 
             // Wait for indexing to complete to prevent rust-analyzer "content modified" errors
             client.wait_for_indexing(30).await;
 
-            let items = prepare_call_hierarchy(client.clone(), &file_path, to_line, to_column).await?;
+            let items =
+                prepare_call_hierarchy(client.clone(), &file_path, to_line, to_column).await?;
             if items.is_empty() {
                 return Ok(CallsResult {
                     message: Some("No call hierarchy item found at location".to_string()),
@@ -106,7 +119,8 @@ pub async fn handle_calls(
                 params.max_depth,
                 params.include_non_workspace,
                 &mut visited,
-            ).await;
+            )
+            .await;
 
             let root = call_hierarchy_item_to_node(item, &workspace_root);
             Ok(CallsResult {
@@ -131,9 +145,12 @@ pub async fn handle_calls(
             let from_file = PathBuf::from(&from_path);
             let to_file = PathBuf::from(&to_path);
 
-            let workspace = ctx.session.get_or_create_workspace(&from_file, &workspace_root).await
+            let workspace = ctx
+                .session
+                .get_or_create_workspace(&from_file, &workspace_root)
+                .await
                 .map_err(|e| e.to_string())?;
-            
+
             workspace.ensure_document_open(&from_file).await?;
             workspace.ensure_document_open(&to_file).await?;
             let client = workspace.client().await.ok_or("No LSP client")?;
@@ -141,8 +158,10 @@ pub async fn handle_calls(
             // Wait for indexing to complete to prevent rust-analyzer "content modified" errors
             client.wait_for_indexing(30).await;
 
-            let from_items = prepare_call_hierarchy(client.clone(), &from_file, from_line, from_column).await?;
-            let to_items = prepare_call_hierarchy(client.clone(), &to_file, to_line, to_column).await?;
+            let from_items =
+                prepare_call_hierarchy(client.clone(), &from_file, from_line, from_column).await?;
+            let to_items =
+                prepare_call_hierarchy(client.clone(), &to_file, to_line, to_column).await?;
 
             if from_items.is_empty() || to_items.is_empty() {
                 return Ok(CallsResult {
@@ -165,7 +184,8 @@ pub async fn handle_calls(
                 params.max_depth,
                 params.include_non_workspace,
                 &mut visited,
-            ).await;
+            )
+            .await;
 
             match path {
                 Some(p) => Ok(CallsResult {
@@ -211,7 +231,9 @@ async fn prepare_call_hierarchy(
             "textDocument/prepareCallHierarchy",
             CallHierarchyPrepareParams {
                 text_document_position_params: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: line - 1,
                         character: column,
@@ -227,25 +249,37 @@ async fn prepare_call_hierarchy(
 }
 
 fn item_key(item: &CallHierarchyItem) -> String {
-    format!("{}:{}:{}", item.uri.as_str(), item.range.start.line, item.name)
+    format!(
+        "{}:{}:{}",
+        item.uri.as_str(),
+        item.range.start.line,
+        item.name
+    )
 }
 
 /// Check if a URI path is within the workspace (not external like stdlib).
 /// This is more robust than pattern matching specific stdlib paths.
 fn is_path_in_workspace(uri: &str, workspace_root: &Path) -> bool {
     let file_path = leta_fs::uri_to_path(uri);
-    
+
     // Check if file is within workspace root
     match file_path.strip_prefix(workspace_root) {
         Ok(rel_path) => {
             // Exclude common dependency directories
             let excluded_dirs = [
-                ".venv", "venv", "node_modules", "vendor", ".git",
-                "__pycache__", "target", "build", "dist",
+                ".venv",
+                "venv",
+                "node_modules",
+                "vendor",
+                ".git",
+                "__pycache__",
+                "target",
+                "build",
+                "dist",
             ];
-            !rel_path.iter().any(|part| {
-                excluded_dirs.iter().any(|d| part.to_str() == Some(*d))
-            })
+            !rel_path
+                .iter()
+                .any(|part| excluded_dirs.iter().any(|d| part.to_str() == Some(*d)))
         }
         Err(_) => false, // Path is outside workspace
     }
@@ -290,13 +324,13 @@ async fn collect_outgoing_calls(
     let mut result = Vec::new();
     for call in calls {
         let call_item = &call.to;
-        
+
         if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
 
         let mut node = call_hierarchy_item_to_node(call_item, workspace_root);
-        
+
         let children = Box::pin(collect_outgoing_calls(
             client.clone(),
             call_item,
@@ -305,7 +339,8 @@ async fn collect_outgoing_calls(
             max_depth,
             include_non_workspace,
             visited,
-        )).await;
+        ))
+        .await;
 
         if !children.is_empty() {
             node.calls = Some(children);
@@ -356,13 +391,13 @@ async fn collect_incoming_calls(
     let mut result = Vec::new();
     for call in calls {
         let call_item = &call.from;
-        
+
         if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
 
         let mut node = call_hierarchy_item_to_node(call_item, workspace_root);
-        
+
         let children = Box::pin(collect_incoming_calls(
             client.clone(),
             call_item,
@@ -371,7 +406,8 @@ async fn collect_incoming_calls(
             max_depth,
             include_non_workspace,
             visited,
-        )).await;
+        ))
+        .await;
 
         if !children.is_empty() {
             node.called_by = Some(children);
@@ -428,7 +464,7 @@ async fn find_call_path(
 
     for call in calls {
         let call_item = &call.to;
-        
+
         if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
             continue;
         }
@@ -442,7 +478,9 @@ async fn find_call_path(
             max_depth,
             include_non_workspace,
             visited,
-        )).await {
+        ))
+        .await
+        {
             path.insert(0, current_node);
             return Some(path);
         }

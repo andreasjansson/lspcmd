@@ -16,7 +16,7 @@ use std::sync::Arc;
 use fastrace::trace;
 use leta_fs::{get_language_id, get_lines_around, read_file_content, uri_to_path};
 use leta_lsp::lsp_types::{
-    DocumentSymbol, DocumentSymbolResponse, Location, SymbolInformation, TypeHierarchyItem,
+    DocumentSymbol, DocumentSymbolResponse, Location, SymbolInformation,
 };
 use leta_servers::get_server_for_language;
 use leta_types::{CacheStats, LocationInfo, SymbolInfo, SymbolKind};

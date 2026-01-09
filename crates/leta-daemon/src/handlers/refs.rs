@@ -22,9 +22,12 @@ pub async fn handle_references(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
@@ -34,7 +37,9 @@ pub async fn handle_references(
             "textDocument/references",
             ReferenceParams {
                 text_document_position: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -65,9 +70,12 @@ pub async fn handle_declaration(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
 
@@ -85,7 +93,9 @@ pub async fn handle_declaration(
             "textDocument/declaration",
             GotoDefinitionParams {
                 text_document_position_params: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -113,15 +123,22 @@ pub async fn handle_implementations(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
 
     let supports = client.supports_implementation().await;
-    tracing::debug!("handle_implementations: server={} supports_implementation={}", workspace.server_name(), supports);
-    
+    tracing::debug!(
+        "handle_implementations: server={} supports_implementation={}",
+        workspace.server_name(),
+        supports
+    );
+
     if !supports {
         return Err(format!(
             "Server '{}' does not support implementations (may require a license)",
@@ -136,7 +153,9 @@ pub async fn handle_implementations(
             "textDocument/implementation",
             GotoDefinitionParams {
                 text_document_position_params: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -153,7 +172,10 @@ pub async fn handle_implementations(
         .map(|resp| definition_response_to_locations(&resp, &workspace_root, params.context))
         .unwrap_or_default();
 
-    Ok(ImplementationsResult { locations, error: None })
+    Ok(ImplementationsResult {
+        locations,
+        error: None,
+    })
 }
 
 #[trace]
@@ -164,9 +186,12 @@ pub async fn handle_subtypes(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
 
@@ -186,7 +211,9 @@ pub async fn handle_subtypes(
             "textDocument/prepareTypeHierarchy",
             TypeHierarchyPrepareParams {
                 text_document_position_params: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -227,9 +254,12 @@ pub async fn handle_supertypes(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
 
@@ -248,7 +278,9 @@ pub async fn handle_supertypes(
             "textDocument/prepareTypeHierarchy",
             TypeHierarchyPrepareParams {
                 text_document_position_params: TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -289,12 +321,13 @@ fn definition_response_to_locations(
     let locations: Vec<Location> = match response {
         GotoDefinitionResponse::Scalar(loc) => vec![loc.clone()],
         GotoDefinitionResponse::Array(locs) => locs.clone(),
-        GotoDefinitionResponse::Link(links) => {
-            links.iter().map(|link| Location {
+        GotoDefinitionResponse::Link(links) => links
+            .iter()
+            .map(|link| Location {
                 uri: link.target_uri.clone(),
                 range: link.target_selection_range,
-            }).collect()
-        }
+            })
+            .collect(),
     };
     format_locations(&locations, workspace_root, context)
 }

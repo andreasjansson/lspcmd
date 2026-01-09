@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 
 use leta_fs::uri_to_path;
 use leta_lsp::lsp_types::{
-    DocumentChanges, FileRename, Position, RenameFilesParams, RenameParams as LspRenameParams,
-    TextDocumentIdentifier, TextEdit, WorkspaceEdit, FileChangeType,
+    DocumentChanges, FileChangeType, FileRename, Position, RenameFilesParams,
+    RenameParams as LspRenameParams, TextDocumentIdentifier, TextEdit, WorkspaceEdit,
 };
 use leta_types::{MoveFileParams, MoveFileResult, RenameParams, RenameResult};
 
@@ -13,13 +13,13 @@ use super::{relative_path, HandlerContext};
 
 fn get_files_from_workspace_edit(edit: &WorkspaceEdit) -> Vec<PathBuf> {
     let mut files = Vec::new();
-    
+
     if let Some(changes) = &edit.changes {
         for uri in changes.keys() {
             files.push(uri_to_path(uri.as_str()));
         }
     }
-    
+
     if let Some(document_changes) = &edit.document_changes {
         match document_changes {
             DocumentChanges::Edits(edits) => {
@@ -49,7 +49,7 @@ fn get_files_from_workspace_edit(edit: &WorkspaceEdit) -> Vec<PathBuf> {
             }
         }
     }
-    
+
     files
 }
 
@@ -61,9 +61,12 @@ pub async fn handle_rename(
     let workspace_root = PathBuf::from(&params.workspace_root);
     let file_path = PathBuf::from(&params.path);
 
-    let workspace = ctx.session.get_or_create_workspace(&file_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&file_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     workspace.ensure_document_open(&file_path).await?;
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(&file_path);
@@ -72,7 +75,9 @@ pub async fn handle_rename(
             "textDocument/rename",
             LspRenameParams {
                 text_document_position: leta_lsp::lsp_types::TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: Position {
                         line: params.line - 1,
                         character: params.column,
@@ -87,17 +92,21 @@ pub async fn handle_rename(
     tracing::info!("rename: got response from LSP");
 
     let edit = response.ok_or("Rename not supported or failed")?;
-    
+
     // Close ALL documents that will be modified BEFORE applying edits
     // This is critical for servers that won't reindex files if the document is still open
     let files_to_modify = get_files_from_workspace_edit(&edit);
-    tracing::info!("Closing {} documents before rename: {:?}", files_to_modify.len(), files_to_modify);
+    tracing::info!(
+        "Closing {} documents before rename: {:?}",
+        files_to_modify.len(),
+        files_to_modify
+    );
     for file_path in &files_to_modify {
         let _ = workspace.close_document(file_path).await;
     }
-    
+
     let (files_changed, renamed_files) = apply_workspace_edit(&edit, &workspace_root)?;
-    
+
     // Build list of file changes for didChangeWatchedFiles notification
     // For modified files, we send DELETE first to remove old index entries,
     // then CREATE to add new ones
@@ -114,7 +123,7 @@ pub async fn handle_rename(
             file_changes.push((abs_path, FileChangeType::CREATED));
         }
     }
-    
+
     // Notify LSP about file changes
     if !file_changes.is_empty() {
         tracing::info!("Notifying LSP about {} file changes", file_changes.len());
@@ -151,20 +160,31 @@ pub async fn handle_move_file(
     let new_path = PathBuf::from(&params.new_path);
 
     if !old_path.exists() {
-        return Err(format!("Source file does not exist: {}", old_path.display()));
+        return Err(format!(
+            "Source file does not exist: {}",
+            old_path.display()
+        ));
     }
     if new_path.exists() {
-        return Err(format!("Destination already exists: {}", new_path.display()));
+        return Err(format!(
+            "Destination already exists: {}",
+            new_path.display()
+        ));
     }
 
-    let workspace = ctx.session.get_or_create_workspace(&old_path, &workspace_root).await
+    let workspace = ctx
+        .session
+        .get_or_create_workspace(&old_path, &workspace_root)
+        .await
         .map_err(|e| e.to_string())?;
-    
+
     let client = workspace.client().await.ok_or("No LSP client")?;
     let server_name = workspace.server_name();
-    
+
     let caps = client.capabilities().await;
-    let supports_will_rename = caps.workspace.as_ref()
+    let supports_will_rename = caps
+        .workspace
+        .as_ref()
         .and_then(|w| w.file_operations.as_ref())
         .and_then(|fo| fo.will_rename.as_ref())
         .is_some();
@@ -185,7 +205,7 @@ pub async fn handle_move_file(
             opened_for_indexing.push(file_path);
         }
     }
-    
+
     // Wait for LSP to index the opened files
     if !opened_for_indexing.is_empty() {
         tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -210,9 +230,9 @@ pub async fn handle_move_file(
         .await
         .ok()
         .flatten();
-    
+
     tracing::info!("workspace/willRenameFiles response: {:?}", response);
-    
+
     // Close the documents we opened for indexing
     for file_path in &opened_for_indexing {
         let _ = workspace.close_document(file_path).await;
@@ -223,7 +243,8 @@ pub async fn handle_move_file(
 
     // Apply workspace edit FIRST (it may contain the rename operation)
     if let Some(ref edit) = response {
-        let (files, was_moved) = apply_workspace_edit_for_move(edit, &workspace_root, &old_path, &new_path)?;
+        let (files, was_moved) =
+            apply_workspace_edit_for_move(edit, &workspace_root, &old_path, &new_path)?;
         files_changed = files;
         file_moved_by_edit = was_moved;
     }
@@ -231,7 +252,8 @@ pub async fn handle_move_file(
     // Only manually move if the edit didn't already move it
     if !file_moved_by_edit {
         if let Some(parent) = new_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create directory: {}", e))?;
         }
         std::fs::rename(&old_path, &new_path).map_err(|e| format!("Failed to move file: {}", e))?;
         files_changed.push(relative_path(&new_path, &workspace_root));
@@ -242,9 +264,9 @@ pub async fn handle_move_file(
     files_changed.retain(|f| seen.insert(f.clone()));
     files_changed.sort();
 
-    let imports_updated = files_changed.iter().any(|f| {
-        f != &relative_path(&new_path, &workspace_root)
-    });
+    let imports_updated = files_changed
+        .iter()
+        .any(|f| f != &relative_path(&new_path, &workspace_root));
 
     // Sync the LSP with the changes so subsequent operations see the updated state
     let _ = workspace.close_document(&old_path).await;
@@ -287,15 +309,19 @@ fn apply_workspace_edit_for_move(
         match document_changes {
             DocumentChanges::Edits(edits) => {
                 for edit in edits {
-                    let text_edits: Vec<_> = edit.edits.iter().map(|e| match e {
-                        leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
-                        leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
-                    }).collect();
-                    
+                    let text_edits: Vec<_> = edit
+                        .edits
+                        .iter()
+                        .map(|e| match e {
+                            leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                            leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
+                        })
+                        .collect();
+
                     if text_edits.is_empty() {
                         continue;
                     }
-                    
+
                     let mut file_path = uri_to_path(edit.text_document.uri.as_str());
                     if file_path == move_old_path {
                         file_path = move_new_path.to_path_buf();
@@ -308,15 +334,19 @@ fn apply_workspace_edit_for_move(
                 for op in ops {
                     match op {
                         leta_lsp::lsp_types::DocumentChangeOperation::Edit(edit) => {
-                            let text_edits: Vec<_> = edit.edits.iter().map(|e| match e {
-                                leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
-                                leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
-                            }).collect();
-                            
+                            let text_edits: Vec<_> = edit
+                                .edits
+                                .iter()
+                                .map(|e| match e {
+                                    leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                                    leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
+                                })
+                                .collect();
+
                             if text_edits.is_empty() {
                                 continue;
                             }
-                            
+
                             let mut file_path = uri_to_path(edit.text_document.uri.as_str());
                             if file_path == move_old_path {
                                 file_path = move_new_path.to_path_buf();
@@ -337,11 +367,11 @@ fn apply_workspace_edit_for_move(
                                 leta_lsp::lsp_types::ResourceOp::Rename(rename) => {
                                     let old_path = uri_to_path(rename.old_uri.as_str());
                                     let new_path = uri_to_path(rename.new_uri.as_str());
-                                    
+
                                     if old_path == move_old_path && new_path == move_new_path {
                                         file_moved = true;
                                     }
-                                    
+
                                     if let Some(parent) = new_path.parent() {
                                         let _ = std::fs::create_dir_all(parent);
                                     }
@@ -366,7 +396,10 @@ fn apply_workspace_edit_for_move(
 }
 
 /// Apply a workspace edit for rename, returning (changed_files, renamed_file_pairs).
-fn apply_workspace_edit(edit: &WorkspaceEdit, workspace_root: &Path) -> Result<(Vec<String>, Vec<(PathBuf, PathBuf)>), String> {
+fn apply_workspace_edit(
+    edit: &WorkspaceEdit,
+    workspace_root: &Path,
+) -> Result<(Vec<String>, Vec<(PathBuf, PathBuf)>), String> {
     let mut changed_files = HashSet::new();
     let mut renamed_files = Vec::new();
 
@@ -383,10 +416,17 @@ fn apply_workspace_edit(edit: &WorkspaceEdit, workspace_root: &Path) -> Result<(
             DocumentChanges::Edits(edits) => {
                 for edit in edits {
                     let file_path = uri_to_path(edit.text_document.uri.as_str());
-                    apply_text_edits(&file_path, &edit.edits.iter().map(|e| match e {
-                        leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
-                        leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
-                    }).collect::<Vec<_>>())?;
+                    apply_text_edits(
+                        &file_path,
+                        &edit
+                            .edits
+                            .iter()
+                            .map(|e| match e {
+                                leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                                leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
+                            })
+                            .collect::<Vec<_>>(),
+                    )?;
                     changed_files.insert(relative_path(&file_path, workspace_root));
                 }
             }
@@ -395,10 +435,19 @@ fn apply_workspace_edit(edit: &WorkspaceEdit, workspace_root: &Path) -> Result<(
                     match op {
                         leta_lsp::lsp_types::DocumentChangeOperation::Edit(edit) => {
                             let file_path = uri_to_path(edit.text_document.uri.as_str());
-                            apply_text_edits(&file_path, &edit.edits.iter().map(|e| match e {
-                                leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
-                                leta_lsp::lsp_types::OneOf::Right(ate) => ate.text_edit.clone(),
-                            }).collect::<Vec<_>>())?;
+                            apply_text_edits(
+                                &file_path,
+                                &edit
+                                    .edits
+                                    .iter()
+                                    .map(|e| match e {
+                                        leta_lsp::lsp_types::OneOf::Left(te) => te.clone(),
+                                        leta_lsp::lsp_types::OneOf::Right(ate) => {
+                                            ate.text_edit.clone()
+                                        }
+                                    })
+                                    .collect::<Vec<_>>(),
+                            )?;
                             changed_files.insert(relative_path(&file_path, workspace_root));
                         }
                         leta_lsp::lsp_types::DocumentChangeOperation::Op(resource_op) => {
@@ -441,9 +490,9 @@ fn apply_workspace_edit(edit: &WorkspaceEdit, workspace_root: &Path) -> Result<(
 fn apply_text_edits(file_path: &Path, edits: &[TextEdit]) -> Result<(), String> {
     let content = std::fs::read_to_string(file_path)
         .map_err(|e| format!("Failed to read {}: {}", file_path.display(), e))?;
-    
+
     let lines: Vec<&str> = content.lines().collect();
-    
+
     let mut sorted_edits: Vec<&TextEdit> = edits.iter().collect();
     sorted_edits.sort_by(|a, b| {
         let a_start = (a.range.start.line, a.range.start.character);
@@ -480,7 +529,7 @@ fn apply_text_edits(file_path: &Path, edits: &[TextEdit]) -> Result<(), String> 
         };
 
         let new_text_lines: Vec<&str> = edit.new_text.lines().collect();
-        
+
         for _ in start_line..=end_line.min(result_lines.len().saturating_sub(1)) {
             if start_line < result_lines.len() {
                 result_lines.remove(start_line);
