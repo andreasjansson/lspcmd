@@ -235,6 +235,7 @@ impl Session {
         }
     }
 
+    #[trace]
     pub async fn config(&self) -> Config {
         self.config.read().await.clone()
     }
