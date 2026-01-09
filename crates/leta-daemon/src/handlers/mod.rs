@@ -410,26 +410,3 @@ pub async fn collect_all_workspace_symbols(
 
     Ok(all_symbols)
 }
-
-fn get_cached_symbols(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    file_path: &Path,
-) -> Option<Vec<SymbolInfo>> {
-    use std::sync::atomic::Ordering;
-
-    let file_sha = leta_fs::file_sha(file_path);
-    let cache_key = format!(
-        "{}:{}:{}",
-        file_path.display(),
-        workspace_root.display(),
-        file_sha
-    );
-
-    if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
-        ctx.cache_stats.symbol_hits.fetch_add(1, Ordering::Relaxed);
-        Some(cached)
-    } else {
-        None
-    }
-}
