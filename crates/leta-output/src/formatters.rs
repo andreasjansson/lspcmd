@@ -239,9 +239,21 @@ pub fn format_describe_session_result(
                             lines.extend(format_function_stats(&startup.functions, "        ", 5));
                         }
                         if let Some(indexing) = &profile.indexing {
+                            let cache = &indexing.cache;
+                            let symbol_total = cache.symbol_hits + cache.symbol_misses;
+                            let cache_str = if symbol_total > 0 {
+                                format!(
+                                    ", cache {}/{} ({:.0}%)",
+                                    cache.symbol_hits,
+                                    symbol_total,
+                                    cache.symbol_hit_rate()
+                                )
+                            } else {
+                                String::new()
+                            };
                             lines.push(format!(
-                                "      Indexing: {}ms ({} files)",
-                                indexing.total_time_ms, indexing.file_count
+                                "      Indexing: {}ms ({} files{})",
+                                indexing.total_time_ms, indexing.file_count, cache_str
                             ));
                             lines.extend(format_function_stats(
                                 &indexing.functions,
