@@ -451,19 +451,23 @@ pub fn format_calls_result(result: &CallsResult, path_prefix: Option<&str>) -> S
 
     let mut lines = Vec::new();
 
-    if let Some(path) = &result.path {
+    if let Some(call_path) = &result.path {
         lines.push("Call path found:".to_string());
-        for (i, node) in path.iter().enumerate() {
+        for (i, node) in call_path.iter().enumerate() {
             let indent = "  ".repeat(i);
-            let path = if let Some(prefix) = path_prefix {
-                node.path
-                    .strip_prefix(prefix)
-                    .unwrap_or(&node.path)
-                    .trim_start_matches('/')
-            } else {
-                &node.path
-            };
-            lines.push(format!("{}{}:{} {}", indent, path, node.line, node.name));
+            let path = node
+                .path
+                .as_ref()
+                .map(|p| {
+                    if let Some(prefix) = path_prefix {
+                        p.strip_prefix(prefix).unwrap_or(p).trim_start_matches('/')
+                    } else {
+                        p.as_str()
+                    }
+                })
+                .unwrap_or("");
+            let line = node.line.unwrap_or(0);
+            lines.push(format!("{}{}:{} {}", indent, path, line, node.name));
         }
     } else if let Some(root) = &result.root {
         fn format_node(
