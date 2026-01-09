@@ -101,7 +101,7 @@ impl Workspace {
                     self.server_config.name, total_time
                 );
 
-                Ok(leta_types::ServerStartupStats {
+                let stats = leta_types::ServerStartupStats {
                     server_name: self.server_config.name.to_string(),
                     workspace_root: self.root.to_string_lossy().to_string(),
                     start_time_ms: 0,
