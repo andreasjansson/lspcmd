@@ -895,33 +895,10 @@ fn format_profiling(data: &ProfilingData) -> String {
 
     if !data.functions.is_empty() {
         lines.push("TIMING".to_string());
-        lines.push(format!(
-            "{:<60} {:>6} {:>10} {:>10} {:>12}",
-            "Function", "Calls", "Avg", "P90", "Total"
-        ));
-        lines.push("-".repeat(100));
-        lines.extend(format_function_stats_full(&data.functions, ""));
+        lines.extend(format_function_stats(&data.functions, "", usize::MAX));
     }
 
     lines.join("\n")
-}
-
-fn format_function_stats_full(functions: &[FunctionStats], indent: &str) -> Vec<String> {
-    functions
-        .iter()
-        .map(|stat| {
-            let name = leta_output::format_function_name(&stat.name);
-            format!(
-                "{}{:<60} {:>6} {:>10} {:>10} {:>12}",
-                indent,
-                name,
-                stat.calls,
-                format_duration_us(stat.avg_us),
-                format_duration_us(stat.p90_us),
-                format_duration_us(stat.total_us),
-            )
-        })
-        .collect()
 }
 
 fn format_duration_us(us: u64) -> String {
