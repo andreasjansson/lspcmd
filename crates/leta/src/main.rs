@@ -866,63 +866,62 @@ async fn handle_files(
 }
 
 fn format_profiling(data: &ProfilingData) -> String {
-    let mut output = String::new();
+    let mut lines = Vec::new();
 
     let cache = &data.cache;
     let symbol_total = cache.symbol_hits + cache.symbol_misses;
     let hover_total = cache.hover_hits + cache.hover_misses;
 
     if symbol_total > 0 || hover_total > 0 {
-        output.push_str("CACHE\n");
+        lines.push("CACHE".to_string());
         if symbol_total > 0 {
-            output.push_str(&format!(
-                "  symbols: {}/{} hits ({:.1}%)\n",
+            lines.push(format!(
+                "  symbols: {}/{} hits ({:.1}%)",
                 cache.symbol_hits,
                 symbol_total,
                 cache.symbol_hit_rate()
             ));
         }
         if hover_total > 0 {
-            output.push_str(&format!(
-                "  hover:   {}/{} hits ({:.1}%)\n",
+            lines.push(format!(
+                "  hover:   {}/{} hits ({:.1}%)",
                 cache.hover_hits,
                 hover_total,
                 cache.hover_hit_rate()
             ));
         }
-        output.push('\n');
+        lines.push(String::new());
     }
 
     if !data.functions.is_empty() {
-        output.push_str("TIMING\n");
-        output.push_str(&format!(
-            "{:<60} {:>6} {:>10} {:>10} {:>12}\n",
+        lines.push("TIMING".to_string());
+        lines.push(format!(
+            "{:<60} {:>6} {:>10} {:>10} {:>12}",
             "Function", "Calls", "Avg", "P90", "Total"
         ));
-        output.push_str(&"-".repeat(100));
-        output.push('\n');
+        lines.push("-".repeat(100));
+        lines.extend(format_function_stats_full(&data.functions, ""));
+    }
 
-        for stat in &data.functions {
-            let name = stat
-                .name
-                .strip_prefix("leta_daemon::handlers::")
-                .or_else(|| stat.name.strip_prefix("leta_daemon::"))
-                .or_else(|| stat.name.strip_prefix("leta_"))
-                .unwrap_or(&stat.name)
-                .trim_end_matches("::{{closure}}");
+    lines.join("\n")
+}
 
-            output.push_str(&format!(
-                "{:<60} {:>6} {:>10} {:>10} {:>12}\n",
+fn format_function_stats_full(functions: &[FunctionStats], indent: &str) -> Vec<String> {
+    functions
+        .iter()
+        .map(|stat| {
+            let name = leta_output::format_function_name(&stat.name);
+            format!(
+                "{}{:<60} {:>6} {:>10} {:>10} {:>12}",
+                indent,
                 name,
                 stat.calls,
                 format_duration_us(stat.avg_us),
                 format_duration_us(stat.p90_us),
                 format_duration_us(stat.total_us),
-            ));
-        }
-    }
-
-    output
+            )
+        })
+        .collect()
 }
 
 fn format_duration_us(us: u64) -> String {
