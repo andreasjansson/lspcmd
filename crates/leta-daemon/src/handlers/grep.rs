@@ -14,23 +14,25 @@ use crate::session::WorkspaceHandle;
 
 #[trace]
 pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
-    debug!("handle_grep: pattern={} workspace={}", params.pattern, params.workspace_root);
+    debug!(
+        "handle_grep: pattern={} workspace={}",
+        params.pattern, params.workspace_root
+    );
     let workspace_root = PathBuf::from(&params.workspace_root);
-    
-    let flags = if params.case_sensitive {
-        ""
-    } else {
-        "(?i)"
-    };
-    let pattern = format!("{}{}", flags, params.pattern);
-    let regex = Regex::new(&pattern).map_err(|e| format!("Invalid regex '{}': {}", params.pattern, e))?;
 
-    let kinds_set: Option<HashSet<String>> = params.kinds.map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
+    let flags = if params.case_sensitive { "" } else { "(?i)" };
+    let pattern = format!("{}{}", flags, params.pattern);
+    let regex =
+        Regex::new(&pattern).map_err(|e| format!("Invalid regex '{}': {}", params.pattern, e))?;
+
+    let kinds_set: Option<HashSet<String>> = params
+        .kinds
+        .map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
 
     let symbols = if let Some(paths) = params.paths {
         collect_symbols_for_paths(ctx, &paths, &workspace_root).await?
     } else {
-        collect_all_workspace_symbols(ctx, &workspace_root).await?
+        super::collect_all_workspace_symbols(ctx, &workspace_root).await?
     };
 
     let mut filtered: Vec<SymbolInfo> = symbols
@@ -55,7 +57,10 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
 
     if params.include_docs {
         for sym in &mut filtered {
-            if let Some(doc) = get_symbol_documentation(ctx, &workspace_root, &sym.path, sym.line, sym.column).await {
+            if let Some(doc) =
+                get_symbol_documentation(ctx, &workspace_root, &sym.path, sym.line, sym.column)
+                    .await
+            {
                 sym.documentation = Some(doc);
             }
         }
@@ -92,7 +97,10 @@ async fn collect_symbols_for_paths(
         }
         let lang = get_language_id(&path);
         if lang != "plaintext" {
-            files_by_lang.entry(lang.to_string()).or_default().push(path);
+            files_by_lang
+                .entry(lang.to_string())
+                .or_default()
+                .push(path);
         }
     }
 
@@ -101,7 +109,11 @@ async fn collect_symbols_for_paths(
             continue;
         }
 
-        let workspace = match ctx.session.get_or_create_workspace_for_language(&lang, workspace_root).await {
+        let workspace = match ctx
+            .session
+            .get_or_create_workspace_for_language(&lang, workspace_root)
+            .await
+        {
             Ok(ws) => ws,
             Err(_) => continue,
         };
@@ -109,7 +121,8 @@ async fn collect_symbols_for_paths(
         workspace.wait_for_ready(30).await;
 
         for file_path in files {
-            if let Ok(symbols) = get_file_symbols(ctx, &workspace, workspace_root, &file_path).await {
+            if let Ok(symbols) = get_file_symbols(ctx, &workspace, workspace_root, &file_path).await
+            {
                 all_symbols.extend(symbols);
             }
         }
@@ -117,7 +130,6 @@ async fn collect_symbols_for_paths(
 
     Ok(all_symbols)
 }
-
 
 #[trace]
 pub async fn get_file_symbols(
@@ -127,15 +139,22 @@ pub async fn get_file_symbols(
     file_path: &Path,
 ) -> Result<Vec<SymbolInfo>, String> {
     use std::sync::atomic::Ordering;
-    
+
     let file_sha = leta_fs::file_sha(file_path);
-    let cache_key = format!("{}:{}:{}", file_path.display(), workspace_root.display(), file_sha);
+    let cache_key = format!(
+        "{}:{}:{}",
+        file_path.display(),
+        workspace_root.display(),
+        file_sha
+    );
 
     if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
         ctx.cache_stats.symbol_hits.fetch_add(1, Ordering::Relaxed);
         return Ok(cached);
     }
-    ctx.cache_stats.symbol_misses.fetch_add(1, Ordering::Relaxed);
+    ctx.cache_stats
+        .symbol_misses
+        .fetch_add(1, Ordering::Relaxed);
 
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(file_path);
@@ -146,7 +165,9 @@ pub async fn get_file_symbols(
         .send_request(
             "textDocument/documentSymbol",
             DocumentSymbolParams {
-                text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                text_document: TextDocumentIdentifier {
+                    uri: uri.parse().unwrap(),
+                },
                 work_done_progress_params: Default::default(),
                 partial_result_params: Default::default(),
             },
@@ -175,17 +196,27 @@ async fn get_symbol_documentation(
     column: u32,
 ) -> Option<String> {
     use std::sync::atomic::Ordering;
-    
+
     let file_path = workspace_root.join(rel_path);
     let workspace = ctx.session.get_workspace_for_file(&file_path).await?;
     let client = workspace.client().await?;
 
     let file_sha = leta_fs::file_sha(&file_path);
-    let cache_key = format!("hover:{}:{}:{}:{}", file_path.display(), line, column, file_sha);
+    let cache_key = format!(
+        "hover:{}:{}:{}:{}",
+        file_path.display(),
+        line,
+        column,
+        file_sha
+    );
 
     if let Some(cached) = ctx.hover_cache.get::<String>(&cache_key) {
         ctx.cache_stats.hover_hits.fetch_add(1, Ordering::Relaxed);
-        return if cached.is_empty() { None } else { Some(cached) };
+        return if cached.is_empty() {
+            None
+        } else {
+            Some(cached)
+        };
     }
     ctx.cache_stats.hover_misses.fetch_add(1, Ordering::Relaxed);
 
@@ -197,7 +228,9 @@ async fn get_symbol_documentation(
             "textDocument/hover",
             leta_lsp::lsp_types::HoverParams {
                 text_document_position_params: leta_lsp::lsp_types::TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier { uri: uri.parse().unwrap() },
+                    text_document: TextDocumentIdentifier {
+                        uri: uri.parse().unwrap(),
+                    },
                     position: leta_lsp::lsp_types::Position {
                         line: line - 1,
                         character: column,
@@ -210,7 +243,8 @@ async fn get_symbol_documentation(
         .ok()?;
 
     let doc = response.and_then(|h| extract_hover_content(&h.contents));
-    ctx.hover_cache.set(&cache_key, &doc.clone().unwrap_or_default());
+    ctx.hover_cache
+        .set(&cache_key, &doc.clone().unwrap_or_default());
     doc
 }
 
@@ -240,7 +274,10 @@ fn extract_hover_content(contents: &leta_lsp::lsp_types::HoverContents) -> Optio
 
 fn is_excluded(path: &str, patterns: &[String]) -> bool {
     let path_parts: Vec<&str> = Path::new(path).iter().filter_map(|s| s.to_str()).collect();
-    let filename = Path::new(path).file_name().and_then(|s| s.to_str()).unwrap_or("");
+    let filename = Path::new(path)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or("");
 
     for pattern in patterns {
         if glob_match(path, pattern) {
