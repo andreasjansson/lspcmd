@@ -2,9 +2,6 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use fastrace::trace;
-use leta_fs::get_language_id;
-use leta_lsp::lsp_types::{DocumentSymbolParams, TextDocumentIdentifier};
-use leta_servers::get_server_for_language;
 use leta_types::{ResolveSymbolParams, ResolveSymbolResult, SymbolInfo};
 use regex::Regex;
 
