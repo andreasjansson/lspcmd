@@ -129,7 +129,7 @@ impl DaemonServer {
             .write_all(serde_json::to_vec(&response)?.as_slice())
             .await?;
         stream.shutdown().await?;
-        tracing::info!("Response written at {:?}", method, start.elapsed());
+        tracing::info!("Response written at {:?}", start.elapsed());
 
         Ok(())
     }
