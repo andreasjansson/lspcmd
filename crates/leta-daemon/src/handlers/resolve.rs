@@ -26,20 +26,10 @@ pub async fn handle_resolve_symbol(
     ctx: &HandlerContext,
     params: ResolveSymbolParams,
 ) -> Result<ResolveSymbolResult, String> {
-    let start = std::time::Instant::now();
     let workspace_root = PathBuf::from(&params.workspace_root);
     let symbol_path = params.symbol_path.clone();
 
-    tracing::info!(
-        "resolve: before collect_all_workspace_symbols {:?}",
-        start.elapsed()
-    );
     let all_symbols = collect_all_workspace_symbols(ctx, &workspace_root).await?;
-    tracing::info!(
-        "resolve: after collect_all_workspace_symbols {:?}, {} symbols",
-        start.elapsed(),
-        all_symbols.len()
-    );
 
     if looks_like_lua_method(&symbol_path) {
         let matches: Vec<SymbolInfo> = all_symbols
