@@ -134,21 +134,27 @@ impl Config {
         Ok(())
     }
 
-    pub fn add_workspace_root(&mut self, root: &Path) -> Result<(), ConfigError> {
+    pub fn add_workspace_root(root: &Path) -> Result<bool, ConfigError> {
+        let _lock = ConfigLock::acquire_exclusive()?;
+        let mut config = Config::load_unlocked()?;
         let root_str = root.to_string_lossy().to_string();
-        if !self.workspaces.roots.contains(&root_str) {
-            self.workspaces.roots.push(root_str);
-            self.save()?;
+        if !config.workspaces.roots.contains(&root_str) {
+            config.workspaces.roots.push(root_str);
+            config.save_unlocked()?;
+            Ok(true)
+        } else {
+            Ok(false)
         }
-        Ok(())
     }
 
-    pub fn remove_workspace_root(&mut self, root: &Path) -> Result<bool, ConfigError> {
+    pub fn remove_workspace_root(root: &Path) -> Result<bool, ConfigError> {
+        let _lock = ConfigLock::acquire_exclusive()?;
+        let mut config = Config::load_unlocked()?;
         let root_str = root.to_string_lossy().to_string();
-        let initial_len = self.workspaces.roots.len();
-        self.workspaces.roots.retain(|r| r != &root_str);
-        if self.workspaces.roots.len() < initial_len {
-            self.save()?;
+        let initial_len = config.workspaces.roots.len();
+        config.workspaces.roots.retain(|r| r != &root_str);
+        if config.workspaces.roots.len() < initial_len {
+            config.save_unlocked()?;
             Ok(true)
         } else {
             Ok(false)
