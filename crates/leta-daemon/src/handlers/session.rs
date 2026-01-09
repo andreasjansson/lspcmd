@@ -13,7 +13,7 @@ use super::HandlerContext;
 #[trace]
 pub async fn handle_describe_session(
     ctx: &HandlerContext,
-    _params: DescribeSessionParams,
+    params: DescribeSessionParams,
 ) -> Result<DescribeSessionResult, String> {
     let mut caches = HashMap::new();
 
@@ -50,10 +50,17 @@ pub async fn handle_describe_session(
         })
         .collect();
 
+    let indexing_stats = if params.include_profiling {
+        Some(ctx.session.get_indexing_stats().await)
+    } else {
+        None
+    };
+
     Ok(DescribeSessionResult {
         daemon_pid: std::process::id(),
         caches,
         workspaces,
+        indexing_stats,
     })
 }
 
