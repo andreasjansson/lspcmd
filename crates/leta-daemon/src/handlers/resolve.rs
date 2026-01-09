@@ -68,6 +68,16 @@ pub async fn handle_resolve_symbol(
         if let Some(line) = line_filter {
             error_msg.push_str(&format!(" on line {}", line));
         }
+
+        if symbol_name.contains(' ')
+            || symbol_name.contains("impl ")
+            || symbol_name.contains("fn ")
+            || symbol_name.contains("class ")
+            || symbol_name.contains("def ")
+        {
+            error_msg.push_str("\nHint: leta searches for symbol names, not code patterns. Use ripgrep for text search.");
+        }
+
         return Ok(ResolveSymbolResult {
             error: Some(error_msg),
             path: None,
