@@ -165,7 +165,7 @@ pub struct DescribeSessionResult {
     pub caches: HashMap<String, CacheInfo>,
     pub workspaces: Vec<WorkspaceInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub indexing_stats: Option<Vec<IndexingStats>>,
+    pub profiling: Option<Vec<WorkspaceProfilingData>>,
 }
 
 // ============================================================================
