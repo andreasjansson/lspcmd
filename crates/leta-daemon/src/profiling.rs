@@ -39,22 +39,6 @@ impl SpanCollector {
     }
 }
 
-pub async fn run_profiled<F, T>(name: &'static str, fut: F) -> (T, Vec<FunctionStats>)
-where
-    F: Future<Output = T>,
-{
-    let (reporter, collector) = CollectingReporter::new();
-    fastrace::set_reporter(reporter, FastraceConfig::default());
-
-    let root = Span::root(name, SpanContext::random());
-    let result = fut.in_span(root).await;
-
-    fastrace::flush();
-    let functions = collector.collect_and_aggregate();
-
-    (result, functions)
-}
-
 fn aggregate_spans(spans: Vec<SpanRecord>) -> Vec<FunctionStats> {
     let mut by_name: HashMap<String, Vec<u64>> = HashMap::new();
 
