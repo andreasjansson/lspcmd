@@ -63,6 +63,7 @@ pub struct ServerIndexingStats {
     pub file_count: u32,
     pub total_time_ms: u64,
     pub functions: Vec<FunctionStats>,
+    pub cache: CacheStats,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
