@@ -427,12 +427,12 @@ fn format_locations(locations: &[LocationInfo], path_prefix: Option<&str>) -> St
             &loc.path
         };
 
-        if let Some(content) = &loc.content {
-            lines.push(format!("{}:{}", path, loc.line));
-            lines.push(content.clone());
+        lines.push(format!("{}:{}", path, loc.line));
+        if let Some(context_lines) = &loc.context_lines {
+            for line in context_lines {
+                lines.push(line.clone());
+            }
             lines.push(String::new());
-        } else {
-            lines.push(format!("{}:{}", path, loc.line));
         }
     }
     if lines.last() == Some(&String::new()) {
