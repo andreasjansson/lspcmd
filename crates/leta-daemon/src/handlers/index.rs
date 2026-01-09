@@ -2,6 +2,8 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use fastrace::collector::Config as FastraceConfig;
+use fastrace::prelude::*;
 use fastrace::trace;
 use leta_config::Config;
 use leta_fs::get_language_id;
@@ -11,6 +13,7 @@ use tokio::sync::Semaphore;
 use tracing::{info, warn};
 
 use super::{get_file_symbols, HandlerContext};
+use crate::profiling::CollectingReporter;
 
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
     ".git",
