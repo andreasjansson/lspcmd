@@ -1,3 +1,4 @@
+use fastrace::trace;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -9,6 +10,7 @@ use leta_types::{
 
 use super::HandlerContext;
 
+#[trace]
 pub async fn handle_describe_session(
     ctx: &HandlerContext,
     _params: DescribeSessionParams,
@@ -46,6 +48,7 @@ pub async fn handle_describe_session(
     })
 }
 
+#[trace]
 pub async fn handle_restart_workspace(
     ctx: &HandlerContext,
     params: RestartWorkspaceParams,
@@ -56,6 +59,7 @@ pub async fn handle_restart_workspace(
     Ok(RestartWorkspaceResult { restarted })
 }
 
+#[trace]
 pub async fn handle_remove_workspace(
     ctx: &HandlerContext,
     params: RemoveWorkspaceParams,

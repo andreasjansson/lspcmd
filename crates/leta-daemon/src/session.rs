@@ -100,6 +100,7 @@ impl Workspace {
     /// clangd does lazy indexing - it only indexes files when they're opened.
     /// This means documentSymbol won't work on files that haven't been opened yet.
     /// We work around this by opening all source files during initialization.
+    #[trace]
     async fn ensure_workspace_indexed(&mut self, client: &Arc<LspClient>) {
         let source_extensions = [".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hxx"];
         let exclude_dirs = ["build", ".git", "node_modules"];
@@ -137,6 +138,7 @@ impl Workspace {
         self.close_all_documents().await;
     }
 
+    #[trace]
     pub async fn stop_server(&mut self) {
         if let Some(client) = self.client.take() {
             info!("Stopping {}", self.server_config.name);
@@ -195,6 +197,7 @@ impl Workspace {
         Ok(())
     }
 
+    #[trace]
     pub async fn close_document(&mut self, path: &Path) {
         let uri = path_to_uri(path);
         if self.open_documents.remove(&uri).is_none() {
@@ -209,6 +212,7 @@ impl Workspace {
         }
     }
 
+    #[trace]
     pub async fn close_all_documents(&mut self) {
         if let Some(client) = &self.client {
             for uri in self.open_documents.keys() {
@@ -240,6 +244,7 @@ impl Session {
         self.config.read().await.clone()
     }
 
+    #[trace]
     pub async fn get_or_create_workspace(
         &self,
         file_path: &Path,
@@ -326,6 +331,7 @@ impl Session {
     }
 
     #[allow(dead_code)]
+    #[trace]
     pub async fn get_workspace_for_file(&self, file_path: &Path) -> Option<WorkspaceHandle<'_>> {
         let file_path = file_path.canonicalize().unwrap_or_else(|_| file_path.to_path_buf());
         let config = self.config.read().await;
@@ -344,6 +350,7 @@ impl Session {
         None
     }
 
+    #[trace]
     pub async fn list_workspaces(&self) -> Vec<(String, String, Option<u32>, Vec<String>)> {
         let workspaces = self.workspaces.read().await;
         let mut result = Vec::new();
@@ -363,6 +370,7 @@ impl Session {
         result
     }
 
+    #[trace]
     pub async fn restart_workspace(&self, root: &Path) -> Result<Vec<String>, String> {
         let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
         let mut workspaces = self.workspaces.write().await;
@@ -378,6 +386,7 @@ impl Session {
         Ok(restarted)
     }
 
+    #[trace]
     pub async fn remove_workspace(&self, root: &Path) -> Result<Vec<String>, String> {
         let root = root.canonicalize().unwrap_or_else(|_| root.to_path_buf());
         let mut workspaces = self.workspaces.write().await;
@@ -392,6 +401,7 @@ impl Session {
         Ok(stopped)
     }
 
+    #[trace]
     pub async fn close_all(&self) {
         let mut workspaces = self.workspaces.write().await;
         for (_, mut servers) in workspaces.drain() {
@@ -511,6 +521,7 @@ impl<'a> WorkspaceHandle<'a> {
         Ok(())
     }
 
+    #[trace]
     pub async fn close_document(&self, path: &Path) {
         tracing::trace!("WorkspaceHandle::close_document acquiring write lock");
         let mut workspaces = self.session.workspaces.write().await;
@@ -522,6 +533,7 @@ impl<'a> WorkspaceHandle<'a> {
         tracing::trace!("WorkspaceHandle::close_document releasing write lock");
     }
 
+    #[trace]
     pub async fn is_document_open(&self, path: &Path) -> bool {
         let uri = path_to_uri(path);
         let workspaces = self.session.workspaces.read().await;
@@ -533,6 +545,7 @@ impl<'a> WorkspaceHandle<'a> {
         false
     }
 
+    #[trace]
     pub async fn notify_files_changed(&self, changes: &[(PathBuf, leta_lsp::lsp_types::FileChangeType)]) {
         let client = match self.client().await {
             Some(c) => c,

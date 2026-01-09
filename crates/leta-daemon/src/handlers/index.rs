@@ -73,6 +73,7 @@ pub async fn handle_add_workspace(
     })
 }
 
+#[trace]
 async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf) {
     let start = std::time::Instant::now();
     info!("Starting background indexing for {}", workspace_root.display());
@@ -174,6 +175,7 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
     info!("Background indexing complete: {} files in {:?}", total_indexed, start.elapsed());
 }
 
+#[trace]
 async fn index_single_file(
     ctx: &HandlerContext,
     workspace_root: &Path,

@@ -1,3 +1,4 @@
+use fastrace::trace;
 use std::sync::Arc;
 
 use fastrace::collector::Config as FastraceConfig;
@@ -39,6 +40,7 @@ impl DaemonServer {
         }
     }
 
+    #[trace]
     pub async fn run(self) -> anyhow::Result<()> {
         let socket_path = get_socket_path();
         let pid_path = get_pid_path();
@@ -91,6 +93,7 @@ impl DaemonServer {
         Ok(())
     }
 
+    #[trace]
     async fn handle_client(&self, mut stream: UnixStream) -> anyhow::Result<()> {
         let mut data = Vec::new();
         stream.read_to_end(&mut data).await?;
@@ -122,6 +125,7 @@ impl DaemonServer {
         Ok(())
     }
 
+    #[trace]
     async fn dispatch_with_profiling(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
         let (reporter, collector) = CollectingReporter::new();
         fastrace::set_reporter(reporter, FastraceConfig::default());
@@ -148,6 +152,7 @@ impl DaemonServer {
         response
     }
 
+    #[trace]
     async fn dispatch(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
         macro_rules! handle {
             ($params_ty:ty, $handler:expr) => {{
@@ -189,6 +194,7 @@ impl DaemonServer {
         }
     }
 
+    #[trace]
     async fn shutdown(&self) {
         info!("Shutting down daemon");
         self.session.close_all().await;

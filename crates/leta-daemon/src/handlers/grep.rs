@@ -76,6 +76,7 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
     })
 }
 
+#[trace]
 async fn collect_symbols_for_paths(
     ctx: &HandlerContext,
     paths: &[String],
@@ -117,6 +118,7 @@ async fn collect_symbols_for_paths(
     Ok(all_symbols)
 }
 
+#[trace]
 async fn collect_all_workspace_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -209,6 +211,7 @@ async fn collect_all_workspace_symbols(
 }
 
 #[fastrace::trace]
+#[trace]
 pub async fn get_file_symbols(
     ctx: &HandlerContext,
     workspace: &WorkspaceHandle<'_>,
@@ -255,6 +258,7 @@ pub async fn get_file_symbols(
     Ok(symbols)
 }
 
+#[trace]
 async fn get_symbol_documentation(
     ctx: &HandlerContext,
     workspace_root: &Path,

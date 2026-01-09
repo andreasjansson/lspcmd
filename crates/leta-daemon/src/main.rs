@@ -1,3 +1,4 @@
+use fastrace::trace;
 use leta_config::{get_cache_dir, get_log_dir, Config, DaemonLock};
 use tracing::info;
 use tracing_subscriber::EnvFilter;
@@ -8,6 +9,7 @@ mod server;
 mod session;
 
 #[tokio::main]
+#[trace]
 async fn main() -> anyhow::Result<()> {
     let log_dir = get_log_dir();
     std::fs::create_dir_all(&log_dir)?;

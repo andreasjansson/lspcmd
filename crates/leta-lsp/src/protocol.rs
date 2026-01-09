@@ -1,3 +1,4 @@
+use fastrace::trace;
 use serde_json::Value;
 use thiserror::Error;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, BufReader};
@@ -87,6 +88,7 @@ pub fn encode_message<T: serde::Serialize>(message: &T) -> Vec<u8> {
     result
 }
 
+#[trace]
 pub async fn read_message<R: tokio::io::AsyncRead + Unpin>(
     reader: &mut BufReader<R>,
 ) -> Result<Value, LspProtocolError> {

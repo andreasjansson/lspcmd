@@ -190,6 +190,7 @@ pub async fn handle_calls(
     }
 }
 
+#[trace]
 async fn prepare_call_hierarchy(
     client: Arc<LspClient>,
     file_path: &PathBuf,
@@ -250,6 +251,7 @@ fn is_path_in_workspace(uri: &str, workspace_root: &Path) -> bool {
     }
 }
 
+#[trace]
 async fn collect_outgoing_calls(
     client: Arc<LspClient>,
     item: &CallHierarchyItem,
@@ -315,6 +317,7 @@ async fn collect_outgoing_calls(
     result
 }
 
+#[trace]
 async fn collect_incoming_calls(
     client: Arc<LspClient>,
     item: &CallHierarchyItem,
@@ -380,6 +383,7 @@ async fn collect_incoming_calls(
     result
 }
 
+#[trace]
 async fn find_call_path(
     client: Arc<LspClient>,
     item: &CallHierarchyItem,

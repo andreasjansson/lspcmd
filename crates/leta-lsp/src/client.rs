@@ -83,6 +83,7 @@ struct ServerStatusParams {
 
 const REQUEST_TIMEOUT_SECS: u64 = 30;
 
+#[trace]
 async fn drain_stderr(stderr: ChildStderr, server_name: &str) {
     let mut reader = BufReader::new(stderr);
     let mut line = String::new();
@@ -117,6 +118,7 @@ pub struct LspClient {
 }
 
 impl LspClient {
+    #[trace]
     pub async fn start(
         command: &[&str],
         workspace_root: &Path,
@@ -177,6 +179,7 @@ impl LspClient {
         Ok(client)
     }
 
+    #[trace]
     async fn initialize(&self, workspace_root: &Path, workspace_uri: &Uri, init_options: Option<Value>) -> Result<(), LspProtocolError> {
         let caps: ClientCapabilities = serde_json::from_value(get_client_capabilities())
             .map_err(LspProtocolError::Json)?;
@@ -272,6 +275,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn send_request_raw(
         &self,
         method: &'static str,
@@ -312,6 +316,7 @@ impl LspClient {
         result.map_err(LspProtocolError::Response)
     }
 
+    #[trace]
     pub async fn send_notification<P: serde::Serialize>(
         &self,
         method: &'static str,
@@ -333,6 +338,7 @@ impl LspClient {
         Ok(())
     }
 
+    #[trace]
     async fn read_loop(&self, stdout: ChildStdout) {
         let mut reader = BufReader::new(stdout);
 
@@ -364,6 +370,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     async fn handle_message(&self, raw: Value) {
         let msg: IncomingMessage = match serde_json::from_value(raw) {
             Ok(m) => m,
@@ -392,6 +399,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     async fn handle_response(&self, id: u64, result: Option<Value>, error: Option<IncomingError>) {
         if let Some((_, tx)) = self.pending_requests.remove(&id) {
             if let Some(err) = error {
@@ -410,6 +418,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     async fn handle_server_request(&self, id: Value, method: &str, params: Option<Value>) {
         debug!("Received server request: {} (id={:?})", method, id);
 
@@ -457,6 +466,7 @@ impl LspClient {
         let _ = stdin.flush().await;
     }
 
+    #[trace]
     async fn handle_notification(&self, method: &str, params: Option<Value>) {
         match method {
             "language/status" => {
@@ -495,6 +505,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     async fn handle_progress(&self, params: ProgressParams) {
         // rust-analyzer uses experimental/serverStatus for quiescence, not $/progress
         // So we skip progress-based indexing tracking for rust-analyzer
@@ -551,6 +562,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn wait_for_service_ready(&self, timeout_secs: u64) -> bool {
         let start = std::time::Instant::now();
         let timeout = Duration::from_secs(timeout_secs);
@@ -570,6 +582,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn stop(&self) -> Result<(), LspProtocolError> {
         debug!("stop({}): checking initialized", self.server_name);
         if *self.initialized.read().await {
@@ -596,10 +609,12 @@ impl LspClient {
         &self.workspace_root
     }
 
+    #[trace]
     pub async fn capabilities(&self) -> ServerCapabilities {
         self.capabilities.read().await.clone()
     }
 
+    #[trace]
     pub async fn supports_call_hierarchy(&self) -> bool {
         use crate::lsp_types::CallHierarchyServerCapability;
         let caps = self.capabilities.read().await;
@@ -610,6 +625,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn supports_type_hierarchy(&self) -> bool {
         // type_hierarchy_provider is not in lsp-types 0.97.0 ServerCapabilities struct,
         // but servers do advertise it. Check the raw_capabilities JSON.
@@ -620,6 +636,7 @@ impl LspClient {
             .unwrap_or(false)
     }
 
+    #[trace]
     pub async fn supports_declaration(&self) -> bool {
         use crate::lsp_types::DeclarationCapability;
         let caps = self.capabilities.read().await;
@@ -631,6 +648,7 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn supports_implementation(&self) -> bool {
         use crate::lsp_types::ImplementationProviderCapability;
         let caps = self.capabilities.read().await;
@@ -642,11 +660,13 @@ impl LspClient {
         }
     }
 
+    #[trace]
     pub async fn supports_references(&self) -> bool {
         let caps = self.capabilities.read().await;
         caps.references_provider.is_some()
     }
 
+    #[trace]
     pub async fn supports_rename(&self) -> bool {
         let caps = self.capabilities.read().await;
         caps.rename_provider.is_some()

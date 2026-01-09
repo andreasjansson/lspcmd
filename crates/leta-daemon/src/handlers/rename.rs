@@ -1,3 +1,4 @@
+use fastrace::trace;
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -52,6 +53,7 @@ fn get_files_from_workspace_edit(edit: &WorkspaceEdit) -> Vec<PathBuf> {
     files
 }
 
+#[trace]
 pub async fn handle_rename(
     ctx: &HandlerContext,
     params: RenameParams,
@@ -139,6 +141,7 @@ pub async fn handle_rename(
     Ok(RenameResult { files_changed })
 }
 
+#[trace]
 pub async fn handle_move_file(
     ctx: &HandlerContext,
     params: MoveFileParams,
