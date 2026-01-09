@@ -4,11 +4,11 @@ resolve ambiguous symbol shows matches
 leta show save
 ---
 Error: Symbol 'save' is ambiguous (4 matches)
-  FileStorage.save
-    src/user.ts:71 [Method] save in FileStorage
-  MemoryStorage.save
-    src/user.ts:42 [Method] save in MemoryStorage
-  Storage.save
-    src/user.ts:30 [Method] save in Storage
   EditableStorage.save
     src/editable.ts:41 [Method] save in EditableStorage
+  Storage.save
+    src/user.ts:30 [Method] save in Storage
+  MemoryStorage.save
+    src/user.ts:42 [Method] save in MemoryStorage
+  FileStorage.save
+    src/user.ts:71 [Method] save in FileStorage
