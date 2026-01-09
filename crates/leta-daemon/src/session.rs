@@ -62,10 +62,10 @@ impl Workspace {
             return Ok(leta_types::ServerStartupStats {
                 server_name: self.server_config.name.to_string(),
                 workspace_root: self.root.to_string_lossy().to_string(),
-                start_time_ms: 0,
                 init_time_ms: 0,
                 ready_time_ms: 0,
                 total_time_ms: 0,
+                functions: Vec::new(),
             });
         }
 
