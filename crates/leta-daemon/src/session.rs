@@ -104,10 +104,10 @@ impl Workspace {
                 let stats = leta_types::ServerStartupStats {
                     server_name: self.server_config.name.to_string(),
                     workspace_root: self.root.to_string_lossy().to_string(),
-                    start_time_ms: 0,
                     init_time_ms: init_time.as_millis() as u64,
                     ready_time_ms: ready_time.as_millis() as u64,
                     total_time_ms: total_time.as_millis() as u64,
+                    functions: Vec::new(),
                 };
                 self.startup_stats = Some(stats.clone());
                 Ok(stats)
