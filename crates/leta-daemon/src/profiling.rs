@@ -1,7 +1,9 @@
 use std::collections::HashMap;
+use std::future::Future;
 use std::sync::{Arc, Mutex};
 
-use fastrace::collector::{Reporter, SpanRecord};
+use fastrace::collector::{Config as FastraceConfig, Reporter, SpanRecord};
+use fastrace::prelude::*;
 use leta_types::FunctionStats;
 
 pub struct CollectingReporter {
@@ -35,6 +37,22 @@ impl SpanCollector {
         let spans = std::mem::take(&mut *self.spans.lock().unwrap());
         aggregate_spans(spans)
     }
+}
+
+pub async fn run_profiled<F, T>(name: &'static str, fut: F) -> (T, Vec<FunctionStats>)
+where
+    F: Future<Output = T>,
+{
+    let (reporter, collector) = CollectingReporter::new();
+    fastrace::set_reporter(reporter, FastraceConfig::default());
+
+    let root = Span::root(name, SpanContext::random());
+    let result = fut.in_span(root).await;
+
+    fastrace::flush();
+    let functions = collector.collect_and_aggregate();
+
+    (result, functions)
 }
 
 fn aggregate_spans(spans: Vec<SpanRecord>) -> Vec<FunctionStats> {
