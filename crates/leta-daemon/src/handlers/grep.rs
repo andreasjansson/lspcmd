@@ -278,17 +278,51 @@ async fn collect_symbols_for_paths(
             Err(_) => continue,
         };
 
-        workspace.wait_for_ready(30).await;
-
-        for file_path in files {
-            if let Ok(symbols) = get_file_symbols(ctx, &workspace, workspace_root, &file_path).await
-            {
+        let mut uncached_files = Vec::new();
+        for file_path in &files {
+            if let Some(symbols) = get_cached_symbols(ctx, workspace_root, file_path) {
                 all_symbols.extend(symbols);
+            } else {
+                uncached_files.push(file_path.clone());
+            }
+        }
+
+        if !uncached_files.is_empty() {
+            workspace.wait_for_ready(30).await;
+            for file_path in uncached_files {
+                if let Ok(symbols) =
+                    get_file_symbols(ctx, &workspace, workspace_root, &file_path).await
+                {
+                    all_symbols.extend(symbols);
+                }
             }
         }
     }
 
     Ok(all_symbols)
+}
+
+fn get_cached_symbols(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    file_path: &Path,
+) -> Option<Vec<SymbolInfo>> {
+    use std::sync::atomic::Ordering;
+
+    let file_sha = leta_fs::file_sha(file_path);
+    let cache_key = format!(
+        "{}:{}:{}",
+        file_path.display(),
+        workspace_root.display(),
+        file_sha
+    );
+
+    if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
+        ctx.cache_stats.symbol_hits.fetch_add(1, Ordering::Relaxed);
+        Some(cached)
+    } else {
+        None
+    }
 }
 
 #[trace]
