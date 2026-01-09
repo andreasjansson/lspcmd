@@ -67,6 +67,8 @@ pub async fn handle_resolve_symbol(
 
     let target_name = parts.last().unwrap_or(&"");
 
+    tracing::info!("resolve: before filtering {:?}", start.elapsed());
+
     let matches: Vec<SymbolInfo> = if parts.len() == 1 {
         filtered
             .into_iter()
@@ -130,6 +132,12 @@ pub async fn handle_resolve_symbol(
             })
             .collect()
     };
+
+    tracing::info!(
+        "resolve: after filtering {:?}, {} matches",
+        start.elapsed(),
+        matches.len()
+    );
 
     if matches.is_empty() {
         let mut error_msg = format!("Symbol '{}' not found", symbol_name);
