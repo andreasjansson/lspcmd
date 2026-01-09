@@ -292,23 +292,23 @@ pub fn format_function_stats(
     max_lines: usize,
 ) -> Vec<String> {
     let mut lines = Vec::new();
+    if functions.is_empty() {
+        return lines;
+    }
+    lines.push(format!(
+        "{}{:<50} {:>6} {:>10} {:>10} {:>10}",
+        indent, "Function", "Calls", "Avg", "P90", "Total"
+    ));
     for func in functions.iter().take(max_lines) {
         let name = format_function_name(&func.name);
-        let calls_str = if func.calls > 1 {
-            format!(
-                " ({}x, avg {})",
-                func.calls,
-                format_duration_us(func.avg_us)
-            )
-        } else {
-            String::new()
-        };
         lines.push(format!(
-            "{}{:50} {:>8}{}",
+            "{}{:<50} {:>6} {:>10} {:>10} {:>10}",
             indent,
             name,
+            func.calls,
+            format_duration_us(func.avg_us),
+            format_duration_us(func.p90_us),
             format_duration_us(func.total_us),
-            calls_str
         ));
     }
     lines
