@@ -158,7 +158,6 @@ fn filter_symbols(
     let parts: Vec<&str> = symbol_name.split('.').collect();
     let target_name = parts.last().unwrap_or(&"");
 
-    tracing::info!("filter_symbols: path_filter step");
     let mut filtered: Vec<&SymbolInfo> = if let Some(pf) = path_filter {
         all_symbols
             .iter()
@@ -168,18 +167,10 @@ fn filter_symbols(
         all_symbols.iter().collect()
     };
 
-    tracing::info!(
-        "filter_symbols: line_filter step, {} symbols",
-        filtered.len()
-    );
     if let Some(line) = line_filter {
         filtered = filtered.into_iter().filter(|s| s.line == line).collect();
     }
 
-    tracing::info!(
-        "filter_symbols: name matching step, {} symbols",
-        filtered.len()
-    );
     if parts.len() == 1 {
         filtered
             .into_iter()
