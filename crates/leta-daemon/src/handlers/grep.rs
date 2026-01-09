@@ -1,8 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use fastrace::trace;
-use leta_fs::get_language_id;
+use leta_fs::{get_language_id, read_file_content};
 use leta_lsp::lsp_types::{DocumentSymbolParams, TextDocumentIdentifier};
 use leta_servers::get_server_for_language;
 use leta_types::{GrepParams, GrepResult, SymbolInfo};
@@ -11,6 +12,104 @@ use tracing::debug;
 
 use super::{flatten_document_symbols, relative_path, HandlerContext};
 use crate::session::WorkspaceHandle;
+
+const SKIP_DIRS: &[&str] = &[
+    "node_modules",
+    "__pycache__",
+    ".git",
+    "venv",
+    ".venv",
+    "build",
+    "dist",
+    ".tox",
+    ".eggs",
+    "target",
+];
+
+fn should_use_prefilter(pattern: &str) -> bool {
+    if pattern.is_empty() {
+        return false;
+    }
+    let core = pattern
+        .trim_start_matches("(?i)")
+        .trim_start_matches('^')
+        .trim_end_matches('$');
+    if core.len() <= 2 {
+        return false;
+    }
+    if core == ".*" || core == ".+" || core == ".?" {
+        return false;
+    }
+    true
+}
+
+fn pattern_to_text_regex(pattern: &str) -> Option<Regex> {
+    let core = pattern
+        .trim_start_matches("(?i)")
+        .trim_start_matches('^')
+        .trim_end_matches('$');
+
+    let flags = if pattern.starts_with("(?i)") {
+        "(?i)"
+    } else {
+        ""
+    };
+
+    Regex::new(&format!("{}{}", flags, core)).ok()
+}
+
+#[trace]
+fn find_candidate_files(
+    workspace_root: &Path,
+    pattern: &str,
+    excluded_languages: &HashSet<String>,
+) -> Vec<PathBuf> {
+    let skip_dirs: HashSet<&str> = SKIP_DIRS.iter().copied().collect();
+    let text_regex = match pattern_to_text_regex(pattern) {
+        Some(r) => r,
+        None => return Vec::new(),
+    };
+
+    let mut candidates = Vec::new();
+
+    for entry in walkdir::WalkDir::new(workspace_root)
+        .into_iter()
+        .filter_entry(|e| {
+            let name = e.file_name().to_string_lossy();
+            !name.starts_with('.')
+                && !skip_dirs.contains(name.as_ref())
+                && !name.ends_with(".egg-info")
+        })
+    {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(_) => continue,
+        };
+
+        if !entry.file_type().is_file() {
+            continue;
+        }
+
+        let path = entry.path();
+        let lang = get_language_id(path);
+
+        if lang == "plaintext" || excluded_languages.contains(lang) {
+            continue;
+        }
+
+        if get_server_for_language(lang, None).is_none() {
+            continue;
+        }
+
+        if let Ok(content) = read_file_content(path) {
+            if text_regex.is_match(&content) {
+                candidates.push(path.to_path_buf());
+            }
+        }
+    }
+
+    candidates
+}
 
 #[trace]
 pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
@@ -31,6 +130,29 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
 
     let symbols = if let Some(paths) = params.paths {
         collect_symbols_for_paths(ctx, &paths, &workspace_root).await?
+    } else if should_use_prefilter(&pattern) {
+        let config = ctx.session.config().await;
+        let excluded_languages: HashSet<String> = config
+            .workspaces
+            .excluded_languages
+            .iter()
+            .cloned()
+            .collect();
+        let candidates = find_candidate_files(&workspace_root, &pattern, &excluded_languages);
+        debug!(
+            "Prefilter found {} candidate files for pattern '{}'",
+            candidates.len(),
+            params.pattern
+        );
+        if candidates.is_empty() {
+            Vec::new()
+        } else {
+            let paths: Vec<String> = candidates
+                .iter()
+                .map(|p| p.to_string_lossy().to_string())
+                .collect();
+            collect_symbols_for_paths(ctx, &paths, &workspace_root).await?
+        }
     } else {
         super::collect_all_workspace_symbols(ctx, &workspace_root).await?
     };
@@ -79,6 +201,45 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
         symbols: filtered,
         warning,
     })
+}
+
+#[trace]
+pub async fn collect_symbols_with_prefilter(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    text_pattern: Option<&str>,
+) -> Result<Vec<SymbolInfo>, String> {
+    let config = ctx.session.config().await;
+    let excluded_languages: HashSet<String> = config
+        .workspaces
+        .excluded_languages
+        .iter()
+        .cloned()
+        .collect();
+
+    let use_prefilter = text_pattern
+        .map(|p| should_use_prefilter(p))
+        .unwrap_or(false);
+
+    if use_prefilter {
+        let pattern = text_pattern.unwrap();
+        let candidates = find_candidate_files(workspace_root, pattern, &excluded_languages);
+        debug!(
+            "Prefilter found {} candidate files for pattern '{}'",
+            candidates.len(),
+            pattern
+        );
+        if candidates.is_empty() {
+            return Ok(Vec::new());
+        }
+        let paths: Vec<String> = candidates
+            .iter()
+            .map(|p| p.to_string_lossy().to_string())
+            .collect();
+        collect_symbols_for_paths(ctx, &paths, workspace_root).await
+    } else {
+        super::collect_all_workspace_symbols(ctx, workspace_root).await
+    }
 }
 
 #[trace]
