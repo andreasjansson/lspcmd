@@ -108,7 +108,9 @@ impl Workspace {
                     init_time_ms: init_time.as_millis() as u64,
                     ready_time_ms: ready_time.as_millis() as u64,
                     total_time_ms: total_time.as_millis() as u64,
-                })
+                };
+                self.startup_stats = Some(stats.clone());
+                Ok(stats)
             }
             Err(e) => Err(format!(
                 "Language server '{}' for {} failed to start in workspace {}: {}",
