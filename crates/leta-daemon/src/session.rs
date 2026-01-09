@@ -24,6 +24,7 @@ pub struct Workspace {
     server_config: &'static ServerConfig,
     client: Option<Arc<LspClient>>,
     open_documents: HashMap<String, OpenDocument>,
+    startup_stats: Option<leta_types::ServerStartupStats>,
 }
 
 impl Workspace {
@@ -33,7 +34,12 @@ impl Workspace {
             server_config,
             client: None,
             open_documents: HashMap::new(),
+            startup_stats: None,
         }
+    }
+
+    pub fn startup_stats(&self) -> Option<leta_types::ServerStartupStats> {
+        self.startup_stats.clone()
     }
 
     pub fn client(&self) -> Option<Arc<LspClient>> {
