@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use fastrace::trace;
 use leta_fs::{get_language_id, read_file_content};
