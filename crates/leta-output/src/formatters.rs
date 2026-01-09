@@ -59,11 +59,7 @@ pub fn format_profiling(profiling: &leta_types::ProfilingData) -> String {
 pub fn format_grep_result(result: &GrepResult, include_docs: bool) -> String {
     let mut lines = Vec::new();
     for sym in &result.symbols {
-        let path = sym
-            .path
-            .as_ref()
-            .map(|p| format!("{}:{}", p, sym.line))
-            .unwrap_or_default();
+        let path = format!("{}:{}", sym.path, sym.line);
         let container = sym
             .container
             .as_ref()
