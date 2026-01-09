@@ -100,7 +100,6 @@ pub async fn handle_add_workspace(
     })
 }
 
-#[trace]
 async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf) {
     let start = std::time::Instant::now();
     info!(
@@ -108,13 +107,90 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
         workspace_root.display()
     );
 
+    let files_by_lang = scan_workspace_files(&workspace_root);
+    let total_files: usize = files_by_lang.values().map(|v| v.len()).sum();
+    info!(
+        "Found {} source files across {} languages",
+        total_files,
+        files_by_lang.len()
+    );
+
+    let mut server_profiles: Vec<leta_types::ServerProfilingData> = Vec::new();
+    let mut total_indexed = 0u32;
+
+    for (lang, files) in &files_by_lang {
+        let file_count = files.len() as u32;
+
+        let (reporter, collector) = CollectingReporter::new();
+        fastrace::set_reporter(reporter, FastraceConfig::default());
+
+        let root_name: &'static str = Box::leak(format!("index_{}", lang).into_boxed_str());
+        let root = Span::root(root_name, SpanContext::random());
+
+        let (indexed, startup_stats) = index_language_files(&ctx, &workspace_root, lang, files)
+            .in_span(root)
+            .await;
+
+        fastrace::flush();
+        let functions = collector.collect_and_aggregate();
+
+        total_indexed += indexed;
+
+        let indexing_stats = leta_types::ServerIndexingStats {
+            server_name: get_server_for_language(lang, None)
+                .map(|s| s.name.to_string())
+                .unwrap_or_else(|| lang.clone()),
+            file_count,
+            total_time_ms: functions.first().map(|f| f.total_us / 1000).unwrap_or(0),
+            functions: functions.clone(),
+        };
+
+        let startup = startup_stats.map(|mut s| {
+            s.functions = functions
+                .iter()
+                .filter(|f| {
+                    f.name.contains("start_server")
+                        || f.name.contains("LspClient")
+                        || f.name.contains("wait_for")
+                })
+                .cloned()
+                .collect();
+            s
+        });
+
+        server_profiles.push(leta_types::ServerProfilingData {
+            server_name: get_server_for_language(lang, None)
+                .map(|s| s.name.to_string())
+                .unwrap_or_else(|| lang.clone()),
+            startup,
+            indexing: Some(indexing_stats),
+        });
+
+        info!("Indexed {} {} files", indexed, lang);
+    }
+
+    let total_time = start.elapsed();
+    info!(
+        "Background indexing complete: {} files in {:?}",
+        total_indexed, total_time
+    );
+
+    let profiling_data = leta_types::WorkspaceProfilingData {
+        workspace_root: workspace_root.to_string_lossy().to_string(),
+        total_files: total_indexed,
+        total_time_ms: total_time.as_millis() as u64,
+        server_profiles,
+    };
+    ctx.session.add_workspace_profiling(profiling_data).await;
+}
+
+fn scan_workspace_files(workspace_root: &Path) -> std::collections::HashMap<String, Vec<PathBuf>> {
     let exclude_dirs: HashSet<&str> = DEFAULT_EXCLUDE_DIRS.iter().copied().collect();
     let binary_exts: HashSet<&str> = BINARY_EXTENSIONS.iter().copied().collect();
-
     let mut files_by_lang: std::collections::HashMap<String, Vec<PathBuf>> =
         std::collections::HashMap::new();
 
-    for entry in walkdir::WalkDir::new(&workspace_root)
+    for entry in walkdir::WalkDir::new(workspace_root)
         .into_iter()
         .filter_entry(|e| {
             let name = e.file_name().to_string_lossy();
@@ -149,102 +225,88 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
         }
     }
 
-    let total_files: usize = files_by_lang.values().map(|v| v.len()).sum();
-    info!(
-        "Found {} source files across {} languages",
-        total_files,
-        files_by_lang.len()
-    );
+    files_by_lang
+}
 
+#[trace]
+async fn index_language_files(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    lang: &str,
+    files: &[PathBuf],
+) -> (u32, Option<leta_types::ServerStartupStats>) {
+    let workspace = match get_workspace_for_language(ctx, lang, workspace_root).await {
+        Ok(ws) => ws,
+        Err(e) => {
+            warn!("Failed to get workspace for {}: {}", lang, e);
+            return (0, None);
+        }
+    };
+
+    let startup_stats = workspace.get_startup_stats().await;
+
+    wait_for_server_ready(&workspace).await;
+
+    let indexed = index_files_parallel(ctx, workspace_root, lang, files).await;
+
+    (indexed, startup_stats)
+}
+
+#[trace]
+async fn get_workspace_for_language(
+    ctx: &HandlerContext,
+    lang: &str,
+    workspace_root: &Path,
+) -> Result<crate::session::WorkspaceHandle<'_>, String> {
+    ctx.session
+        .get_or_create_workspace_for_language(lang, workspace_root)
+        .await
+}
+
+#[trace]
+async fn wait_for_server_ready(workspace: &crate::session::WorkspaceHandle<'_>) {
+    workspace.wait_for_ready(60).await;
+}
+
+#[trace]
+async fn index_files_parallel(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    lang: &str,
+    files: &[PathBuf],
+) -> u32 {
     let num_cpus = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
     let semaphore = Arc::new(Semaphore::new(num_cpus));
+    let mut handles = Vec::new();
 
-    let mut total_indexed = 0u32;
-    let mut files_by_language: std::collections::HashMap<String, u32> =
-        std::collections::HashMap::new();
-    let mut time_by_language: std::collections::HashMap<String, u64> =
-        std::collections::HashMap::new();
-    let mut server_startups: Vec<leta_types::ServerStartupStats> = Vec::new();
+    for file_path in files {
+        let permit = semaphore.clone().acquire_owned().await.unwrap();
+        let ctx = HandlerContext::new(
+            Arc::clone(&ctx.session),
+            Arc::clone(&ctx.hover_cache),
+            Arc::clone(&ctx.symbol_cache),
+        );
+        let workspace_root = workspace_root.to_path_buf();
+        let lang = lang.to_string();
+        let file_path = file_path.clone();
 
-    for (lang, files) in &files_by_lang {
-        let file_count = files.len() as u32;
-
-        let workspace = match ctx
-            .session
-            .get_or_create_workspace_for_language(lang, &workspace_root)
-            .await
-        {
-            Ok(ws) => ws,
-            Err(e) => {
-                warn!("Failed to get workspace for {}: {}", lang, e);
-                continue;
-            }
-        };
-
-        if let Some(startup_stats) = workspace.get_startup_stats().await {
-            if startup_stats.total_time_ms > 0 {
-                server_startups.push(startup_stats);
-            }
-        }
-
-        workspace.wait_for_ready(60).await;
-
-        let lang_start = std::time::Instant::now();
-        let mut handles = Vec::new();
-
-        for file_path in files {
-            let permit = semaphore.clone().acquire_owned().await.unwrap();
-            let ctx = HandlerContext::new(
-                Arc::clone(&ctx.session),
-                Arc::clone(&ctx.hover_cache),
-                Arc::clone(&ctx.symbol_cache),
-            );
-            let workspace_root = workspace_root.clone();
-            let lang = lang.clone();
-            let file_path = file_path.clone();
-
-            let handle = tokio::spawn(async move {
-                let result = index_single_file(&ctx, &workspace_root, &file_path, &lang).await;
-                drop(permit);
-                result
-            });
-            handles.push(handle);
-        }
-
-        let mut lang_indexed = 0u32;
-        for handle in handles {
-            match handle.await {
-                Ok(Ok(())) => lang_indexed += 1,
-                Ok(Err(_)) => {}
-                Err(_) => {}
-            }
-        }
-
-        let lang_time = lang_start.elapsed();
-        total_indexed += lang_indexed;
-        files_by_language.insert(lang.clone(), file_count);
-        time_by_language.insert(lang.clone(), lang_time.as_millis() as u64);
-
-        info!("Indexed {} {} files in {:?}", lang_indexed, lang, lang_time);
+        let handle = tokio::spawn(async move {
+            let result = index_single_file(&ctx, &workspace_root, &file_path, &lang).await;
+            drop(permit);
+            result
+        });
+        handles.push(handle);
     }
 
-    let total_time = start.elapsed();
-    info!(
-        "Background indexing complete: {} files in {:?}",
-        total_indexed, total_time
-    );
-
-    let stats = leta_types::IndexingStats {
-        workspace_root: workspace_root.to_string_lossy().to_string(),
-        total_files: total_indexed,
-        files_by_language,
-        total_time_ms: total_time.as_millis() as u64,
-        time_by_language,
-        server_startups,
-    };
-    ctx.session.add_indexing_stats(stats).await;
+    let mut indexed = 0u32;
+    for handle in handles {
+        if let Ok(Ok(())) = handle.await {
+            indexed += 1;
+        }
+    }
+    indexed
 }
 
 #[trace]
