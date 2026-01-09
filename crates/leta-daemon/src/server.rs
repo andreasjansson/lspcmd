@@ -124,7 +124,7 @@ impl DaemonServer {
 
     async fn dispatch_with_profiling(&self, ctx: &HandlerContext, method: &str, params: Value) -> Value {
         let (reporter, collector) = CollectingReporter::new();
-        fastrace::set_reporter(reporter, FastraceConfig::default());
+        fastrace::set_reporter(reporter, FastraceConfig::default().report_before_root_finish(true));
         
         ctx.cache_stats.reset();
 
