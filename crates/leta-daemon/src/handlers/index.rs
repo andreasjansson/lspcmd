@@ -159,13 +159,18 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
     let semaphore = Arc::new(Semaphore::new(num_cpus));
 
     let mut total_indexed = 0u32;
+    let mut files_by_language: std::collections::HashMap<String, u32> =
+        std::collections::HashMap::new();
+    let mut time_by_language: std::collections::HashMap<String, u64> =
+        std::collections::HashMap::new();
+    let mut server_startups: Vec<leta_types::ServerStartupStats> = Vec::new();
 
-    for (lang, files) in files_by_lang {
-        let _file_count = files.len();
+    for (lang, files) in &files_by_lang {
+        let file_count = files.len() as u32;
 
         let workspace = match ctx
             .session
-            .get_or_create_workspace_for_language(&lang, &workspace_root)
+            .get_or_create_workspace_for_language(lang, &workspace_root)
             .await
         {
             Ok(ws) => ws,
@@ -174,6 +179,12 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
                 continue;
             }
         };
+
+        if let Some(startup_stats) = workspace.get_startup_stats().await {
+            if startup_stats.total_time_ms > 0 {
+                server_startups.push(startup_stats);
+            }
+        }
 
         workspace.wait_for_ready(60).await;
 
@@ -189,6 +200,7 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
             );
             let workspace_root = workspace_root.clone();
             let lang = lang.clone();
+            let file_path = file_path.clone();
 
             let handle = tokio::spawn(async move {
                 let result = index_single_file(&ctx, &workspace_root, &file_path, &lang).await;
@@ -207,20 +219,29 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
             }
         }
 
+        let lang_time = lang_start.elapsed();
         total_indexed += lang_indexed;
-        info!(
-            "Indexed {} {} files in {:?}",
-            lang_indexed,
-            lang,
-            lang_start.elapsed()
-        );
+        files_by_language.insert(lang.clone(), file_count);
+        time_by_language.insert(lang.clone(), lang_time.as_millis() as u64);
+
+        info!("Indexed {} {} files in {:?}", lang_indexed, lang, lang_time);
     }
 
+    let total_time = start.elapsed();
     info!(
         "Background indexing complete: {} files in {:?}",
-        total_indexed,
-        start.elapsed()
+        total_indexed, total_time
     );
+
+    let stats = leta_types::IndexingStats {
+        workspace_root: workspace_root.to_string_lossy().to_string(),
+        total_files: total_indexed,
+        files_by_language,
+        total_time_ms: total_time.as_millis() as u64,
+        time_by_language,
+        server_startups,
+    };
+    ctx.session.add_indexing_stats(stats).await;
 }
 
 #[trace]
