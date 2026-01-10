@@ -154,7 +154,7 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
     })
 }
 
-fn enumerate_source_files(
+pub fn enumerate_source_files(
     workspace_root: &Path,
     excluded_languages: &HashSet<String>,
 ) -> Vec<PathBuf> {
