@@ -85,16 +85,14 @@ impl Workspace {
             Ok(client) => {
                 let init_time = start_time.elapsed();
 
-                let ready_start = std::time::Instant::now();
-                client.wait_for_indexing(60).await;
-                let ready_time = ready_start.elapsed();
-
                 if self.server_config.name == "clangd" {
+                    client.wait_for_indexing(60).await;
                     self.ensure_workspace_indexed(&client).await;
                 }
 
                 self.client = Some(client);
                 let total_time = total_start.elapsed();
+                let ready_time = std::time::Duration::ZERO;
 
                 info!(
                     "Server {} initialized and ready in {:?}",
