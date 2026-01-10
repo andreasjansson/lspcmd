@@ -254,6 +254,7 @@ async fn main() -> Result<()> {
                     exclude,
                     docs,
                     case_sensitive,
+                    head,
                 } => {
                     handle_grep(
                         &config,
@@ -263,6 +264,7 @@ async fn main() -> Result<()> {
                         path,
                         kind,
                         exclude,
+                        head,
                         docs,
                         case_sensitive,
                     )
