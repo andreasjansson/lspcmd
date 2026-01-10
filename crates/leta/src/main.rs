@@ -81,6 +81,8 @@ enum Commands {
         docs: bool,
         #[arg(short = 'C', long, help = "Case-sensitive matching")]
         case_sensitive: bool,
+        #[arg(long, default_value = "200", help = "Maximum results to return")]
+        head: u32,
     },
 
     #[command(about = "Show source file tree with symbol and line counts.")]
