@@ -92,16 +92,22 @@ pub async fn handle_files(
             Err(_) => continue,
         };
 
-        workspace.wait_for_ready(30).await;
-
         for file_path in files {
             let rel_path = relative_path(file_path, &workspace_root);
 
-            if let Ok(symbols) = get_file_symbols(ctx, &workspace, &workspace_root, file_path).await
+            let symbols = if let Some(cached) = get_cached_symbols(ctx, &workspace_root, file_path)
             {
-                if let Some(file_info) = files_info.get_mut(&rel_path) {
-                    file_info.symbols = count_symbols(&symbols);
-                }
+                cached
+            } else if let Ok(fetched) =
+                get_file_symbols_no_wait(ctx, &workspace, &workspace_root, file_path).await
+            {
+                fetched
+            } else {
+                continue;
+            };
+
+            if let Some(file_info) = files_info.get_mut(&rel_path) {
+                file_info.symbols = count_symbols(&symbols);
             }
         }
     }
