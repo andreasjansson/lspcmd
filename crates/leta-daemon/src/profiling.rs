@@ -35,6 +35,11 @@ impl SpanCollector {
         let spans = std::mem::take(&mut *self.spans.lock().unwrap());
         build_tree(spans)
     }
+
+    pub fn collect_and_aggregate(&self) -> Vec<FunctionStats> {
+        let tree = self.build_span_tree();
+        tree.functions
+    }
 }
 
 fn simplify_name(name: &str) -> String {
