@@ -396,6 +396,7 @@ fn prefilter_file(file_path: &Path, text_regex: &Regex) -> bool {
     }
 }
 
+#[trace]
 fn classify_file(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -428,6 +429,28 @@ fn classify_file(
 }
 
 #[trace]
+fn handle_file_status(
+    status: FileStatus,
+    file_path: &Path,
+    cached_symbols: &mut Vec<SymbolInfo>,
+    uncached_by_lang: &mut HashMap<String, Vec<PathBuf>>,
+) {
+    match status {
+        FileStatus::Cached(symbols) => {
+            cached_symbols.extend(symbols);
+        }
+        FileStatus::NeedsFetch => {
+            let lang = get_language_id(file_path);
+            uncached_by_lang
+                .entry(lang.to_string())
+                .or_default()
+                .push(file_path.to_path_buf());
+        }
+        FileStatus::Skipped => {}
+    }
+}
+
+#[trace]
 fn classify_all_files(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -437,43 +460,22 @@ fn classify_all_files(
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>) {
     let mut cached_symbols = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
-    let mut skipped = 0u32;
-    let mut cached_count = 0u32;
-    let mut needs_fetch = 0u32;
 
     for file_path in files {
-        match classify_file(
+        let status = classify_file(
             ctx,
             workspace_root,
             file_path,
             text_regex,
             excluded_languages,
-        ) {
-            FileStatus::Cached(symbols) => {
-                cached_count += 1;
-                cached_symbols.extend(symbols);
-            }
-            FileStatus::NeedsFetch => {
-                needs_fetch += 1;
-                let lang = get_language_id(file_path);
-                uncached_by_lang
-                    .entry(lang.to_string())
-                    .or_default()
-                    .push(file_path.to_path_buf());
-            }
-            FileStatus::Skipped => {
-                skipped += 1;
-            }
-        }
+        );
+        handle_file_status(
+            status,
+            file_path,
+            &mut cached_symbols,
+            &mut uncached_by_lang,
+        );
     }
-
-    info!(
-        "classify_all_files: {} files -> {} cached, {} need_fetch, {} skipped",
-        files.len(),
-        cached_count,
-        needs_fetch,
-        skipped
-    );
 
     (cached_symbols, uncached_by_lang)
 }
