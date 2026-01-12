@@ -555,12 +555,17 @@ struct ResolveResult {
     profiling: Option<ProfilingData>,
 }
 
+struct ResolveError {
+    message: String,
+    profiling: Option<ProfilingData>,
+}
+
 async fn resolve_symbol(
     symbol: &str,
     workspace_root: &Path,
     profile: bool,
-) -> Result<ResolveResult> {
-    let response = send_request_with_profile(
+) -> Result<ResolveResult, ResolveError> {
+    let response = match send_request_with_profile(
         "resolve-symbol",
         json!({
             "workspace_root": workspace_root.to_string_lossy(),
@@ -568,9 +573,26 @@ async fn resolve_symbol(
         }),
         profile,
     )
-    .await?;
+    .await
+    {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(ResolveError {
+                message: e.to_string(),
+                profiling: None,
+            })
+        }
+    };
 
-    let resolved: ResolveSymbolResult = serde_json::from_value(response.result)?;
+    let resolved: ResolveSymbolResult = match serde_json::from_value(response.result) {
+        Ok(r) => r,
+        Err(e) => {
+            return Err(ResolveError {
+                message: e.to_string(),
+                profiling: response.profiling,
+            })
+        }
+    };
 
     if let Some(error) = &resolved.error {
         let mut msg = error.clone();
@@ -601,7 +623,10 @@ async fn resolve_symbol(
                 }
             }
         }
-        return Err(anyhow!("{}", msg));
+        return Err(ResolveError {
+            message: msg,
+            profiling: response.profiling,
+        });
     }
 
     Ok(ResolveResult {
