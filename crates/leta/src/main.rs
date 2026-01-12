@@ -582,66 +582,6 @@ async fn resolve_symbol(
     })
 }
 
-fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
-    let glob_options = glob::MatchOptions {
-        case_sensitive: true,
-        require_literal_separator: false,
-        require_literal_leading_dot: true,
-    };
-
-    if !pattern.contains('*') && !pattern.contains('?') {
-        let path = PathBuf::from(pattern)
-            .canonicalize()
-            .unwrap_or_else(|_| PathBuf::from(pattern));
-        if path.exists() {
-            if path.is_dir() {
-                let matches: Vec<PathBuf> =
-                    glob::glob_with(&format!("{}/**/*", path.display()), glob_options)?
-                        .filter_map(|e| e.ok())
-                        .filter(|p| p.is_file())
-                        .map(|p| p.canonicalize().unwrap_or(p))
-                        .collect();
-                if matches.is_empty() {
-                    return Err(anyhow!("No files found in directory: {}", pattern));
-                }
-                return Ok(matches);
-            }
-            return Ok(vec![path]);
-        }
-        if !pattern.contains('/') {
-            let matches: Vec<PathBuf> = glob::glob_with(&format!("**/{}", pattern), glob_options)?
-                .filter_map(|e| e.ok())
-                .filter(|p| p.is_file())
-                .map(|p| p.canonicalize().unwrap_or(p))
-                .collect();
-            if !matches.is_empty() {
-                return Ok(matches);
-            }
-        }
-        return Err(anyhow!("Path not found: {}", pattern));
-    }
-
-    let search_pattern = if !pattern.contains('/') && !pattern.starts_with("**") {
-        format!("**/{}", pattern)
-    } else if pattern.ends_with("/**") {
-        format!("{}/*", pattern)
-    } else {
-        pattern.to_string()
-    };
-
-    let matches: Vec<PathBuf> = glob::glob_with(&search_pattern, glob_options)?
-        .filter_map(|e| e.ok())
-        .filter(|p| p.is_file())
-        .map(|p| p.canonicalize().unwrap_or(p))
-        .collect();
-
-    if matches.is_empty() {
-        return Err(anyhow!("No files match pattern: {}", pattern));
-    }
-
-    Ok(matches)
-}
-
 async fn handle_daemon_command(command: DaemonCommands) -> Result<()> {
     match command {
         DaemonCommands::Start => {
