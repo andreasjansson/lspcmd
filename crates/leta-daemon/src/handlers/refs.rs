@@ -55,11 +55,20 @@ pub async fn handle_references(
         .await
         .map_err(|e| e.to_string())?;
 
-    let locations = response
-        .map(|locs| format_locations(&locs, &workspace_root, params.context))
-        .unwrap_or_default();
+    let all_locations = response.unwrap_or_default();
+    let total_count = all_locations.len() as u32;
+    let truncated = total_count > params.head;
+    let limited_locations: Vec<_> = all_locations
+        .into_iter()
+        .take(params.head as usize)
+        .collect();
+    let locations = format_locations(&limited_locations, &workspace_root, params.context);
 
-    Ok(ReferencesResult { locations })
+    Ok(ReferencesResult {
+        locations,
+        truncated,
+        total_count: if truncated { Some(total_count) } else { None },
+    })
 }
 
 #[trace]
