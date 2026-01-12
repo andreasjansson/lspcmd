@@ -658,20 +658,15 @@ pub fn format_size(size: u64) -> String {
 pub fn format_profiling(profiling: &ProfilingData) -> String {
     let mut lines = Vec::new();
 
-    let total_us: u64 = profiling.functions.first().map(|f| f.total_us).unwrap_or(0);
-    lines.push(format!(
-        "[profile] {:>8}  total",
-        format_duration_us(total_us)
-    ));
-
     let cache = &profiling.cache;
     let symbol_total = cache.symbol_hits + cache.symbol_misses;
     let hover_total = cache.hover_hits + cache.hover_misses;
 
     if symbol_total > 0 || hover_total > 0 {
+        lines.push("CACHE".to_string());
         if symbol_total > 0 {
             lines.push(format!(
-                "[cache]   symbol: {}/{} ({:.0}% hit)",
+                "  symbols: {}/{} hits ({:.1}%)",
                 cache.symbol_hits,
                 symbol_total,
                 cache.symbol_hit_rate()
@@ -679,15 +674,98 @@ pub fn format_profiling(profiling: &ProfilingData) -> String {
         }
         if hover_total > 0 {
             lines.push(format!(
-                "[cache]   hover:  {}/{} ({:.0}% hit)",
+                "  hover: {}/{} hits ({:.1}%)",
                 cache.hover_hits,
                 hover_total,
                 cache.hover_hit_rate()
             ));
         }
+        lines.push(String::new());
+    }
+
+    if let Some(tree) = &profiling.span_tree {
+        lines.push("CALL TREE".to_string());
+        for root in &tree.roots {
+            format_span_node(root, &mut lines, "", true);
+        }
+        lines.push(String::new());
+        lines.push(format!(
+            "[profile] {:>8}  total",
+            format_duration_us(tree.total_us)
+        ));
     }
 
     lines.join("\n")
+}
+
+fn format_span_node(node: &SpanNode, lines: &mut Vec<String>, prefix: &str, is_last: bool) {
+    let connector = if prefix.is_empty() {
+        ""
+    } else if is_last {
+        "└─ "
+    } else {
+        "├─ "
+    };
+
+    let parallel_marker = if node.is_parallel { " [parallel]" } else { "" };
+
+    let self_pct = if node.total_us > 0 {
+        (node.self_us as f64 / node.total_us as f64 * 100.0) as u32
+    } else {
+        0
+    };
+
+    let calls_str = if node.calls > 1 {
+        format!(" ({}x)", node.calls)
+    } else {
+        String::new()
+    };
+
+    lines.push(format!(
+        "  {}{}{}{} {:>8} total, {:>8} self ({}%){}",
+        prefix,
+        connector,
+        node.name,
+        calls_str,
+        format_duration_us(node.total_us),
+        format_duration_us(node.self_us),
+        self_pct,
+        parallel_marker
+    ));
+
+    let child_prefix = if prefix.is_empty() {
+        "".to_string()
+    } else if is_last {
+        format!("{}   ", prefix)
+    } else {
+        format!("{}│  ", prefix)
+    };
+
+    let children_total: u64 = if node.is_parallel {
+        node.children.iter().map(|c| c.total_us).max().unwrap_or(0)
+    } else {
+        node.children.iter().map(|c| c.total_us).sum()
+    };
+
+    let unaccounted = node.self_us;
+    let show_unaccounted = unaccounted > 1000 && !node.children.is_empty();
+
+    let num_children = node.children.len() + if show_unaccounted { 1 } else { 0 };
+
+    for (i, child) in node.children.iter().enumerate() {
+        let is_child_last = i == num_children - 1;
+        format_span_node(child, lines, &child_prefix, is_child_last);
+    }
+
+    if show_unaccounted {
+        let unaccounted_connector = "└─ ";
+        lines.push(format!(
+            "  {}{}(untraced) {:>8}",
+            child_prefix,
+            unaccounted_connector,
+            format_duration_us(unaccounted)
+        ));
+    }
 }
 
 enum TreeNode {
