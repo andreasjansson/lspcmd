@@ -61,6 +61,7 @@ pub fn read_file_content(path: &Path) -> Result<String, TextError> {
     Ok(content)
 }
 
+#[trace]
 pub fn file_mtime(path: &Path) -> String {
     match std::fs::metadata(path) {
         Ok(meta) => match meta.modified() {
