@@ -229,6 +229,8 @@ pub struct FilesParams {
     pub include_patterns: Vec<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub filter_pattern: Option<String>,
+    #[serde(default = "default_head_limit")]
+    pub head: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
