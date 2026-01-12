@@ -577,11 +577,11 @@ fn render_tree(
                 lines.push(format!("{}{}{} ({})", prefix, connector, name, info_str));
             }
             TreeNode::Dir(children) => {
-                lines.push(format!("{}{}{}", prefix, connector, name));
+                lines.push(format!("{}{}{}/", prefix, connector, name));
                 render_tree(children, lines, &new_prefix, false);
             }
             TreeNode::ExcludedDir => {
-                lines.push(format!("{}{}{} (excluded)", prefix, connector, name));
+                lines.push(format!("{}{}{}/ (excluded)", prefix, connector, name));
             }
         }
     }
