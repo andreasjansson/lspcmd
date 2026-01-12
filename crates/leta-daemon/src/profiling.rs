@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use fastrace::collector::{Reporter, SpanRecord};
-use leta_types::FunctionStats;
+use fastrace::collector::{Reporter, SpanId, SpanRecord};
+use leta_types::{FunctionStats, SpanNode, SpanTree};
 
 pub struct CollectingReporter {
     spans: Arc<Mutex<Vec<SpanRecord>>>,
@@ -32,8 +32,13 @@ pub struct SpanCollector {
 
 impl SpanCollector {
     pub fn collect_and_aggregate(&self) -> Vec<FunctionStats> {
-        let spans = std::mem::take(&mut *self.spans.lock().unwrap());
+        let spans = self.spans.lock().unwrap().clone();
         aggregate_spans(spans)
+    }
+
+    pub fn build_span_tree(&self) -> SpanTree {
+        let spans = std::mem::take(&mut *self.spans.lock().unwrap());
+        build_tree(spans)
     }
 }
 
@@ -72,4 +77,138 @@ fn aggregate_spans(spans: Vec<SpanRecord>) -> Vec<FunctionStats> {
 
     stats.sort_by(|a, b| b.total_us.cmp(&a.total_us));
     stats
+}
+
+#[derive(Debug, Clone)]
+struct RawSpan {
+    span_id: SpanId,
+    parent_id: SpanId,
+    name: String,
+    begin_ns: u64,
+    end_ns: u64,
+}
+
+fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
+    if spans.is_empty() {
+        return SpanTree::default();
+    }
+
+    let raw_spans: Vec<RawSpan> = spans
+        .into_iter()
+        .map(|s| RawSpan {
+            span_id: s.span_id,
+            parent_id: s.parent_id,
+            name: s.name.to_string(),
+            begin_ns: s.begin_time_unix_ns,
+            end_ns: s.begin_time_unix_ns + s.duration_ns,
+        })
+        .collect();
+
+    let by_id: HashMap<SpanId, &RawSpan> = raw_spans.iter().map(|s| (s.span_id, s)).collect();
+
+    let mut children_map: HashMap<SpanId, Vec<&RawSpan>> = HashMap::new();
+    let mut roots = Vec::new();
+
+    for span in &raw_spans {
+        if span.parent_id == SpanId::default() || !by_id.contains_key(&span.parent_id) {
+            roots.push(span);
+        } else {
+            children_map.entry(span.parent_id).or_default().push(span);
+        }
+    }
+
+    let total_us = roots
+        .iter()
+        .map(|s| (s.end_ns - s.begin_ns) / 1000)
+        .max()
+        .unwrap_or(0);
+
+    let root_nodes: Vec<SpanNode> = roots
+        .into_iter()
+        .map(|r| build_node(r, &children_map))
+        .collect();
+
+    SpanTree {
+        roots: merge_nodes(root_nodes),
+        total_us,
+    }
+}
+
+fn build_node(span: &RawSpan, children_map: &HashMap<SpanId, Vec<&RawSpan>>) -> SpanNode {
+    let total_us = (span.end_ns - span.begin_ns) / 1000;
+
+    let raw_children: Vec<SpanNode> = children_map
+        .get(&span.span_id)
+        .map(|kids| kids.iter().map(|c| build_node(c, children_map)).collect())
+        .unwrap_or_default();
+
+    let children = merge_nodes(raw_children);
+
+    let is_parallel = detect_parallel(children_map.get(&span.span_id).unwrap_or(&vec![]));
+
+    let children_time: u64 = if is_parallel {
+        children.iter().map(|c| c.total_us).max().unwrap_or(0)
+    } else {
+        children.iter().map(|c| c.total_us).sum()
+    };
+
+    let self_us = total_us.saturating_sub(children_time);
+
+    SpanNode {
+        name: span.name.clone(),
+        self_us,
+        total_us,
+        calls: 1,
+        children,
+        is_parallel,
+    }
+}
+
+fn detect_parallel(spans: &[&RawSpan]) -> bool {
+    if spans.len() < 2 {
+        return false;
+    }
+
+    let mut sorted: Vec<_> = spans.iter().collect();
+    sorted.sort_by_key(|s| s.begin_ns);
+
+    for i in 1..sorted.len() {
+        if sorted[i].begin_ns < sorted[i - 1].end_ns {
+            return true;
+        }
+    }
+    false
+}
+
+fn merge_nodes(nodes: Vec<SpanNode>) -> Vec<SpanNode> {
+    let mut by_name: HashMap<String, Vec<SpanNode>> = HashMap::new();
+
+    for node in nodes {
+        by_name.entry(node.name.clone()).or_default().push(node);
+    }
+
+    let mut merged: Vec<SpanNode> = by_name
+        .into_iter()
+        .map(|(name, nodes)| {
+            let calls = nodes.len() as u32;
+            let total_us: u64 = nodes.iter().map(|n| n.total_us).sum();
+            let self_us: u64 = nodes.iter().map(|n| n.self_us).sum();
+            let is_parallel = nodes.iter().any(|n| n.is_parallel);
+
+            let all_children: Vec<SpanNode> = nodes.into_iter().flat_map(|n| n.children).collect();
+            let children = merge_nodes(all_children);
+
+            SpanNode {
+                name,
+                self_us,
+                total_us,
+                calls,
+                children,
+                is_parallel,
+            }
+        })
+        .collect();
+
+    merged.sort_by(|a, b| b.total_us.cmp(&a.total_us));
+    merged
 }
