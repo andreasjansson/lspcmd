@@ -170,11 +170,13 @@ pub fn format_subtypes_result(result: &SubtypesResult, head: u32, command_base: 
                 &cmd,
                 result.locations.len() as u32,
                 total,
+                command_base,
             ));
         } else {
             output.push_str(&format_truncation_unknown_total(
                 &cmd,
                 result.locations.len() as u32,
+                command_base,
             ));
         }
     }
