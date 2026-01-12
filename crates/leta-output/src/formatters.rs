@@ -304,6 +304,7 @@ pub fn format_files_result(result: &FilesResult, head: u32, command_base: &str) 
         lines.push(format_truncation_unknown_total(
             &cmd,
             result.files.len() as u32,
+            command_base,
         ));
     }
 
