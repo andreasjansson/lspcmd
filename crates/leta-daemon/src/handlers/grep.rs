@@ -854,6 +854,7 @@ async fn handle_grep_streaming_inner(
     Ok((warning, truncated, count))
 }
 
+#[trace]
 async fn stream_and_filter_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
