@@ -107,10 +107,7 @@ fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
         .collect();
 
     let merged = merge_nodes(root_nodes);
-
-    let mut functions = Vec::new();
-    collect_function_stats(&merged, &mut functions);
-    functions.sort_by(|a, b| b.total_us.cmp(&a.total_us));
+    let functions = compute_function_stats(&raw_spans);
 
     SpanTree {
         roots: merged,
@@ -119,22 +116,45 @@ fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
     }
 }
 
-fn collect_function_stats(nodes: &[SpanNode], stats: &mut Vec<FunctionStats>) {
-    for node in nodes {
-        stats.push(FunctionStats {
-            name: node.name.clone(),
-            calls: node.calls,
-            total_us: node.total_us,
-            avg_us: if node.calls > 0 {
-                node.total_us / node.calls as u64
+fn compute_function_stats(spans: &[RawSpan]) -> Vec<FunctionStats> {
+    let mut by_name: HashMap<String, Vec<u64>> = HashMap::new();
+
+    for span in spans {
+        let duration_us = span.duration_ns / 1000;
+        by_name
+            .entry(span.name.clone())
+            .or_default()
+            .push(duration_us);
+    }
+
+    let mut stats: Vec<FunctionStats> = by_name
+        .into_iter()
+        .map(|(name, mut durations)| {
+            durations.sort_unstable();
+            let calls = durations.len() as u32;
+            let total_us: u64 = durations.iter().sum();
+            let avg_us = if calls > 0 {
+                total_us / calls as u64
             } else {
                 0
-            },
-            p90_us: 0,
-            max_us: 0,
-        });
-        collect_function_stats(&node.children, stats);
-    }
+            };
+            let p90_idx = ((durations.len() as f64 * 0.9).ceil() as usize).saturating_sub(1);
+            let p90_us = durations.get(p90_idx).copied().unwrap_or(0);
+            let max_us = durations.last().copied().unwrap_or(0);
+
+            FunctionStats {
+                name,
+                calls,
+                total_us,
+                avg_us,
+                p90_us,
+                max_us,
+            }
+        })
+        .collect();
+
+    stats.sort_by(|a, b| b.total_us.cmp(&a.total_us));
+    stats
 }
 
 fn build_node(span: &RawSpan, children_map: &HashMap<SpanId, Vec<&RawSpan>>) -> SpanNode {
