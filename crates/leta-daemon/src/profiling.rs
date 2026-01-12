@@ -226,6 +226,10 @@ fn merge_nodes(nodes: Vec<SpanNode>) -> Vec<SpanNode> {
             let self_us: u64 = nodes.iter().map(|n| n.self_us).sum();
             let is_parallel = nodes.iter().any(|n| n.is_parallel);
 
+            // Collect all properties from all nodes
+            let properties: Vec<(String, String)> =
+                nodes.iter().flat_map(|n| n.properties.clone()).collect();
+
             let all_children: Vec<SpanNode> = nodes.into_iter().flat_map(|n| n.children).collect();
             let children = merge_nodes(all_children);
 
@@ -236,6 +240,7 @@ fn merge_nodes(nodes: Vec<SpanNode>) -> Vec<SpanNode> {
                 calls,
                 children,
                 is_parallel,
+                properties,
             }
         })
         .collect();
