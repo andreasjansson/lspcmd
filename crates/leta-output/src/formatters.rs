@@ -113,11 +113,37 @@ pub fn format_declaration_result(
     output
 }
 
-pub fn format_implementations_result(result: &ImplementationsResult) -> String {
+pub fn format_implementations_result(
+    result: &ImplementationsResult,
+    head: u32,
+    command_base: &str,
+) -> String {
     if let Some(error) = &result.error {
         return format!("Error: {}", error);
     }
-    format_locations(&result.locations)
+    let mut output = format_locations(&result.locations);
+
+    if result.truncated {
+        if !output.is_empty() {
+            output.push('\n');
+        }
+        let next_head = head * 2;
+        let cmd = format!("{} --head {}", command_base, next_head);
+        if let Some(total) = result.total_count {
+            output.push_str(&format_truncation_with_count(
+                &cmd,
+                result.locations.len() as u32,
+                total,
+            ));
+        } else {
+            output.push_str(&format_truncation_unknown_total(
+                &cmd,
+                result.locations.len() as u32,
+            ));
+        }
+    }
+
+    output
 }
 
 pub fn format_subtypes_result(result: &SubtypesResult) -> String {
