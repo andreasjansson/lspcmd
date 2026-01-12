@@ -883,7 +883,7 @@ async fn handle_grep(
         println!("{}", serde_json::to_string_pretty(&grep_result)?);
         display_profiling(response.profiling);
     } else {
-        let mut count = 0u32;
+        let mut symbols: Vec<SymbolInfo> = Vec::new();
         let done = send_streaming_request(
             "grep",
             json!({
@@ -899,12 +899,17 @@ async fn handle_grep(
             profile,
             |msg| {
                 if let StreamMessage::Symbol(sym) = msg {
-                    println!("{}", format_symbol_line(&sym));
-                    count += 1;
+                    symbols.push(sym);
                 }
             },
         )
         .await?;
+
+        symbols.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
+        let count = symbols.len() as u32;
+        for sym in &symbols {
+            println!("{}", format_symbol_line(sym));
+        }
 
         if done.truncated {
             let mut cmd_parts = vec![format!("leta grep \"{}\"", pattern)];
