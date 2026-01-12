@@ -185,7 +185,7 @@ pub struct GrepParams {
     #[serde(default)]
     pub include_docs: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub paths: Option<Vec<String>>,
+    pub path_pattern: Option<String>,
     #[serde(default)]
     pub exclude_patterns: Vec<String>,
     #[serde(default = "default_grep_limit")]
