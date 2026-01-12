@@ -853,6 +853,7 @@ async fn handle_files(
     path: Option<String>,
     exclude: Vec<String>,
     include: Vec<String>,
+    filter: Option<String>,
 ) -> Result<()> {
     let (workspace_root, subpath) = if let Some(path) = path {
         let target = PathBuf::from(&path).canonicalize()?;
@@ -869,6 +870,7 @@ async fn handle_files(
             "subpath": subpath,
             "exclude_patterns": exclude,
             "include_patterns": include,
+            "filter_pattern": filter,
         }),
         profile,
     )
