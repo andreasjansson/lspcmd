@@ -142,17 +142,17 @@ fn build_node(span: &RawSpan, children_map: &HashMap<SpanId, Vec<&RawSpan>>) -> 
         .map(|kids| kids.iter().map(|c| build_node(c, children_map)).collect())
         .unwrap_or_default();
 
-    let children = merge_nodes(raw_children);
-
     let is_parallel = detect_parallel(children_map.get(&span.span_id).unwrap_or(&vec![]));
 
     let children_time: u64 = if is_parallel {
-        children.iter().map(|c| c.total_us).max().unwrap_or(0)
+        raw_children.iter().map(|c| c.total_us).max().unwrap_or(0)
     } else {
-        children.iter().map(|c| c.total_us).sum()
+        raw_children.iter().map(|c| c.total_us).sum()
     };
 
     let self_us = total_us.saturating_sub(children_time);
+
+    let children = merge_nodes(raw_children);
 
     SpanNode {
         name: span.name.clone(),
