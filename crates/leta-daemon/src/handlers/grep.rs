@@ -250,60 +250,29 @@ fn classify_and_filter_cached(
     filter: &GrepFilter<'_>,
     limit: usize,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
-    let func_start = std::time::Instant::now();
     let mut results = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
-    let mut total_symbols = 0u64;
-    let mut cache_hits = 0u64;
-    let mut match_time = std::time::Duration::ZERO;
-    let mut cache_time = std::time::Duration::ZERO;
-    let mut rel_path_time = std::time::Duration::ZERO;
-    let mut sym_loop_time = std::time::Duration::ZERO;
-    let mut prefilter_time = std::time::Duration::ZERO;
-
     for file_path in files {
-        let start = std::time::Instant::now();
         let rel_path = relative_path(file_path, workspace_root);
-        rel_path_time += start.elapsed();
-
         if !filter.path_matches(&rel_path) {
             continue;
         }
 
-        let start = std::time::Instant::now();
-        let cached = check_file_cache(ctx, workspace_root, file_path);
-        cache_time += start.elapsed();
-
-        if let Some(symbols) = cached {
-            cache_hits += 1;
-            let sym_count = symbols.len();
-            total_symbols += sym_count as u64;
-            let loop_start = std::time::Instant::now();
+        if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
             for sym in symbols {
-                let start = std::time::Instant::now();
-                let matched = filter.matches(&sym);
-                match_time += start.elapsed();
-                if matched {
+                if filter.matches(&sym) {
                     results.push(sym);
                     if results.len() >= limit {
-                        sym_loop_time += loop_start.elapsed();
-                        tracing::info!(
-                            "classify: files={} hits={} syms={} rel_path={:?} cache={:?} sym_loop={:?} match={:?} prefilter={:?} total={:?}",
-                            files.len(), cache_hits, total_symbols, rel_path_time, cache_time, sym_loop_time, match_time, prefilter_time, func_start.elapsed()
-                        );
                         return (results, uncached_by_lang, true);
                     }
                 }
             }
-            sym_loop_time += loop_start.elapsed();
         } else {
-            let start = std::time::Instant::now();
             let should_fetch = match text_regex {
                 Some(re) => prefilter_file(file_path, re),
                 None => true,
             };
-            prefilter_time += start.elapsed();
 
             if should_fetch {
                 let lang = get_language_id(file_path);
@@ -314,11 +283,6 @@ fn classify_and_filter_cached(
             }
         }
     }
-
-    tracing::info!(
-        "classify: files={} hits={} syms={} rel_path={:?} cache={:?} sym_loop={:?} match={:?} prefilter={:?} total={:?}",
-        files.len(), cache_hits, total_symbols, rel_path_time, cache_time, sym_loop_time, match_time, prefilter_time, func_start.elapsed()
-    );
 
     (results, uncached_by_lang, false)
 }
