@@ -688,11 +688,6 @@ pub fn format_profiling(profiling: &ProfilingData) -> String {
         for root in &tree.roots {
             format_span_node(root, &mut lines, "", true, 0);
         }
-        lines.push(String::new());
-        lines.push(format!(
-            "[profile] {:>8}  total",
-            format_duration_us(tree.total_us)
-        ));
     }
 
     lines.join("\n")
