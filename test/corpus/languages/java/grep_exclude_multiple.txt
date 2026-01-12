@@ -1,7 +1,7 @@
 ==================
 grep exclude multiple patterns
 ==================
-leta grep "." --kind class --exclude "*Errors*" --exclude "*Abstract*" -C
+leta grep "." --kind class --exclude "Errors" --exclude "Abstract" -C
 ---
 src/main/java/com/example/FileStorage.java:12 [Class] FileStorage
 src/main/java/com/example/Main.java:8 [Class] Main
