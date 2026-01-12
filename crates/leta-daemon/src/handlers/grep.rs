@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use fastrace::future::FutureExt as _;
 use fastrace::trace;
 use fastrace::Span;
 use leta_fs::{get_language_id, read_file_content};
