@@ -250,8 +250,42 @@ fn classify_and_filter_cached(
     limit: usize,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
     let mut results = Vec::new();
-    let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+    let mut uncached_files: Vec<&PathBuf> = Vec::new();
 
+    // Phase 1: Check cache and collect results from cached files
+    filter_cached_symbols(
+        ctx,
+        workspace_root,
+        files,
+        filter,
+        limit,
+        &mut results,
+        &mut uncached_files,
+    );
+
+    if results.len() >= limit {
+        return (results, HashMap::new(), true);
+    }
+
+    // Phase 2: Prefilter uncached files (read file contents to check for pattern)
+    let files_to_fetch = prefilter_uncached_files(&uncached_files, text_regex);
+
+    // Phase 3: Group by language
+    let uncached_by_lang = group_files_by_language(&files_to_fetch);
+
+    (results, uncached_by_lang, false)
+}
+
+#[trace]
+fn filter_cached_symbols(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    files: &[PathBuf],
+    filter: &GrepFilter<'_>,
+    limit: usize,
+    results: &mut Vec<SymbolInfo>,
+    uncached_files: &mut Vec<&PathBuf>,
+) {
     for file_path in files {
         let rel_path = relative_path(file_path, workspace_root);
         if !filter.path_matches(&rel_path) {
@@ -263,27 +297,42 @@ fn classify_and_filter_cached(
                 if filter.matches(&sym) {
                     results.push(sym);
                     if results.len() >= limit {
-                        return (results, uncached_by_lang, true);
+                        return;
                     }
                 }
             }
         } else {
-            let should_fetch = match text_regex {
-                Some(re) => prefilter_file(file_path, re),
-                None => true,
-            };
-
-            if should_fetch {
-                let lang = get_language_id(file_path);
-                uncached_by_lang
-                    .entry(lang.to_string())
-                    .or_default()
-                    .push(file_path.clone());
-            }
+            uncached_files.push(file_path);
         }
     }
+}
 
-    (results, uncached_by_lang, false)
+#[trace]
+fn prefilter_uncached_files<'a>(
+    uncached_files: &[&'a PathBuf],
+    text_regex: Option<&Regex>,
+) -> Vec<&'a PathBuf> {
+    match text_regex {
+        Some(re) => uncached_files
+            .iter()
+            .filter(|path| prefilter_file(path, re))
+            .copied()
+            .collect(),
+        None => uncached_files.to_vec(),
+    }
+}
+
+#[trace]
+fn group_files_by_language(files: &[&PathBuf]) -> HashMap<String, Vec<PathBuf>> {
+    let mut by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+    for file_path in files {
+        let lang = get_language_id(file_path);
+        by_lang
+            .entry(lang.to_string())
+            .or_default()
+            .push((*file_path).clone());
+    }
+    by_lang
 }
 
 #[trace]
