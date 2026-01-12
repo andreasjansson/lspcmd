@@ -162,17 +162,17 @@ impl DaemonServer {
     ) -> anyhow::Result<()> {
         let (tx, mut rx) = mpsc::channel::<StreamMessage>(100);
 
+        let collector = if profile {
+            let (reporter, collector) = CollectingReporter::new();
+            fastrace::set_reporter(reporter, FastraceConfig::default());
+            ctx.cache_stats.reset();
+            Some(collector)
+        } else {
+            None
+        };
+
         let ctx_clone = ctx.clone();
         let method_owned = method.to_string();
-
-        let (reporter, collector) = if profile {
-            let (r, c) = CollectingReporter::new();
-            fastrace::set_reporter(r, FastraceConfig::default());
-            ctx.cache_stats.reset();
-            (Some(()), Some(c))
-        } else {
-            (None, None)
-        };
 
         let handle = tokio::spawn(async move {
             match method_owned.as_str() {
@@ -191,23 +191,34 @@ impl DaemonServer {
         });
 
         while let Some(msg) = rx.recv().await {
-            let mut line = serde_json::to_vec(&msg)?;
+            let is_terminal = matches!(msg, StreamMessage::Done(_) | StreamMessage::Error { .. });
+
+            let msg_to_send = if is_terminal && profile {
+                if let StreamMessage::Done(mut done) = msg {
+                    fastrace::flush();
+                    if let Some(ref collector) = collector {
+                        let functions = collector.collect_and_aggregate();
+                        let cache = ctx.cache_stats.to_cache_stats();
+                        done.profiling = Some(ProfilingData { functions, cache });
+                    }
+                    StreamMessage::Done(done)
+                } else {
+                    msg
+                }
+            } else {
+                msg
+            };
+
+            let mut line = serde_json::to_vec(&msg_to_send)?;
             line.push(b'\n');
             stream.write_all(&line).await?;
 
-            if matches!(msg, StreamMessage::Done(_) | StreamMessage::Error { .. }) {
+            if is_terminal {
                 break;
             }
         }
 
         let _ = handle.await;
-
-        if let (Some(_), Some(collector)) = (reporter, collector) {
-            fastrace::flush();
-            let _functions = collector.collect_and_aggregate();
-            let _cache = ctx.cache_stats.to_cache_stats();
-        }
-
         Ok(())
     }
 
