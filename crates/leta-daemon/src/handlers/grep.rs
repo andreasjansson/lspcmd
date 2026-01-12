@@ -173,9 +173,13 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
         None
     };
 
+    let truncated = filtered.len() as u32 >= limit;
+
     Ok(GrepResult {
         symbols: filtered,
         warning,
+        truncated,
+        total_count: None,
     })
 }
 
