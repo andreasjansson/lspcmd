@@ -251,6 +251,7 @@ fn classify_and_filter_cached(
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
     let mut results = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+    let mut total_symbols_checked = 0u64;
 
     for file_path in files {
         let rel_path = relative_path(file_path, workspace_root);
@@ -259,10 +260,12 @@ fn classify_and_filter_cached(
         }
 
         if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
+            total_symbols_checked += symbols.len() as u64;
             for sym in symbols {
                 if filter.matches(&sym) {
                     results.push(sym);
                     if results.len() >= limit {
+                        tracing::info!("classify_and_filter_cached: checked {} symbols, found {} matches (limit reached)", total_symbols_checked, results.len());
                         return (results, uncached_by_lang, true);
                     }
                 }
@@ -283,6 +286,11 @@ fn classify_and_filter_cached(
         }
     }
 
+    tracing::info!(
+        "classify_and_filter_cached: checked {} symbols, found {} matches",
+        total_symbols_checked,
+        results.len()
+    );
     (results, uncached_by_lang, false)
 }
 
