@@ -43,11 +43,13 @@ pub fn format_grep_result(result: &GrepResult, head: u32, command_base: &str) ->
                 &cmd,
                 result.symbols.len() as u32,
                 total,
+                command_base,
             ));
         } else {
             output.push_str(&format_truncation_unknown_total(
                 &cmd,
                 result.symbols.len() as u32,
+                command_base,
             ));
         }
     }
