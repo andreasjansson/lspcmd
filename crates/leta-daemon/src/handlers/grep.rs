@@ -12,16 +12,6 @@ use tracing::{debug, warn};
 use super::{flatten_document_symbols, relative_path, HandlerContext};
 use crate::session::WorkspaceHandle;
 
-#[derive(Debug, Default)]
-pub struct CollectionStats {
-    pub total_files: usize,
-    pub cache_hits: usize,
-    pub prefilter_skipped: usize,
-    pub prefilter_matched: usize,
-    pub lsp_fetched: usize,
-    pub lsp_errors: usize,
-}
-
 struct GrepFilter<'a> {
     regex: &'a Regex,
     kinds: Option<&'a HashSet<String>>,
