@@ -210,7 +210,6 @@ fn language_to_key(language_id: &str) -> Option<&'static str> {
     }
 }
 
-#[trace]
 pub fn get_server_for_language(
     language_id: &str,
     config: Option<&Config>,
