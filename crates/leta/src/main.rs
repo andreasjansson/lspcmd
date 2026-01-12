@@ -836,9 +836,10 @@ async fn handle_files(
     exclude: Vec<String>,
     include: Vec<String>,
     filter: Option<String>,
+    head: u32,
 ) -> Result<()> {
-    let (workspace_root, subpath) = if let Some(path) = path {
-        let target = PathBuf::from(&path).canonicalize()?;
+    let (workspace_root, subpath) = if let Some(ref path) = path {
+        let target = PathBuf::from(path).canonicalize()?;
         let workspace_root = get_workspace_root_for_path(config, &target)?;
         (workspace_root, Some(target.to_string_lossy().to_string()))
     } else {
@@ -853,6 +854,7 @@ async fn handle_files(
             "exclude_patterns": exclude,
             "include_patterns": include,
             "filter_pattern": filter,
+            "head": head,
         }),
         profile,
     )
@@ -863,7 +865,24 @@ async fn handle_files(
     if json_output {
         println!("{}", serde_json::to_string_pretty(&files_result)?);
     } else {
-        println!("{}", format_files_result(&files_result));
+        let mut cmd_parts = vec!["leta files".to_string()];
+        if let Some(p) = &path {
+            cmd_parts.push(format!("\"{}\"", p));
+        }
+        for ex in &exclude {
+            cmd_parts.push(format!("-x \"{}\"", ex));
+        }
+        for inc in &include {
+            cmd_parts.push(format!("-i \"{}\"", inc));
+        }
+        if let Some(f) = &filter {
+            cmd_parts.push(format!("-f \"{}\"", f));
+        }
+        let command_base = cmd_parts.join(" ");
+        println!(
+            "{}",
+            format_files_result(&files_result, head, &command_base)
+        );
     }
 
     display_profiling(response.profiling);
