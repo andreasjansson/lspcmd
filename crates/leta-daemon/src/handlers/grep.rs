@@ -255,37 +255,63 @@ fn classify_and_filter_cached(
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for file_path in files {
-        let rel_path = relative_path(file_path, workspace_root);
-        if !filter.path_matches(&rel_path) {
-            continue;
-        }
-
-        if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
-            for sym in symbols {
-                if filter.matches(&sym) {
-                    results.push(sym);
-                    if results.len() >= limit {
-                        return (results, uncached_by_lang, true);
-                    }
-                }
-            }
-        } else {
-            let should_fetch = match text_regex {
-                Some(re) => prefilter_file(file_path, re),
-                None => true,
-            };
-
-            if should_fetch {
-                let lang = get_language_id(file_path);
-                uncached_by_lang
-                    .entry(lang.to_string())
-                    .or_default()
-                    .push(file_path.clone());
-            }
+        process_file_in_filter_loop(
+            ctx,
+            workspace_root,
+            file_path,
+            text_regex,
+            filter,
+            limit,
+            &mut results,
+            &mut uncached_by_lang,
+        );
+        if results.len() >= limit {
+            return (results, uncached_by_lang, true);
         }
     }
 
     (results, uncached_by_lang, false)
+}
+
+#[trace]
+fn process_file_in_filter_loop(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    file_path: &Path,
+    text_regex: Option<&Regex>,
+    filter: &GrepFilter<'_>,
+    limit: usize,
+    results: &mut Vec<SymbolInfo>,
+    uncached_by_lang: &mut HashMap<String, Vec<PathBuf>>,
+) {
+    let rel_path = relative_path(file_path, workspace_root);
+    if !filter.path_matches(&rel_path) {
+        return;
+    }
+
+    if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
+        for sym in symbols {
+            if filter.matches(&sym) {
+                results.push(sym);
+                if results.len() >= limit {
+                    return;
+                }
+            }
+        }
+    } else {
+        let should_fetch = match text_regex {
+            Some(re) => prefilter_file(file_path, re),
+            None => true,
+        };
+
+        if should_fetch {
+            let lang = get_language_id(file_path);
+            uncached_by_lang
+                .entry(lang.to_string())
+                .or_default()
+                .push(file_path.to_path_buf());
+        }
+    }
 }
 
 #[trace]
