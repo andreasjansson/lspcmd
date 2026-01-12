@@ -955,7 +955,13 @@ async fn handle_show(
     head: u32,
 ) -> Result<()> {
     let workspace_root = get_workspace_root(config)?;
-    let resolve_result = resolve_symbol(&symbol, &workspace_root, profile).await?;
+    let resolve_result = match resolve_symbol(&symbol, &workspace_root, profile).await {
+        Ok(r) => r,
+        Err(e) => {
+            display_profiling(e.profiling);
+            return Err(anyhow!("{}", e.message));
+        }
+    };
     let resolved = resolve_result.resolved;
 
     let response = send_request_with_profile(
