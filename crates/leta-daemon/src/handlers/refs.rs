@@ -367,8 +367,13 @@ pub async fn handle_supertypes(
 
     let all_items = supertypes_response.unwrap_or_default();
     let total_count = all_items.len() as u32;
-    let truncated = total_count > params.head;
-    let limited_items: Vec<_> = all_items.into_iter().take(params.head as usize).collect();
+    let head_limit = if params.head == 0 {
+        usize::MAX
+    } else {
+        params.head as usize
+    };
+    let truncated = total_count as usize > head_limit;
+    let limited_items: Vec<_> = all_items.into_iter().take(head_limit).collect();
     let locations =
         format_type_hierarchy_items_from_json(&limited_items, &workspace_root, params.context);
 
