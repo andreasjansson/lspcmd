@@ -862,48 +862,83 @@ async fn handle_grep(
 
     let workspace_root = get_workspace_root(config)?;
 
-    let response = send_request_with_profile(
-        "grep",
-        json!({
-            "workspace_root": workspace_root.to_string_lossy(),
-            "pattern": pattern,
-            "kinds": kinds,
-            "case_sensitive": case_sensitive,
-            "include_docs": docs,
-            "path_pattern": path,
-            "exclude_patterns": exclude,
-            "limit": head,
-        }),
-        profile,
-    )
-    .await?;
-
-    let grep_result: GrepResult = serde_json::from_value(response.result)?;
-
     if json_output {
-        println!("{}", serde_json::to_string_pretty(&grep_result)?);
-    } else {
-        let mut cmd_parts = vec![format!("leta grep \"{}\"", pattern)];
-        if let Some(p) = &path {
-            cmd_parts.push(format!("\"{}\"", p));
-        }
-        if let Some(k) = &kind {
-            cmd_parts.push(format!("-k {}", k));
-        }
-        for ex in &exclude {
-            cmd_parts.push(format!("-x \"{}\"", ex));
-        }
-        if docs {
-            cmd_parts.push("-d".to_string());
-        }
-        if case_sensitive {
-            cmd_parts.push("-C".to_string());
-        }
-        let command_base = cmd_parts.join(" ");
-        println!("{}", format_grep_result(&grep_result, head, &command_base));
-    }
+        let response = send_request_with_profile(
+            "grep",
+            json!({
+                "workspace_root": workspace_root.to_string_lossy(),
+                "pattern": pattern,
+                "kinds": kinds,
+                "case_sensitive": case_sensitive,
+                "include_docs": docs,
+                "path_pattern": path,
+                "exclude_patterns": exclude,
+                "limit": head,
+            }),
+            profile,
+        )
+        .await?;
 
-    display_profiling(response.profiling);
+        let grep_result: GrepResult = serde_json::from_value(response.result)?;
+        println!("{}", serde_json::to_string_pretty(&grep_result)?);
+        display_profiling(response.profiling);
+    } else {
+        let mut count = 0u32;
+        let done = send_streaming_request(
+            "grep",
+            json!({
+                "workspace_root": workspace_root.to_string_lossy(),
+                "pattern": pattern,
+                "kinds": kinds,
+                "case_sensitive": case_sensitive,
+                "include_docs": docs,
+                "path_pattern": path,
+                "exclude_patterns": exclude,
+                "limit": head,
+            }),
+            profile,
+            |msg| {
+                if let StreamMessage::Symbol(sym) = msg {
+                    println!("{}", format_symbol_line(&sym));
+                    count += 1;
+                }
+            },
+        )
+        .await?;
+
+        if done.truncated {
+            let mut cmd_parts = vec![format!("leta grep \"{}\"", pattern)];
+            if let Some(p) = &path {
+                cmd_parts.push(format!("\"{}\"", p));
+            }
+            if let Some(k) = &kind {
+                cmd_parts.push(format!("-k {}", k));
+            }
+            for ex in &exclude {
+                cmd_parts.push(format!("-x \"{}\"", ex));
+            }
+            if docs {
+                cmd_parts.push("-d".to_string());
+            }
+            if case_sensitive {
+                cmd_parts.push("-C".to_string());
+            }
+            let command_base = cmd_parts.join(" ");
+            println!(
+                "\n[showing first {} results, use `{} --head {}` to show more, or `{} -N0` to show all]",
+                count,
+                command_base,
+                count * 2,
+                command_base
+            );
+        }
+
+        if let Some(warning) = &done.warning {
+            eprintln!("\nWarning: {}", warning);
+        }
+
+        display_profiling(done.profiling);
+    }
     Ok(())
 }
 
