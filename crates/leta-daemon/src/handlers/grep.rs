@@ -328,19 +328,20 @@ async fn collect_and_filter_symbols(
     limit: usize,
 ) -> Result<Vec<SymbolInfo>, String> {
     let span = Span::enter_with_local_parent("collect_and_filter_symbols");
-    let _guard = span.set_local_parent();
-
     let text_regex = text_pattern.and_then(pattern_to_text_regex);
 
-    let (mut results, uncached_by_lang, limit_reached) = classify_and_filter_cached(
-        ctx,
-        workspace_root,
-        files,
-        text_regex.as_ref(),
-        excluded_languages,
-        filter,
-        limit,
-    );
+    let (mut results, uncached_by_lang, limit_reached) = {
+        let _guard = span.set_local_parent();
+        classify_and_filter_cached(
+            ctx,
+            workspace_root,
+            files,
+            text_regex.as_ref(),
+            excluded_languages,
+            filter,
+            limit,
+        )
+    };
 
     if limit_reached {
         return Ok(results);
