@@ -162,14 +162,15 @@ leta grep "User" -x test -x mock
 
 ### files
 
-Show source file tree with symbol and line counts.
+Show source file tree with line counts.
 
 ```bash
 leta files [PATH] [OPTIONS]
 
 Options:
-  -x, --exclude PAT  Exclude patterns (repeatable)
+  -x, --exclude PAT  Exclude files matching regex (repeatable)
   -i, --include PAT  Include default-excluded dirs (repeatable)
+  -f, --filter PAT   Only include files matching regex
 ```
 
 Example output:
