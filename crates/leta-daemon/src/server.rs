@@ -160,8 +160,6 @@ impl DaemonServer {
         profile: bool,
         stream: &mut UnixStream,
     ) -> anyhow::Result<()> {
-        let (tx, mut rx) = mpsc::channel::<StreamMessage>(100);
-
         let collector = if profile {
             let (reporter, collector) = CollectingReporter::new();
             fastrace::set_reporter(reporter, FastraceConfig::default());
@@ -171,54 +169,68 @@ impl DaemonServer {
             None
         };
 
-        let ctx_clone = ctx.clone();
-        let method_owned = method.to_string();
+        let method_name: &'static str = Box::leak(method.to_string().into_boxed_str());
+        let root = if profile {
+            Span::root(method_name, SpanContext::random())
+        } else {
+            Span::noop()
+        };
+        let _guard = root.set_local_parent();
 
-        let handle = tokio::spawn(async move {
-            match method_owned.as_str() {
+        let (tx, mut rx) = mpsc::channel::<StreamMessage>(100);
+
+        let send_task = async {
+            match method {
                 "grep" => {
                     if let Ok(p) = serde_json::from_value::<GrepParams>(params) {
-                        handle_grep_streaming(&ctx_clone, p, tx).await;
+                        handle_grep_streaming(ctx, p, tx).await;
                     }
                 }
                 "files" => {
                     if let Ok(p) = serde_json::from_value::<FilesParams>(params) {
-                        handle_files_streaming(&ctx_clone, p, tx).await;
+                        handle_files_streaming(ctx, p, tx).await;
                     }
                 }
                 _ => {}
             }
-        });
+        };
 
-        while let Some(msg) = rx.recv().await {
-            let is_terminal = matches!(msg, StreamMessage::Done(_) | StreamMessage::Error { .. });
+        let recv_task = async {
+            while let Some(msg) = rx.recv().await {
+                let is_terminal =
+                    matches!(msg, StreamMessage::Done(_) | StreamMessage::Error { .. });
 
-            let msg_to_send = if is_terminal && profile {
-                if let StreamMessage::Done(mut done) = msg {
-                    fastrace::flush();
-                    if let Some(ref collector) = collector {
-                        let functions = collector.collect_and_aggregate();
-                        let cache = ctx.cache_stats.to_cache_stats();
-                        done.profiling = Some(ProfilingData { functions, cache });
-                    }
-                    StreamMessage::Done(done)
-                } else {
-                    msg
+                let mut line = serde_json::to_vec(&msg)?;
+                line.push(b'\n');
+                stream.write_all(&line).await?;
+
+                if is_terminal {
+                    break;
                 }
-            } else {
-                msg
-            };
+            }
+            Ok::<_, anyhow::Error>(())
+        };
 
-            let mut line = serde_json::to_vec(&msg_to_send)?;
-            line.push(b'\n');
-            stream.write_all(&line).await?;
+        tokio::join!(send_task, recv_task).1?;
 
-            if is_terminal {
-                break;
+        if profile {
+            fastrace::flush();
+            if let Some(collector) = collector {
+                let functions = collector.collect_and_aggregate();
+                let cache = ctx.cache_stats.to_cache_stats();
+                let profiling = ProfilingData { functions, cache };
+                let done = StreamMessage::Done(StreamDone {
+                    warning: None,
+                    truncated: false,
+                    total_count: 0,
+                    profiling: Some(profiling),
+                });
+                let mut line = serde_json::to_vec(&done)?;
+                line.push(b'\n');
+                stream.write_all(&line).await?;
             }
         }
 
-        let _ = handle.await;
         Ok(())
     }
 
