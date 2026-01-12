@@ -83,6 +83,8 @@ impl CacheStats {
 pub struct ProfilingData {
     pub functions: Vec<FunctionStats>,
     pub cache: CacheStats,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub span_tree: Option<SpanTree>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
