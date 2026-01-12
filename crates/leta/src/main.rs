@@ -163,6 +163,8 @@ enum Commands {
         symbol: String,
         #[arg(short = 'n', long, default_value = "0", help = "Lines of context")]
         context: u32,
+        #[arg(long, default_value_t = DEFAULT_HEAD_LIMIT, help = "Maximum results to return")]
+        head: u32,
     },
 
     #[command(about = "Find declaration of a symbol.")]
