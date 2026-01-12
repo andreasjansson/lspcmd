@@ -1,7 +1,7 @@
 ==================
-grep multiple files via glob
+grep multiple files via path regex
 ==================
-leta grep "User" --kind class "*.rb"
+leta grep "User" --kind class "user\.rb"
 ---
 user.rb:8 [Class] User
 user.rb:163 [Class] UserRepository
