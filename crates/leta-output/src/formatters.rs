@@ -756,6 +756,17 @@ fn format_span_node(
         format_duration_us(node.total_us)
     ));
 
+    // Show properties if any
+    if !node.properties.is_empty() {
+        let props_indent = " ".repeat(depth + 1);
+        let props_str: Vec<String> = node
+            .properties
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect();
+        lines.push(format!("{}  [{}]", props_indent, props_str.join(", ")));
+    }
+
     for child in &node.children {
         format_span_node(child, lines, depth + 1, functions);
     }
