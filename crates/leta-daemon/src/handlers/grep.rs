@@ -244,36 +244,22 @@ fn classify_and_filter_cached(
     let mut results = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
+    let _loop_span = LocalSpan::enter_with_local_parent("file_loop");
     for file_path in files {
-        let lang = {
-            let _span = LocalSpan::enter_with_local_parent("get_language_id");
-            get_language_id(file_path)
-        };
+        let lang = get_language_id(file_path);
         if lang == "plaintext" || excluded_languages.contains(lang) {
             continue;
         }
-        let has_server = {
-            let _span = LocalSpan::enter_with_local_parent("get_server_for_language");
-            get_server_for_language(lang, None).is_some()
-        };
-        if !has_server {
+        if get_server_for_language(lang, None).is_none() {
             continue;
         }
 
-        let rel_path = {
-            let _span = LocalSpan::enter_with_local_parent("relative_path");
-            relative_path(file_path, workspace_root)
-        };
-        let path_matches = {
-            let _span = LocalSpan::enter_with_local_parent("path_matches");
-            filter.path_matches(&rel_path)
-        };
-        if !path_matches {
+        let rel_path = relative_path(file_path, workspace_root);
+        if !filter.path_matches(&rel_path) {
             continue;
         }
 
         if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
-            let _span = LocalSpan::enter_with_local_parent("filter_cached_symbols");
             for sym in symbols {
                 if filter.matches(&sym) {
                     results.push(sym);
@@ -296,6 +282,7 @@ fn classify_and_filter_cached(
             }
         }
     }
+    drop(_loop_span);
 
     (results, uncached_by_lang, false)
 }
