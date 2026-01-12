@@ -194,8 +194,8 @@ pub struct GrepParams {
     pub limit: u32,
 }
 
-fn default_grep_limit() -> u32 {
-    200
+fn default_head_limit() -> u32 {
+    DEFAULT_HEAD_LIMIT
 }
 
 fn default_pattern() -> String {
