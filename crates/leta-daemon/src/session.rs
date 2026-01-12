@@ -137,6 +137,7 @@ impl Workspace {
     /// We work around this by opening all source files during initialization.
     #[trace]
     async fn ensure_workspace_indexed(&mut self, client: &Arc<LspClient>) {
+        let walkdir_start = std::time::Instant::now();
         let source_extensions = [".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hxx"];
         let exclude_dirs = ["build", ".git", "node_modules"];
 
@@ -161,6 +162,7 @@ impl Workspace {
                 }
             }
         }
+        let walkdir_elapsed = walkdir_start.elapsed();
 
         if files_to_index.is_empty() {
             return;
@@ -179,6 +181,16 @@ impl Workspace {
             self.open_documents.len()
         );
         self.close_all_documents().await;
+
+        fastrace::local::LocalSpan::add_properties(|| {
+            [
+                ("files_found", files_to_index.len().to_string()),
+                (
+                    "walkdir_ms",
+                    format!("{:.1}", walkdir_elapsed.as_secs_f64() * 1000.0),
+                ),
+            ]
+        });
     }
 
     #[trace]
