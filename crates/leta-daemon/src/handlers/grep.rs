@@ -877,12 +877,14 @@ async fn stream_and_filter_symbols(
     tx: &mpsc::Sender<StreamMessage>,
 ) -> Result<(u32, bool), String> {
     let text_regex = text_pattern.and_then(pattern_to_text_regex);
-
     let mut count = 0u32;
-    let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
-    let mut cached_matches: Vec<SymbolInfo> = Vec::new();
 
+    // Process files in sorted order and stream symbols immediately
     for file_path in files {
+        if count as usize >= limit {
+            return Ok((count, true));
+        }
+
         let lang = get_language_id(file_path);
         if lang == "plaintext" || excluded_languages.contains(lang) {
             continue;
@@ -896,55 +898,50 @@ async fn stream_and_filter_symbols(
             continue;
         }
 
+        // Try cache first
         if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
-            for sym in symbols {
-                if filter.matches(&sym) {
-                    cached_matches.push(sym);
+            let mut matching: Vec<_> = symbols.into_iter().filter(|s| filter.matches(s)).collect();
+            matching.sort_by_key(|s| s.line);
+
+            for mut sym in matching {
+                if include_docs {
+                    if let Some(doc) = get_symbol_documentation(
+                        ctx,
+                        workspace_root,
+                        &sym.path,
+                        sym.line,
+                        sym.column,
+                    )
+                    .await
+                    {
+                        sym.documentation = Some(doc);
+                    }
+                }
+                if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
+                    return Ok((count, false));
+                }
+                count += 1;
+                if count as usize >= limit {
+                    return Ok((count, true));
                 }
             }
-        } else {
-            let should_fetch = match &text_regex {
-                Some(re) => prefilter_file(file_path, re),
-                None => true,
-            };
-
-            if should_fetch {
-                uncached_by_lang
-                    .entry(lang.to_string())
-                    .or_default()
-                    .push(file_path.clone());
-            }
-        }
-    }
-
-    // Sort cached matches for consistent output order
-    cached_matches.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
-
-    for mut sym in cached_matches {
-        if include_docs {
-            if let Some(doc) =
-                get_symbol_documentation(ctx, workspace_root, &sym.path, sym.line, sym.column).await
-            {
-                sym.documentation = Some(doc);
-            }
-        }
-        if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
-            return Ok((count, false));
-        }
-        count += 1;
-        if count as usize >= limit {
-            return Ok((count, true));
-        }
-    }
-
-    for (lang, uncached_files) in uncached_by_lang {
-        if count as usize >= limit {
-            break;
+            continue;
         }
 
+        // Check prefilter for uncached files
+        let should_fetch = match &text_regex {
+            Some(re) => prefilter_file(file_path, re),
+            None => true,
+        };
+
+        if !should_fetch {
+            continue;
+        }
+
+        // Fetch from LSP
         let workspace = match ctx
             .session
-            .get_or_create_workspace_for_language(&lang, workspace_root)
+            .get_or_create_workspace_for_language(lang, workspace_root)
             .await
         {
             Ok(ws) => ws,
@@ -954,37 +951,37 @@ async fn stream_and_filter_symbols(
             }
         };
 
-        for file_path in uncached_files {
-            match get_file_symbols_no_wait(ctx, &workspace, workspace_root, &file_path).await {
-                Ok(symbols) => {
-                    for mut sym in symbols {
-                        if filter.matches(&sym) {
-                            if include_docs {
-                                if let Some(doc) = get_symbol_documentation(
-                                    ctx,
-                                    workspace_root,
-                                    &sym.path,
-                                    sym.line,
-                                    sym.column,
-                                )
-                                .await
-                                {
-                                    sym.documentation = Some(doc);
-                                }
-                            }
-                            if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
-                                return Ok((count, false));
-                            }
-                            count += 1;
-                            if count as usize >= limit {
-                                return Ok((count, true));
-                            }
+        match get_file_symbols_no_wait(ctx, &workspace, workspace_root, file_path).await {
+            Ok(symbols) => {
+                let mut matching: Vec<_> =
+                    symbols.into_iter().filter(|s| filter.matches(s)).collect();
+                matching.sort_by_key(|s| s.line);
+
+                for mut sym in matching {
+                    if include_docs {
+                        if let Some(doc) = get_symbol_documentation(
+                            ctx,
+                            workspace_root,
+                            &sym.path,
+                            sym.line,
+                            sym.column,
+                        )
+                        .await
+                        {
+                            sym.documentation = Some(doc);
                         }
                     }
+                    if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
+                        return Ok((count, false));
+                    }
+                    count += 1;
+                    if count as usize >= limit {
+                        return Ok((count, true));
+                    }
                 }
-                Err(e) => {
-                    warn!("Failed to get symbols for {}: {}", file_path.display(), e);
-                }
+            }
+            Err(e) => {
+                warn!("Failed to get symbols for {}: {}", file_path.display(), e);
             }
         }
     }
