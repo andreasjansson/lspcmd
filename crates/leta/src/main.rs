@@ -494,7 +494,7 @@ async fn send_request_with_profile(
 
     let mut response_data = Vec::new();
     tokio::time::timeout(
-        Duration::from_secs(30),
+        Duration::from_secs(120),
         read_half.read_to_end(&mut response_data),
     )
     .await
