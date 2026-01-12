@@ -192,13 +192,18 @@ pub async fn handle_implementations(
         .await
         .map_err(|e| format!("{}", e))?;
 
+    let head_limit = if params.head == 0 {
+        u32::MAX
+    } else {
+        params.head
+    };
     let locations = response
         .map(|resp| {
-            definition_response_to_locations(&resp, &workspace_root, params.context, params.head)
+            definition_response_to_locations(&resp, &workspace_root, params.context, head_limit)
         })
         .unwrap_or_default();
 
-    let truncated = locations.len() as u32 >= params.head;
+    let truncated = params.head > 0 && locations.len() as u32 >= params.head;
 
     Ok(ImplementationsResult {
         locations,
