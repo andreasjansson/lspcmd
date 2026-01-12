@@ -17,12 +17,11 @@ use crate::session::WorkspaceHandle;
 struct GrepFilter<'a> {
     regex: &'a Regex,
     kinds: Option<&'a HashSet<String>>,
-    exclude_patterns: &'a [String],
+    exclude_regexes: &'a [Regex],
     path_regex: Option<&'a Regex>,
 }
 
 impl GrepFilter<'_> {
-    #[trace]
     fn matches(&self, sym: &SymbolInfo) -> bool {
         if !self.regex.is_match(&sym.name) {
             return false;
@@ -32,8 +31,10 @@ impl GrepFilter<'_> {
                 return false;
             }
         }
-        if !self.exclude_patterns.is_empty() && is_excluded(&sym.path, self.exclude_patterns) {
-            return false;
+        for exclude_re in self.exclude_regexes {
+            if exclude_re.is_match(&sym.path) {
+                return false;
+            }
         }
         if let Some(path_re) = self.path_regex {
             if !path_re.is_match(&sym.path) {
@@ -43,7 +44,6 @@ impl GrepFilter<'_> {
         true
     }
 
-    #[trace]
     fn path_matches(&self, rel_path: &str) -> bool {
         if let Some(path_re) = self.path_regex {
             path_re.is_match(rel_path)
