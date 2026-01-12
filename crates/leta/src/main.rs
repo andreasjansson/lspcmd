@@ -109,7 +109,7 @@ enum Commands {
         symbol: String,
         #[arg(short = 'n', long, default_value = "0", help = "Lines of context")]
         context: u32,
-        #[arg(long, default_value = "200", help = "Maximum lines to show")]
+        #[arg(long, default_value_t = DEFAULT_HEAD_LIMIT, help = "Maximum lines to show")]
         head: u32,
     },
 
