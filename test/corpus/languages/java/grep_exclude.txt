@@ -1,7 +1,7 @@
 ==================
 grep all classes excluding Errors
 ==================
-leta grep "." --kind class --exclude "*Errors*" -C
+leta grep "." --kind class --exclude "Errors" -C
 ---
 src/main/java/com/example/AbstractStorage.java:7 [Class] AbstractStorage
 src/main/java/com/example/FileStorage.java:12 [Class] FileStorage
