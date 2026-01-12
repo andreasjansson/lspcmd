@@ -9,7 +9,7 @@ use leta_config::{get_log_dir, get_socket_path, is_daemon_running, Config};
 use leta_output::*;
 use leta_types::{DEFAULT_HEAD_LIMIT, *};
 use serde_json::{json, Value};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
 static PROFILING_ENABLED: AtomicBool = AtomicBool::new(false);
