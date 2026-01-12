@@ -227,20 +227,18 @@ pub fn enumerate_source_files(
     files
 }
 
-/// Collect and filter symbols with early termination when limit is reached.
 #[trace]
-async fn collect_and_filter_symbols(
+fn classify_and_filter_cached(
     ctx: &HandlerContext,
     workspace_root: &Path,
     files: &[PathBuf],
-    text_pattern: Option<&str>,
+    text_regex: Option<&Regex>,
     excluded_languages: &HashSet<String>,
     filter: &GrepFilter<'_>,
     limit: usize,
-) -> Result<Vec<SymbolInfo>, String> {
-    let text_regex = text_pattern.and_then(pattern_to_text_regex);
+) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
     let mut results = Vec::new();
-    let mut files_by_lang: HashMap<String, Vec<&PathBuf>> = HashMap::new();
+    let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for file_path in files {
         let lang = get_language_id(file_path);
@@ -256,62 +254,114 @@ async fn collect_and_filter_symbols(
             continue;
         }
 
-        if let Some(symbols) = get_cached_symbols(ctx, workspace_root, file_path) {
+        if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
             for sym in symbols {
                 if filter.matches(&sym) {
                     results.push(sym);
                     if results.len() >= limit {
-                        return Ok(results);
+                        return (results, uncached_by_lang, true);
                     }
                 }
             }
         } else {
-            let should_fetch = match &text_regex {
-                Some(re) => {
-                    if let Ok(content) = read_file_content(file_path) {
-                        re.is_match(&content)
-                    } else {
-                        false
-                    }
-                }
+            let should_fetch = match text_regex {
+                Some(re) => prefilter_file(file_path, re),
                 None => true,
             };
 
             if should_fetch {
-                files_by_lang
+                uncached_by_lang
                     .entry(lang.to_string())
                     .or_default()
-                    .push(file_path);
+                    .push(file_path.clone());
             }
         }
     }
 
-    for (lang, uncached_files) in files_by_lang {
-        if results.len() >= limit {
-            break;
-        }
+    (results, uncached_by_lang, false)
+}
 
-        let workspace = match ctx
-            .session
-            .get_or_create_workspace_for_language(&lang, workspace_root)
-            .await
-        {
-            Ok(ws) => ws,
-            Err(_) => continue,
-        };
+#[trace]
+async fn fetch_and_filter_symbols(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    lang: &str,
+    files: &[PathBuf],
+    filter: &GrepFilter<'_>,
+    results: &mut Vec<SymbolInfo>,
+    limit: usize,
+) -> Result<bool, String> {
+    let workspace = ctx
+        .session
+        .get_or_create_workspace_for_language(lang, workspace_root)
+        .await?;
 
-        for file_path in uncached_files {
-            if let Ok(symbols) =
-                get_file_symbols_no_wait(ctx, &workspace, workspace_root, file_path).await
-            {
+    for file_path in files {
+        match get_file_symbols_no_wait(ctx, &workspace, workspace_root, file_path).await {
+            Ok(symbols) => {
                 for sym in symbols {
                     if filter.matches(&sym) {
                         results.push(sym);
                         if results.len() >= limit {
-                            return Ok(results);
+                            return Ok(true);
                         }
                     }
                 }
+            }
+            Err(e) => {
+                warn!("Failed to get symbols for {}: {}", file_path.display(), e);
+            }
+        }
+    }
+    Ok(false)
+}
+
+#[trace]
+async fn collect_and_filter_symbols(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    files: &[PathBuf],
+    text_pattern: Option<&str>,
+    excluded_languages: &HashSet<String>,
+    filter: &GrepFilter<'_>,
+    limit: usize,
+) -> Result<Vec<SymbolInfo>, String> {
+    let text_regex = text_pattern.and_then(pattern_to_text_regex);
+
+    let (mut results, uncached_by_lang, limit_reached) = classify_and_filter_cached(
+        ctx,
+        workspace_root,
+        files,
+        text_regex.as_ref(),
+        excluded_languages,
+        filter,
+        limit,
+    );
+
+    if limit_reached {
+        return Ok(results);
+    }
+
+    for (lang, uncached_files) in uncached_by_lang {
+        if results.len() >= limit {
+            break;
+        }
+
+        match fetch_and_filter_symbols(
+            ctx,
+            workspace_root,
+            &lang,
+            &uncached_files,
+            filter,
+            &mut results,
+            limit,
+        )
+        .await
+        {
+            Ok(true) => break,
+            Ok(false) => {}
+            Err(e) => {
+                warn!("Failed to fetch symbols for language {}: {}", lang, e);
             }
         }
     }
