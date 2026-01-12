@@ -348,11 +348,18 @@ pub async fn handle_supertypes(
         .await
         .map_err(|e| format!("{}", e))?;
 
-    let locations = supertypes_response
-        .map(|items| format_type_hierarchy_items_from_json(&items, &workspace_root, params.context))
-        .unwrap_or_default();
+    let all_items = supertypes_response.unwrap_or_default();
+    let total_count = all_items.len() as u32;
+    let truncated = total_count > params.head;
+    let limited_items: Vec<_> = all_items.into_iter().take(params.head as usize).collect();
+    let locations =
+        format_type_hierarchy_items_from_json(&limited_items, &workspace_root, params.context);
 
-    Ok(SupertypesResult { locations })
+    Ok(SupertypesResult {
+        locations,
+        truncated,
+        total_count: if truncated { Some(total_count) } else { None },
+    })
 }
 
 fn definition_response_to_locations(
