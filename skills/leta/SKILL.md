@@ -145,7 +145,7 @@ leta grep "^[A-Z]" '\.go$' -k function -C
 
 ### `leta files` - Project Overview
 
-Show source file tree with symbol and line counts. Good starting point for exploring a project. **Always prefer `leta files` over `list-directory`-like tools** since it prints not just the filenames, but a full tree of files (excluding `.git`, `__pycache__`, etc.), and their sizes and line counts. If you believe this command will output too many tokens, you can pipe it through `| head -n1000` for example.
+Show source file tree with line counts. Good starting point for exploring a project. **Always prefer `leta files` over `list-directory`-like tools** since it prints not just the filenames, but a full tree of files (excluding `.git`, `__pycache__`, etc.), and their sizes and line counts. If you believe this command will output too many tokens, you can pipe it through `| head -n1000` for example.
 
 ```bash
 # Overview of entire project
@@ -154,8 +154,11 @@ leta files
 # Only show src/ directory
 leta files src/
 
-# Exclude test directories
-leta files -x tests -x vendor
+# Exclude test directories (regex pattern)
+leta files -x test -x vendor
+
+# Only show Python files
+leta files -f '\.py$'
 ```
 
 ### `leta refs` - Find All References ⭐ USE THIS INSTEAD OF RIPGREP FOR USAGES
