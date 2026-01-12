@@ -84,7 +84,7 @@ impl LmdbCache {
             };
 
         let Ok(rtxn) = self.env.read_txn() else {
-            return vec![None; keys.len()];
+            return keys.iter().map(|_| None).collect();
         };
 
         key_hashes
