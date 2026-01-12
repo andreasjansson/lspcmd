@@ -72,15 +72,6 @@ fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
         return SpanTree::default();
     }
 
-    // Debug: log all unique span names
-    let unique_names: std::collections::HashSet<_> =
-        spans.iter().map(|s| s.name.as_ref()).collect();
-    tracing::info!(
-        "build_tree: {} spans, names: {:?}",
-        spans.len(),
-        unique_names
-    );
-
     let raw_spans: Vec<RawSpan> = spans
         .into_iter()
         .map(|s| RawSpan {
