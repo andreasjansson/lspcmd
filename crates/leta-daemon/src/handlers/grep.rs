@@ -407,7 +407,6 @@ enum FileStatus {
     Skipped,
 }
 
-#[trace]
 fn check_file_cache(
     ctx: &HandlerContext,
     workspace_root: &Path,
