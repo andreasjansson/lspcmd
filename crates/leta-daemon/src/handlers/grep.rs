@@ -317,7 +317,7 @@ async fn collect_and_filter_symbols(
     workspace_root: &Path,
     files: &[PathBuf],
     text_pattern: Option<&str>,
-    excluded_languages: &HashSet<String>,
+    _excluded_languages: &HashSet<String>,
     filter: &GrepFilter<'_>,
     limit: usize,
 ) -> Result<Vec<SymbolInfo>, String> {
