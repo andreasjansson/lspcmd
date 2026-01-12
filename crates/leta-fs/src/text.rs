@@ -54,14 +54,12 @@ pub fn get_language_id(path: &Path) -> &'static str {
     }
 }
 
-#[trace]
 pub fn read_file_content(path: &Path) -> Result<String, TextError> {
     let bytes = std::fs::read(path)?;
     let content = String::from_utf8(bytes)?;
     Ok(content)
 }
 
-#[trace]
 pub fn file_mtime(path: &Path) -> String {
     match std::fs::metadata(path) {
         Ok(meta) => match meta.modified() {
