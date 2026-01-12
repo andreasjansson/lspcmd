@@ -343,7 +343,6 @@ impl LspClient {
         result.map_err(LspProtocolError::Response)
     }
 
-    #[trace]
     pub async fn send_notification<P: serde::Serialize>(
         &self,
         method: &'static str,
