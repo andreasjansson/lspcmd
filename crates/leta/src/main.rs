@@ -12,10 +12,6 @@ use serde_json::{json, Value};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::UnixStream;
 
-fn default_head_str() -> String {
-    DEFAULT_HEAD_LIMIT.to_string()
-}
-
 static PROFILING_ENABLED: AtomicBool = AtomicBool::new(false);
 
 fn profile_start(name: &str) -> (Instant, &str) {
