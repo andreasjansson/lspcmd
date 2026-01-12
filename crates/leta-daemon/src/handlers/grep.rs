@@ -9,7 +9,7 @@ use leta_servers::get_server_for_language;
 use leta_types::{GrepParams, GrepResult, StreamDone, StreamMessage, SymbolInfo};
 use regex::Regex;
 use tokio::sync::mpsc;
-use tracing::{debug, warn};
+use tracing::debug;
 
 use super::{flatten_document_symbols, relative_path, HandlerContext};
 use crate::session::WorkspaceHandle;
