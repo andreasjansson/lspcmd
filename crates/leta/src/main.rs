@@ -93,6 +93,8 @@ enum Commands {
         exclude: Vec<String>,
         #[arg(short = 'i', long, action = clap::ArgAction::Append, help = "Include default-excluded dirs")]
         include: Vec<String>,
+        #[arg(short = 'f', long, help = "Filter files by regex pattern")]
+        filter: Option<String>,
     },
 
     #[command(about = "Print the definition of a symbol.")]
