@@ -118,14 +118,18 @@ searches *symbol names* semantically—it finds function definitions, class
 declarations, method names, etc.
 
 ```bash
-leta grep PATTERN [PATH] [OPTIONS]
+leta grep PATTERN [PATH_REGEX] [OPTIONS]
 
 Options:
   -k, --kind KIND       Filter by symbol kind (class, function, method, etc.)
-  -x, --exclude PAT     Exclude files matching pattern (repeatable)
+  -x, --exclude PAT     Exclude files matching regex (repeatable)
   -d, --docs            Include documentation for each symbol
   -C, --case-sensitive  Case-sensitive matching
+  --head N              Maximum results to return (default: 200)
 ```
+
+The optional PATH_REGEX argument filters files by matching a regex against
+the relative file path. This is simpler and more powerful than glob patterns.
 
 Examples:
 
@@ -133,8 +137,14 @@ Examples:
 # Find all classes ending with "Handler"
 leta grep "Handler$" -k class
 
-# Find functions in specific files
-leta grep "validate" "src/validators/*.py"
+# Find functions in Python files only
+leta grep "validate" '\.py$' -k function
+
+# Find symbols in a specific directory
+leta grep "User" "models/"
+
+# Find symbols in test files
+leta grep "test" "test/"
 
 # Search with documentation
 leta grep "parse" -k function -d
