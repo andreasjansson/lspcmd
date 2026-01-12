@@ -500,13 +500,13 @@ async fn get_symbol_documentation(
     let workspace = ctx.session.get_workspace_for_file(&file_path).await?;
     let client = workspace.client().await?;
 
-    let file_sha = leta_fs::file_sha(&file_path);
+    let file_mtime = leta_fs::file_mtime(&file_path);
     let cache_key = format!(
         "hover:{}:{}:{}:{}",
         file_path.display(),
         line,
         column,
-        file_sha
+        file_mtime
     );
 
     if let Some(cached) = ctx.hover_cache.get::<String>(&cache_key) {
