@@ -75,12 +75,18 @@ fn should_use_prefilter(pattern: &str) -> bool {
         .trim_start_matches("(?i)")
         .trim_start_matches('^')
         .trim_end_matches('$');
-    if core.len() <= 2 {
+
+    if core.is_empty() || core == "." || core == ".*" {
         return false;
     }
-    if core == ".*" || core == ".+" || core == ".?" {
+
+    let start_anchor = pattern.trim_start_matches("(?i)").starts_with('^');
+    let end_anchor = pattern.ends_with('$');
+
+    if start_anchor && end_anchor {
         return false;
     }
+
     true
 }
 
@@ -90,113 +96,60 @@ fn pattern_to_text_regex(pattern: &str) -> Option<Regex> {
         .trim_start_matches('^')
         .trim_end_matches('$');
 
-    let flags = if pattern.starts_with("(?i)") {
-        "(?i)"
-    } else {
-        ""
-    };
-
-    Regex::new(&format!("{}{}", flags, core)).ok()
-}
-
-#[trace]
-pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
-    debug!(
-        "handle_grep: pattern={} workspace={} limit={} path_pattern={:?}",
-        params.pattern, params.workspace_root, params.limit, params.path_pattern
-    );
-    let workspace_root = PathBuf::from(&params.workspace_root);
-
-    let flags = if params.case_sensitive { "" } else { "(?i)" };
-    let pattern = format!("{}{}", flags, params.pattern);
-    let regex =
-        Regex::new(&pattern).map_err(|e| format!("Invalid regex '{}': {}", params.pattern, e))?;
-
-    let path_regex = params
-        .path_pattern
-        .as_ref()
-        .map(|p| Regex::new(p))
-        .transpose()
-        .map_err(|e| format!("Invalid path pattern: {}", e))?;
-
-    let kinds_set: Option<HashSet<String>> = params
-        .kinds
-        .clone()
-        .map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
-
-    let config = ctx.session.config().await;
-    let excluded_languages: HashSet<String> = config
-        .workspaces
-        .excluded_languages
-        .iter()
-        .cloned()
-        .collect();
-
-    let limit = if params.limit == 0 {
-        usize::MAX
-    } else {
-        params.limit as usize
-    };
-
-    let exclude_regexes: Vec<Regex> = params
-        .exclude_patterns
-        .iter()
-        .filter_map(|p| Regex::new(p).ok())
-        .collect();
-
-    let filter = GrepFilter {
-        regex: &regex,
-        kinds: kinds_set.as_ref(),
-        exclude_regexes: &exclude_regexes,
-        path_regex: path_regex.as_ref(),
-    };
-
-    let files = enumerate_source_files(&workspace_root, &excluded_languages);
-
-    let text_pattern = if should_use_prefilter(&pattern) {
-        Some(pattern.as_str())
-    } else {
-        None
-    };
-
-    let mut filtered = collect_and_filter_symbols(
-        ctx,
-        &workspace_root,
-        &files,
-        text_pattern,
-        &excluded_languages,
-        &filter,
-        limit,
-    )
-    .await?;
-
-    if params.include_docs {
-        for sym in &mut filtered {
-            if let Some(doc) =
-                get_symbol_documentation(ctx, &workspace_root, &sym.path, sym.line, sym.column)
-                    .await
-            {
-                sym.documentation = Some(doc);
-            }
-        }
+    if core.is_empty() {
+        return None;
     }
 
-    filtered.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
+    let has_special_chars = core.chars().any(|c| {
+        matches!(
+            c,
+            '.' | '*' | '+' | '?' | '[' | ']' | '(' | ')' | '{' | '}' | '|' | '\\' | '^' | '$'
+        )
+    });
 
-    let warning = if filtered.is_empty() && params.pattern.contains(r"\|") {
-        Some("No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')".to_string())
+    let text_pattern = if has_special_chars {
+        let mut result = String::new();
+        let mut chars = core.chars().peekable();
+        while let Some(c) = chars.next() {
+            match c {
+                '\\' => {
+                    if let Some(&next) = chars.peek() {
+                        match next {
+                            'd' | 'w' | 's' | 'D' | 'W' | 'S' => {
+                                return None;
+                            }
+                            _ => {
+                                chars.next();
+                                result.push(next);
+                            }
+                        }
+                    }
+                }
+                '.' => result.push('.'),
+                '*' | '+' | '?' => {}
+                '[' | ']' | '(' | ')' | '{' | '}' | '|' | '^' | '$' => {
+                    return None;
+                }
+                _ => result.push(c),
+            }
+        }
+        result
     } else {
-        None
+        core.to_string()
     };
 
-    let truncated = filtered.len() >= limit;
+    if text_pattern.len() < 2 {
+        return None;
+    }
 
-    Ok(GrepResult {
-        symbols: filtered,
-        warning,
-        truncated,
-        total_count: None,
-    })
+    let case_insensitive = pattern.starts_with("(?i)");
+    let regex_pattern = if case_insensitive {
+        format!("(?i){}", regex::escape(&text_pattern))
+    } else {
+        regex::escape(&text_pattern)
+    };
+
+    Regex::new(&regex_pattern).ok()
 }
 
 #[trace]
@@ -250,14 +203,18 @@ fn classify_and_filter_cached(
     filter: &GrepFilter<'_>,
     limit: usize,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
+    let func_start = std::time::Instant::now();
     let mut results = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     let mut total_symbols = 0u64;
     let mut cache_hits = 0u64;
+    let mut cache_misses = 0u64;
     let mut match_time = std::time::Duration::ZERO;
     let mut cache_time = std::time::Duration::ZERO;
     let mut rel_path_time = std::time::Duration::ZERO;
+    let mut prefilter_time = std::time::Duration::ZERO;
+    let mut sym_iter_time = std::time::Duration::ZERO;
 
     for file_path in files {
         let start = std::time::Instant::now();
@@ -274,6 +231,7 @@ fn classify_and_filter_cached(
 
         if let Some(symbols) = cached {
             cache_hits += 1;
+            let iter_start = std::time::Instant::now();
             for sym in symbols {
                 total_symbols += 1;
                 let start = std::time::Instant::now();
@@ -282,19 +240,24 @@ fn classify_and_filter_cached(
                 if matched {
                     results.push(sym);
                     if results.len() >= limit {
+                        sym_iter_time += iter_start.elapsed();
                         tracing::info!(
-                            "classify: files={} hits={} syms={} rel_path={:?} cache={:?} match={:?}",
-                            files.len(), cache_hits, total_symbols, rel_path_time, cache_time, match_time
+                            "classify: files={} hits={} misses={} syms={} rel_path={:?} cache={:?} prefilter={:?} sym_iter={:?} match={:?} total={:?}",
+                            files.len(), cache_hits, cache_misses, total_symbols, rel_path_time, cache_time, prefilter_time, sym_iter_time, match_time, func_start.elapsed()
                         );
                         return (results, uncached_by_lang, true);
                     }
                 }
             }
+            sym_iter_time += iter_start.elapsed();
         } else {
+            cache_misses += 1;
+            let start = std::time::Instant::now();
             let should_fetch = match text_regex {
                 Some(re) => prefilter_file(file_path, re),
                 None => true,
             };
+            prefilter_time += start.elapsed();
 
             if should_fetch {
                 let lang = get_language_id(file_path);
@@ -307,13 +270,8 @@ fn classify_and_filter_cached(
     }
 
     tracing::info!(
-        "classify: files={} hits={} syms={} rel_path={:?} cache={:?} match={:?}",
-        files.len(),
-        cache_hits,
-        total_symbols,
-        rel_path_time,
-        cache_time,
-        match_time
+        "classify: files={} hits={} misses={} syms={} rel_path={:?} cache={:?} prefilter={:?} sym_iter={:?} match={:?} total={:?}",
+        files.len(), cache_hits, cache_misses, total_symbols, rel_path_time, cache_time, prefilter_time, sym_iter_time, match_time, func_start.elapsed()
     );
 
     (results, uncached_by_lang, false)
@@ -357,41 +315,6 @@ fn process_file_in_filter_loop(
                 .push(file_path.to_path_buf());
         }
     }
-}
-
-#[trace]
-async fn fetch_and_filter_symbols(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    lang: &str,
-    files: &[PathBuf],
-    filter: &GrepFilter<'_>,
-    results: &mut Vec<SymbolInfo>,
-    limit: usize,
-) -> Result<bool, String> {
-    let workspace = ctx
-        .session
-        .get_or_create_workspace_for_language(lang, workspace_root)
-        .await?;
-
-    for file_path in files {
-        match get_file_symbols_no_wait(ctx, &workspace, workspace_root, file_path).await {
-            Ok(symbols) => {
-                for sym in symbols {
-                    if filter.matches(&sym) {
-                        results.push(sym);
-                        if results.len() >= limit {
-                            return Ok(true);
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                warn!("Failed to get symbols for {}: {}", file_path.display(), e);
-            }
-        }
-    }
-    Ok(false)
 }
 
 async fn collect_and_filter_symbols(
@@ -449,12 +372,6 @@ async fn collect_and_filter_symbols(
     Ok(results)
 }
 
-enum FileStatus {
-    Cached(Vec<SymbolInfo>),
-    NeedsFetch,
-    Skipped,
-}
-
 fn check_file_cache(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -464,192 +381,86 @@ fn check_file_cache(
 }
 
 fn prefilter_file(file_path: &Path, text_regex: &Regex) -> bool {
-    match read_file_content(file_path) {
-        Ok(content) => text_regex.is_match(&content),
-        Err(e) => {
-            warn!(
-                "Failed to read file for prefilter {}: {}",
-                file_path.display(),
-                e
-            );
-            false
-        }
-    }
-}
-
-fn classify_file(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    file_path: &Path,
-    text_regex: Option<&Regex>,
-    excluded_languages: &HashSet<String>,
-) -> FileStatus {
-    let lang = get_language_id(file_path);
-    if lang == "plaintext" || excluded_languages.contains(lang) {
-        return FileStatus::Skipped;
-    }
-    if get_server_for_language(lang, None).is_none() {
-        return FileStatus::Skipped;
-    }
-
-    if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
-        return FileStatus::Cached(symbols);
-    }
-
-    match text_regex {
-        Some(re) => {
-            if prefilter_file(file_path, re) {
-                FileStatus::NeedsFetch
-            } else {
-                FileStatus::Skipped
-            }
-        }
-        None => FileStatus::NeedsFetch,
+    if let Some(content) = read_file_content(file_path) {
+        text_regex.is_match(&content)
+    } else {
+        false
     }
 }
 
 #[trace]
-fn handle_file_status(
-    status: FileStatus,
-    file_path: &Path,
-    cached_symbols: &mut Vec<SymbolInfo>,
-    uncached_by_lang: &mut HashMap<String, Vec<PathBuf>>,
-) {
-    match status {
-        FileStatus::Cached(symbols) => {
-            cached_symbols.extend(symbols);
-        }
-        FileStatus::NeedsFetch => {
-            let lang = get_language_id(file_path);
-            uncached_by_lang
-                .entry(lang.to_string())
-                .or_default()
-                .push(file_path.to_path_buf());
-        }
-        FileStatus::Skipped => {}
-    }
-}
-
-#[trace]
-fn classify_all_files(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    files: &[PathBuf],
-    text_regex: Option<&Regex>,
-    excluded_languages: &HashSet<String>,
-) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>) {
-    let mut cached_symbols = Vec::new();
-    let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
-
-    for file_path in files {
-        let status = classify_file(
-            ctx,
-            workspace_root,
-            file_path,
-            text_regex,
-            excluded_languages,
-        );
-        handle_file_status(
-            status,
-            file_path,
-            &mut cached_symbols,
-            &mut uncached_by_lang,
-        );
-    }
-
-    (cached_symbols, uncached_by_lang)
-}
-
-#[trace]
-async fn fetch_symbols_for_language(
+async fn fetch_and_filter_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
     lang: &str,
-    files: &[PathBuf],
-) -> Result<Vec<SymbolInfo>, String> {
+    uncached_files: &[PathBuf],
+    filter: &GrepFilter<'_>,
+    results: &mut Vec<SymbolInfo>,
+    limit: usize,
+) -> Result<bool, String> {
     let workspace = ctx
         .session
         .get_or_create_workspace_for_language(lang, workspace_root)
         .await?;
 
-    let mut symbols = Vec::new();
-    for file_path in files {
+    for file_path in uncached_files {
+        if results.len() >= limit {
+            return Ok(true);
+        }
+
         match get_file_symbols_no_wait(ctx, &workspace, workspace_root, file_path).await {
-            Ok(file_symbols) => symbols.extend(file_symbols),
+            Ok(symbols) => {
+                for sym in symbols {
+                    if filter.matches(&sym) {
+                        results.push(sym);
+                        if results.len() >= limit {
+                            return Ok(true);
+                        }
+                    }
+                }
+            }
             Err(e) => {
                 warn!("Failed to get symbols for {}: {}", file_path.display(), e);
             }
         }
     }
+
+    Ok(false)
+}
+
+async fn get_file_symbols_no_wait(
+    ctx: &HandlerContext,
+    workspace: &WorkspaceHandle,
+    workspace_root: &Path,
+    file_path: &Path,
+) -> Result<Vec<SymbolInfo>, String> {
+    let uri = leta_fs::path_to_uri(file_path);
+
+    let params = DocumentSymbolParams {
+        text_document: TextDocumentIdentifier { uri: uri.clone() },
+        work_done_progress_params: Default::default(),
+        partial_result_params: Default::default(),
+    };
+
+    let response = workspace
+        .client
+        .document_symbols(params)
+        .await
+        .map_err(|e| format!("document_symbols failed: {}", e))?;
+
+    let rel_path = relative_path(file_path, workspace_root);
+
+    let symbols = flatten_document_symbols(response, &rel_path);
+
+    let cache_key = format!(
+        "{}:{}:{}",
+        file_path.display(),
+        workspace_root.display(),
+        leta_fs::file_mtime(file_path)
+    );
+    ctx.symbol_cache.put(&cache_key, &symbols);
+
     Ok(symbols)
-}
-
-pub async fn collect_symbols_smart(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    files: &[PathBuf],
-    text_pattern: Option<&str>,
-    excluded_languages: &HashSet<String>,
-) -> Result<Vec<SymbolInfo>, String> {
-    let span = Span::enter_with_local_parent("collect_symbols_smart");
-    let text_regex = text_pattern.and_then(pattern_to_text_regex);
-
-    let (mut all_symbols, uncached_by_lang) = {
-        let _guard = span.set_local_parent();
-        classify_all_files(
-            ctx,
-            workspace_root,
-            files,
-            text_regex.as_ref(),
-            excluded_languages,
-        )
-    };
-
-    let uncached_count: usize = uncached_by_lang.values().map(|v| v.len()).sum();
-    if uncached_count > 0 {
-        debug!(
-            "Fetching symbols for {} uncached files (pattern: {:?})",
-            uncached_count, text_pattern
-        );
-    }
-
-    for (lang, uncached_files) in uncached_by_lang {
-        match fetch_symbols_for_language(ctx, workspace_root, &lang, &uncached_files).await {
-            Ok(symbols) => all_symbols.extend(symbols),
-            Err(e) => {
-                warn!("Failed to fetch symbols for language {}: {}", lang, e);
-            }
-        }
-    }
-
-    Ok(all_symbols)
-}
-
-#[trace]
-pub async fn collect_symbols_with_prefilter(
-    ctx: &HandlerContext,
-    workspace_root: &Path,
-    text_pattern: Option<&str>,
-) -> Result<Vec<SymbolInfo>, String> {
-    let config = ctx.session.config().await;
-    let excluded_languages: HashSet<String> = config
-        .workspaces
-        .excluded_languages
-        .iter()
-        .cloned()
-        .collect();
-
-    let files = enumerate_source_files(workspace_root, &excluded_languages);
-    let pattern = if text_pattern
-        .map(|p| should_use_prefilter(p))
-        .unwrap_or(false)
-    {
-        text_pattern
-    } else {
-        None
-    };
-
-    collect_symbols_smart(ctx, workspace_root, &files, pattern, &excluded_languages).await
 }
 
 #[trace]
@@ -677,73 +488,104 @@ pub fn get_cached_symbols(
 }
 
 #[trace]
-pub async fn get_file_symbols(
-    ctx: &HandlerContext,
-    workspace: &WorkspaceHandle<'_>,
-    workspace_root: &Path,
-    file_path: &Path,
-) -> Result<Vec<SymbolInfo>, String> {
-    workspace.wait_for_ready(30).await;
-    get_file_symbols_no_wait(ctx, workspace, workspace_root, file_path).await
-}
-
-#[trace]
-pub async fn get_file_symbols_no_wait(
-    ctx: &HandlerContext,
-    workspace: &WorkspaceHandle<'_>,
-    workspace_root: &Path,
-    file_path: &Path,
-) -> Result<Vec<SymbolInfo>, String> {
-    use std::sync::atomic::Ordering;
-
-    let file_mtime = leta_fs::file_mtime(file_path);
-    let cache_key = format!(
-        "{}:{}:{}",
-        file_path.display(),
-        workspace_root.display(),
-        file_mtime
+pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
+    debug!(
+        "handle_grep: pattern={} workspace={} limit={}",
+        params.pattern, params.workspace_root, params.limit
     );
+    let workspace_root = PathBuf::from(&params.workspace_root);
 
-    if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
-        ctx.cache_stats.symbol_hits.fetch_add(1, Ordering::Relaxed);
-        return Ok(cached);
-    }
-    ctx.cache_stats
-        .symbol_misses
-        .fetch_add(1, Ordering::Relaxed);
+    let flags = if params.case_sensitive { "" } else { "(?i)" };
+    let pattern = format!("{}{}", flags, params.pattern);
+    let regex =
+        Regex::new(&pattern).map_err(|e| format!("Invalid regex '{}': {}", params.pattern, e))?;
 
-    let client = workspace.client().await.ok_or("No LSP client")?;
-    let uri = leta_fs::path_to_uri(file_path);
+    let path_regex = params
+        .path_pattern
+        .as_ref()
+        .map(|p| Regex::new(p))
+        .transpose()
+        .map_err(|e| format!("Invalid path pattern: {}", e))?;
 
-    workspace.ensure_document_open(file_path).await?;
+    let kinds_set: Option<HashSet<String>> = params
+        .kinds
+        .clone()
+        .map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
 
-    let response: Option<leta_lsp::lsp_types::DocumentSymbolResponse> = client
-        .send_request(
-            "textDocument/documentSymbol",
-            DocumentSymbolParams {
-                text_document: TextDocumentIdentifier {
-                    uri: uri.parse().unwrap(),
-                },
-                work_done_progress_params: Default::default(),
-                partial_result_params: Default::default(),
-            },
-        )
-        .await
-        .map_err(|e| e.to_string())?;
+    let exclude_regexes: Vec<Regex> = params
+        .exclude_patterns
+        .iter()
+        .filter_map(|p| Regex::new(p).ok())
+        .collect();
 
-    let symbols = match response {
-        Some(resp) => {
-            let rel_path = relative_path(file_path, workspace_root);
-            flatten_document_symbols(&resp, &rel_path)
-        }
-        None => Vec::new(),
+    let config = ctx.session.config().await;
+    let excluded_languages: HashSet<String> = config
+        .workspaces
+        .excluded_languages
+        .iter()
+        .cloned()
+        .collect();
+
+    let limit = if params.limit == 0 {
+        usize::MAX
+    } else {
+        params.limit as usize
     };
 
-    ctx.symbol_cache.set(&cache_key, &symbols);
-    Ok(symbols)
+    let filter = GrepFilter {
+        regex: &regex,
+        kinds: kinds_set.as_ref(),
+        exclude_regexes: &exclude_regexes,
+        path_regex: path_regex.as_ref(),
+    };
+
+    let files = enumerate_source_files(&workspace_root, &excluded_languages);
+
+    let text_pattern = if should_use_prefilter(&pattern) {
+        Some(pattern.as_str())
+    } else {
+        None
+    };
+
+    let mut symbols = collect_and_filter_symbols(
+        ctx,
+        &workspace_root,
+        &files,
+        text_pattern,
+        &excluded_languages,
+        &filter,
+        limit,
+    )
+    .await?;
+
+    symbols.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
+
+    let truncated = symbols.len() >= limit;
+
+    if params.include_docs {
+        for sym in &mut symbols {
+            if let Some(doc) =
+                get_symbol_documentation(ctx, &workspace_root, &sym.path, sym.line, sym.column)
+                    .await
+            {
+                sym.documentation = Some(doc);
+            }
+        }
+    }
+
+    let warning = if symbols.is_empty() && params.pattern.contains(r"\|") {
+        Some("No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')".to_string())
+    } else {
+        None
+    };
+
+    Ok(GrepResult {
+        symbols,
+        truncated,
+        warning,
+    })
 }
 
-#[trace]
 async fn get_symbol_documentation(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -751,78 +593,83 @@ async fn get_symbol_documentation(
     line: u32,
     column: u32,
 ) -> Option<String> {
-    use std::sync::atomic::Ordering;
-
     let file_path = workspace_root.join(rel_path);
-    let workspace = ctx.session.get_workspace_for_file(&file_path).await?;
-    let client = workspace.client().await?;
+    let lang = get_language_id(&file_path);
 
-    let file_mtime = leta_fs::file_mtime(&file_path);
-    let cache_key = format!(
-        "hover:{}:{}:{}:{}",
-        file_path.display(),
-        line,
-        column,
-        file_mtime
-    );
-
-    if let Some(cached) = ctx.hover_cache.get::<String>(&cache_key) {
-        ctx.cache_stats.hover_hits.fetch_add(1, Ordering::Relaxed);
-        return if cached.is_empty() {
-            None
-        } else {
-            Some(cached)
-        };
-    }
-    ctx.cache_stats.hover_misses.fetch_add(1, Ordering::Relaxed);
-
-    workspace.ensure_document_open(&file_path).await.ok()?;
-    let uri = leta_fs::path_to_uri(&file_path);
-
-    let response: Option<leta_lsp::lsp_types::Hover> = client
-        .send_request(
-            "textDocument/hover",
-            leta_lsp::lsp_types::HoverParams {
-                text_document_position_params: leta_lsp::lsp_types::TextDocumentPositionParams {
-                    text_document: TextDocumentIdentifier {
-                        uri: uri.parse().unwrap(),
-                    },
-                    position: leta_lsp::lsp_types::Position {
-                        line: line - 1,
-                        character: column,
-                    },
-                },
-                work_done_progress_params: Default::default(),
-            },
-        )
+    let workspace = ctx
+        .session
+        .get_or_create_workspace_for_language(lang, workspace_root)
         .await
         .ok()?;
 
-    let doc = response.and_then(|h| extract_hover_content(&h.contents));
-    ctx.hover_cache
-        .set(&cache_key, &doc.clone().unwrap_or_default());
-    doc
-}
+    let uri = leta_fs::path_to_uri(&file_path);
 
-fn extract_hover_content(contents: &leta_lsp::lsp_types::HoverContents) -> Option<String> {
-    use leta_lsp::lsp_types::{HoverContents, MarkedString, MarkupContent};
+    let params = leta_lsp::lsp_types::HoverParams {
+        text_document_position_params: leta_lsp::lsp_types::TextDocumentPositionParams {
+            text_document: TextDocumentIdentifier { uri },
+            position: leta_lsp::lsp_types::Position {
+                line: line.saturating_sub(1),
+                character: column.saturating_sub(1),
+            },
+        },
+        work_done_progress_params: Default::default(),
+    };
 
-    match contents {
-        HoverContents::Scalar(MarkedString::String(s)) => Some(s.clone()),
-        HoverContents::Scalar(MarkedString::LanguageString(ls)) => Some(ls.value.clone()),
-        HoverContents::Markup(MarkupContent { value, .. }) => Some(value.clone()),
-        HoverContents::Array(arr) => {
-            let parts: Vec<String> = arr
-                .iter()
-                .filter_map(|ms| match ms {
-                    MarkedString::String(s) => Some(s.clone()),
-                    MarkedString::LanguageString(ls) => Some(ls.value.clone()),
-                })
-                .collect();
-            if parts.is_empty() {
+    let hover = workspace.client.hover(params).await.ok()??;
+
+    match hover.contents {
+        leta_lsp::lsp_types::HoverContents::Markup(markup) => {
+            let text = markup.value.trim();
+            if text.is_empty() {
                 None
             } else {
-                Some(parts.join("\n"))
+                Some(text.to_string())
+            }
+        }
+        leta_lsp::lsp_types::HoverContents::Scalar(scalar) => match scalar {
+            leta_lsp::lsp_types::MarkedString::String(s) => {
+                let s = s.trim();
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s.to_string())
+                }
+            }
+            leta_lsp::lsp_types::MarkedString::LanguageString(ls) => {
+                let s = ls.value.trim();
+                if s.is_empty() {
+                    None
+                } else {
+                    Some(s.to_string())
+                }
+            }
+        },
+        leta_lsp::lsp_types::HoverContents::Array(arr) => {
+            let texts: Vec<String> = arr
+                .iter()
+                .filter_map(|ms| match ms {
+                    leta_lsp::lsp_types::MarkedString::String(s) => {
+                        let s = s.trim();
+                        if s.is_empty() {
+                            None
+                        } else {
+                            Some(s.to_string())
+                        }
+                    }
+                    leta_lsp::lsp_types::MarkedString::LanguageString(ls) => {
+                        let s = ls.value.trim();
+                        if s.is_empty() {
+                            None
+                        } else {
+                            Some(s.to_string())
+                        }
+                    }
+                })
+                .collect();
+            if texts.is_empty() {
+                None
+            } else {
+                Some(texts.join("\n\n"))
             }
         }
     }
@@ -882,6 +729,12 @@ async fn handle_grep_streaming_inner(
         .clone()
         .map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
 
+    let exclude_regexes: Vec<Regex> = params
+        .exclude_patterns
+        .iter()
+        .filter_map(|p| Regex::new(p).ok())
+        .collect();
+
     let config = ctx.session.config().await;
     let excluded_languages: HashSet<String> = config
         .workspaces
@@ -895,12 +748,6 @@ async fn handle_grep_streaming_inner(
     } else {
         params.limit as usize
     };
-
-    let exclude_regexes: Vec<Regex> = params
-        .exclude_patterns
-        .iter()
-        .filter_map(|p| Regex::new(p).ok())
-        .collect();
 
     let filter = GrepFilter {
         regex: &regex,
@@ -954,7 +801,6 @@ async fn stream_and_filter_symbols(
     let text_regex = text_pattern.and_then(pattern_to_text_regex);
     let mut count = 0u32;
 
-    // Process files in sorted order and stream symbols immediately
     for file_path in files {
         if count as usize >= limit {
             return Ok((count, true));
@@ -973,7 +819,6 @@ async fn stream_and_filter_symbols(
             continue;
         }
 
-        // Try cache first
         if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
             let mut matching: Vec<_> = symbols.into_iter().filter(|s| filter.matches(s)).collect();
             matching.sort_by_key(|s| s.line);
@@ -1003,7 +848,6 @@ async fn stream_and_filter_symbols(
             continue;
         }
 
-        // Check prefilter for uncached files
         let should_fetch = match &text_regex {
             Some(re) => prefilter_file(file_path, re),
             None => true,
@@ -1013,7 +857,6 @@ async fn stream_and_filter_symbols(
             continue;
         }
 
-        // Fetch from LSP
         let workspace = match ctx
             .session
             .get_or_create_workspace_for_language(lang, workspace_root)
