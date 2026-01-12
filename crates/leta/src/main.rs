@@ -623,6 +623,8 @@ fn expand_path_pattern(pattern: &str) -> Result<Vec<PathBuf>> {
 
     let search_pattern = if !pattern.contains('/') && !pattern.starts_with("**") {
         format!("**/{}", pattern)
+    } else if pattern.ends_with("/**") {
+        format!("{}/*", pattern)
     } else {
         pattern.to_string()
     };
