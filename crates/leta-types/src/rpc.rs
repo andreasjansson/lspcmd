@@ -455,6 +455,8 @@ pub struct CallsParams {
     pub max_depth: u32,
     #[serde(default)]
     pub include_non_workspace: bool,
+    #[serde(default = "default_head_limit")]
+    pub head: u32,
 }
 
 fn default_max_depth() -> u32 {
@@ -471,6 +473,8 @@ pub struct CallsResult {
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
+    #[serde(default)]
+    pub truncated: bool,
 }
 
 // ============================================================================
