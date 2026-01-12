@@ -108,6 +108,12 @@ leta show COUNTRY_CODES --head 50
 Search for symbols matching a regex pattern. Only searches symbol NAMES, not file contents. Use this instead of ripgrep-like tools when looking for where something is defined.
 
 ```bash
+leta grep PATTERN [PATH_REGEX] [OPTIONS]
+```
+
+The optional PATH_REGEX argument filters files by matching a regex against the relative file path.
+
+```bash
 # Find all functions/methods starting with "test"
 leta grep "^test" -k function,method
 
@@ -115,17 +121,27 @@ leta grep "^test" -k function,method
 leta grep "UserRepository" -k class -d
 
 # Find all methods in a specific file
-leta grep ".*" src/server.py -k method
+leta grep ".*" "server\.py" -k method
+
+# Find symbols in Python files only
+leta grep "validate" '\.py$' -k function
+
+# Find symbols in a specific directory
+leta grep "User" "models/"
+
+# Find symbols in test files
+leta grep "test" "test/"
 
 # Find public Go functions (capitalized)
-leta grep "^[A-Z]" "*.go" -k function -C
+leta grep "^[A-Z]" '\.go$' -k function -C
 ```
 
 **Options:**
 - `-k, --kind TEXT` - Filter by kind: class, function, method, variable, constant, interface, struct, enum, property, field, constructor, module, namespace, package, typeparameter
 - `-d, --docs` - Include documentation/docstrings
-- `-x, --exclude TEXT` - Exclude files/directories (repeatable)
+- `-x, --exclude TEXT` - Exclude files matching regex (repeatable)
 - `-C, --case-sensitive` - Case-sensitive matching. Note that `leta grep` is case-insensitive by default
+- `--head N` - Maximum results to return (default: 200)
 
 ### `leta files` - Project Overview
 
