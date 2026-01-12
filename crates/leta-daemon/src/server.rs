@@ -95,16 +95,27 @@ impl DaemonServer {
 
     #[trace]
     async fn handle_client(&self, mut stream: UnixStream) -> anyhow::Result<()> {
-        let (read_half, write_half) = stream.split();
-        let mut reader = BufReader::new(read_half);
-        let mut line = String::new();
-        reader.read_line(&mut line).await?;
+        let mut data = Vec::new();
+        let mut buf = [0u8; 4096];
 
-        if line.is_empty() {
+        loop {
+            let n = stream.read(&mut buf).await?;
+            if n == 0 {
+                break;
+            }
+            data.extend_from_slice(&buf[..n]);
+            if data.contains(&b'\n') {
+                break;
+            }
+        }
+
+        if data.is_empty() {
             return Ok(());
         }
 
-        let request: Value = serde_json::from_str(&line)?;
+        let line_end = data.iter().position(|&b| b == b'\n').unwrap_or(data.len());
+        let request: Value = serde_json::from_slice(&data[..line_end])?;
+
         let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(json!({}));
         let profile = request
@@ -121,9 +132,6 @@ impl DaemonServer {
             Arc::clone(&self.hover_cache),
             Arc::clone(&self.symbol_cache),
         );
-
-        drop(reader);
-        let mut stream = write_half.reunite(read_half.into_inner())?;
 
         if stream_mode && (method == "grep" || method == "files") {
             self.handle_streaming(&ctx, method, params, profile, &mut stream)
