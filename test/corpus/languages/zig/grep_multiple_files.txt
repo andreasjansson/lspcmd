@@ -1,32 +1,8 @@
 ==================
-grep multiple files via glob
+grep multiple files via path regex
 ==================
-leta grep "." --kind function "src/*.zig" -C
+leta grep "." --kind function "main\.zig" -C
 ---
-src/errors.zig:6 [Function] undefinedVariable (fn undefinedVariable() i32)
-src/errors.zig:11 [Function] typeError (fn typeError() i32)
-src/errors.zig:17 [Function] returnTypeError (fn returnTypeError() i32)
-src/errors.zig:22 [Function] unreachableCode (fn unreachableCode() void)
 src/main.zig:4 [Function] main (fn main() !void)
 src/main.zig:22 [Function] createSampleUser (fn createSampleUser() user.User)
 src/main.zig:27 [Function] validateUser (fn validateUser(u: user.User) !void)
-src/user.zig:10 [Function] init (fn init(name: []const u8, email: []const u8, age: i32) User) in User
-src/user.zig:19 [Function] isAdult (fn isAdult(self: User) bool) in User
-src/user.zig:24 [Function] displayName (fn displayName(self: User) []const u8) in User
-src/user.zig:37 [Function] save (fn save(self: Storage, u: User) !void) in Storage
-src/user.zig:41 [Function] load (fn load(self: Storage, email: []const u8) ?User) in Storage
-src/user.zig:45 [Function] remove (fn remove(self: Storage, email: []const u8) bool) in Storage
-src/user.zig:55 [Function] init (fn init(allocator: std.mem.Allocator) MemoryStorage) in MemoryStorage
-src/user.zig:62 [Function] deinit (fn deinit(self: *MemoryStorage) void) in MemoryStorage
-src/user.zig:66 [Function] save (fn save(self: *MemoryStorage, u: User) !void) in MemoryStorage
-src/user.zig:70 [Function] load (fn load(self: *MemoryStorage, email: []const u8) ?User) in MemoryStorage
-src/user.zig:74 [Function] remove (fn remove(self: *MemoryStorage, email: []const u8) bool) in MemoryStorage
-src/user.zig:78 [Function] list (fn list(self: *MemoryStorage) []User) in MemoryStorage
-src/user.zig:88 [Function] init (fn init(base_path: []const u8) FileStorage) in FileStorage
-src/user.zig:94 [Function] save (fn save(self: *FileStorage, u: User) !void) in FileStorage
-src/user.zig:99 [Function] load (fn load(self: *FileStorage, email: []const u8) ?User) in FileStorage
-src/user.zig:105 [Function] remove (fn remove(self: *FileStorage, email: []const u8) bool) in FileStorage
-src/user.zig:116 [Function] init (fn init(storage: *MemoryStorage) UserRepository) in UserRepository
-src/user.zig:122 [Function] addUser (fn addUser(self: *UserRepository, u: User) !void) in UserRepository
-src/user.zig:126 [Function] getUser (fn getUser(self: *UserRepository, email: []const u8) ?User) in UserRepository
-src/user.zig:130 [Function] deleteUser (fn deleteUser(self: *UserRepository, email: []const u8) bool) in UserRepository
