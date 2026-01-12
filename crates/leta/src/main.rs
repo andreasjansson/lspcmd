@@ -777,8 +777,9 @@ async fn handle_grep(
         eprintln!("  Use ripgrep for text search, or --kind/-k to filter by symbol type (e.g. -k function,class)");
     }
 
-    let kinds: Option<Vec<String>> =
-        kind.map(|k| k.split(',').map(|s| s.trim().to_string()).collect());
+    let kinds: Option<Vec<String>> = kind
+        .clone()
+        .map(|k| k.split(',').map(|s| s.trim().to_string()).collect());
 
     let workspace_root = get_workspace_root(config)?;
 
@@ -803,7 +804,24 @@ async fn handle_grep(
     if json_output {
         println!("{}", serde_json::to_string_pretty(&grep_result)?);
     } else {
-        println!("{}", format_grep_result(&grep_result));
+        let mut cmd_parts = vec![format!("leta grep \"{}\"", pattern)];
+        if let Some(p) = &path {
+            cmd_parts.push(format!("\"{}\"", p));
+        }
+        if let Some(k) = &kind {
+            cmd_parts.push(format!("-k {}", k));
+        }
+        for ex in &exclude {
+            cmd_parts.push(format!("-x \"{}\"", ex));
+        }
+        if docs {
+            cmd_parts.push("-d".to_string());
+        }
+        if case_sensitive {
+            cmd_parts.push("-C".to_string());
+        }
+        let command_base = cmd_parts.join(" ");
+        println!("{}", format_grep_result(&grep_result, head, &command_base));
     }
 
     display_profiling(response.profiling);
