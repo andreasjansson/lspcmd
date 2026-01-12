@@ -5,6 +5,26 @@ use crate::{
     CacheInfo, CallNode, FileInfo, LocationInfo, SymbolInfo, WorkspaceInfo, DEFAULT_HEAD_LIMIT,
 };
 
+// Streaming message types for NDJSON protocol
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum StreamMessage {
+    Symbol(SymbolInfo),
+    File(FileInfo),
+    Done(StreamDone),
+    Error { message: String },
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct StreamDone {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub warning: Option<String>,
+    pub truncated: bool,
+    pub total_count: u32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub profiling: Option<ProfilingData>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FunctionStats {
     pub name: String,
