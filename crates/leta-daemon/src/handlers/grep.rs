@@ -198,6 +198,7 @@ pub fn enumerate_source_files(
     let mut files = Vec::new();
 
     for entry in walkdir::WalkDir::new(workspace_root)
+        .sort_by_file_name()
         .into_iter()
         .filter_entry(|e| {
             let name = e.file_name().to_string_lossy();
