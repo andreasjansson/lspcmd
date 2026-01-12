@@ -85,7 +85,7 @@ enum Commands {
         docs: bool,
         #[arg(short = 'C', long, help = "Case-sensitive matching")]
         case_sensitive: bool,
-        #[arg(long, default_value = "200", help = "Maximum results to return")]
+        #[arg(long, default_value_t = DEFAULT_HEAD_LIMIT, help = "Maximum results to return")]
         head: u32,
     },
 
