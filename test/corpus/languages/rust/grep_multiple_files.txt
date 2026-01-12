@@ -1,9 +1,7 @@
 ==================
-grep multiple files via glob
+grep multiple files via path regex
 ==================
-leta grep "^new$" --kind function "src/*.rs" -C
+leta grep "^new$" --kind function "user\.rs" -C
 ---
-src/storage.rs:26 [Function] new (fn() -> Self) in impl MemoryStorage
-src/storage.rs:65 [Function] new (fn(base_path: String) -> Self) in impl FileStorage
 src/user.rs:13 [Function] new (fn(name: String, email: String, age: u32) -> Self) in impl User
 src/user.rs:50 [Function] new (fn(storage: S) -> Self) in impl UserRepository<S>
