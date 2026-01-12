@@ -190,7 +190,7 @@ pub struct GrepParams {
     pub path_pattern: Option<String>,
     #[serde(default)]
     pub exclude_patterns: Vec<String>,
-    #[serde(default = "default_grep_limit")]
+    #[serde(default = "default_head_limit")]
     pub limit: u32,
 }
 
