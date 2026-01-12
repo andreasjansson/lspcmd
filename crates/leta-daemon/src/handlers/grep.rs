@@ -461,7 +461,12 @@ fn classify_all_files(
     let mut cached_symbols = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
+    let start = std::time::Instant::now();
+    let mut classify_time = std::time::Duration::ZERO;
+    let mut handle_time = std::time::Duration::ZERO;
+
     for file_path in files {
+        let t0 = std::time::Instant::now();
         let status = classify_file(
             ctx,
             workspace_root,
@@ -469,13 +474,31 @@ fn classify_all_files(
             text_regex,
             excluded_languages,
         );
+        classify_time += t0.elapsed();
+
+        let t1 = std::time::Instant::now();
         handle_file_status(
             status,
             file_path,
             &mut cached_symbols,
             &mut uncached_by_lang,
         );
+        handle_time += t1.elapsed();
     }
+
+    let total = start.elapsed();
+    let loop_overhead = total
+        .saturating_sub(classify_time)
+        .saturating_sub(handle_time);
+
+    warn!(
+        "classify_all_files: total={:?}, classify={:?}, handle={:?}, overhead={:?}, files={}",
+        total,
+        classify_time,
+        handle_time,
+        loop_overhead,
+        files.len()
+    );
 
     (cached_symbols, uncached_by_lang)
 }
