@@ -92,7 +92,6 @@ impl HandlerContext {
     }
 }
 
-#[trace]
 pub fn relative_path(path: &Path, workspace_root: &Path) -> String {
     path.strip_prefix(workspace_root)
         .map(|p| p.to_string_lossy().to_string())
