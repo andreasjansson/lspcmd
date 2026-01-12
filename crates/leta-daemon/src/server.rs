@@ -7,16 +7,16 @@ use leta_cache::LmdbCache;
 use leta_config::{get_pid_path, get_socket_path, remove_pid, write_pid, Config};
 use leta_types::*;
 use serde_json::{json, Value};
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::{UnixListener, UnixStream};
-use tokio::sync::broadcast;
+use tokio::sync::{broadcast, mpsc};
 use tracing::{error, info};
 
 use crate::handlers::{
-    handle_add_workspace, handle_calls, handle_declaration, handle_describe_session, handle_files,
-    handle_grep, handle_implementations, handle_move_file, handle_references,
-    handle_remove_workspace, handle_rename, handle_resolve_symbol, handle_restart_workspace,
-    handle_show, handle_subtypes, handle_supertypes, HandlerContext,
+    handle_add_workspace, handle_calls, handle_declaration, handle_describe_session,
+    handle_files_streaming, handle_grep_streaming, handle_implementations, handle_move_file,
+    handle_references, handle_remove_workspace, handle_rename, handle_resolve_symbol,
+    handle_restart_workspace, handle_show, handle_subtypes, handle_supertypes, HandlerContext,
 };
 use crate::profiling::CollectingReporter;
 use crate::session::Session;
