@@ -237,7 +237,6 @@ fn classify_and_filter_cached(
     workspace_root: &Path,
     files: &[PathBuf],
     text_regex: Option<&Regex>,
-    excluded_languages: &HashSet<String>,
     filter: &GrepFilter<'_>,
     limit: usize,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
@@ -245,14 +244,6 @@ fn classify_and_filter_cached(
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
     for file_path in files {
-        let lang = get_language_id(file_path);
-        if lang == "plaintext" || excluded_languages.contains(lang) {
-            continue;
-        }
-        if get_server_for_language(lang, None).is_none() {
-            continue;
-        }
-
         let rel_path = relative_path(file_path, workspace_root);
         if !filter.path_matches(&rel_path) {
             continue;
@@ -274,6 +265,7 @@ fn classify_and_filter_cached(
             };
 
             if should_fetch {
+                let lang = get_language_id(file_path);
                 uncached_by_lang
                     .entry(lang.to_string())
                     .or_default()
