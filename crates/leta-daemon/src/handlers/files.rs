@@ -126,7 +126,6 @@ fn walk_directory(
                 continue;
             }
 
-            let is_hidden = name.starts_with('.');
             let is_default_excluded = exclude_dirs.contains(name.as_ref());
             let is_egg_info = name.ends_with(".egg-info");
             let is_pattern_excluded =
@@ -138,9 +137,11 @@ fn walk_directory(
                 continue;
             }
 
-            if (is_hidden || is_default_excluded || is_pattern_excluded) && !is_included {
+            if (is_default_excluded || is_pattern_excluded) && !is_included {
                 let rel_path = relative_path(path, workspace_root);
-                found_excluded.insert(rel_path);
+                if filter_regex.is_none() {
+                    found_excluded.insert(rel_path);
+                }
                 iter.skip_current_dir();
                 continue;
             }
