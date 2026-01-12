@@ -71,7 +71,7 @@ enum Commands {
     Grep {
         #[arg(help = "Regex pattern to match against symbol names")]
         pattern: String,
-        #[arg(help = "Path to search (supports wildcards)")]
+        #[arg(help = "Regex to filter file paths (e.g. '\\.py$', 'models/', 'test')")]
         path: Option<String>,
         #[arg(short = 'k', long, help = "Filter by kind (comma-separated)")]
         kind: Option<String>,
