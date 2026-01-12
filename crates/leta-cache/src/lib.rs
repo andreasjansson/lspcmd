@@ -49,6 +49,26 @@ impl LmdbCache {
         serde_json::from_str(value_str).ok()
     }
 
+    pub fn get_many<V>(&self, keys: &[&str]) -> Vec<Option<V>>
+    where
+        V: DeserializeOwned,
+    {
+        let Ok(rtxn) = self.env.read_txn() else {
+            return vec![None; keys.len()];
+        };
+
+        keys.iter()
+            .map(|key| {
+                let key_hash = self.hash_key(key);
+                self.db
+                    .get(&rtxn, &key_hash)
+                    .ok()
+                    .flatten()
+                    .and_then(|s| serde_json::from_str(s).ok())
+            })
+            .collect()
+    }
+
     pub fn set<V>(&self, key: &str, value: &V)
     where
         V: Serialize,
@@ -64,6 +84,31 @@ impl LmdbCache {
         if self.db.put(&mut wtxn, &key_hash, &value_str).is_err() {
             return;
         }
+        let _ = wtxn.commit();
+    }
+
+    pub fn set_many<V>(&self, entries: &[(&str, V)])
+    where
+        V: Serialize,
+    {
+        if entries.is_empty() {
+            return;
+        }
+
+        let Ok(mut wtxn) = self.env.write_txn() else {
+            return;
+        };
+
+        for (key, value) in entries {
+            let key_hash = self.hash_key(key);
+            let Ok(value_str) = serde_json::to_string(value) else {
+                continue;
+            };
+            if self.db.put(&mut wtxn, &key_hash, &value_str).is_err() {
+                continue;
+            }
+        }
+
         let _ = wtxn.commit();
     }
 
