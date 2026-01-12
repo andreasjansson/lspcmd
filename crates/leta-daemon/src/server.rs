@@ -160,36 +160,24 @@ impl DaemonServer {
         profile: bool,
         stream: &mut UnixStream,
     ) -> anyhow::Result<()> {
-        let collector = if profile {
-            let (reporter, collector) = CollectingReporter::new();
-            fastrace::set_reporter(reporter, FastraceConfig::default());
+        if profile {
             ctx.cache_stats.reset();
-            Some(collector)
-        } else {
-            None
-        };
-
-        let method_name: &'static str = Box::leak(method.to_string().into_boxed_str());
-        let root = Span::root(method_name, SpanContext::random());
+        }
 
         let (tx, mut rx) = mpsc::channel::<StreamMessage>(1000);
 
-        {
-            let _guard = root.set_local_parent();
-
-            match method {
-                "grep" => {
-                    if let Ok(p) = serde_json::from_value::<GrepParams>(params) {
-                        handle_grep_streaming(ctx, p, tx).await;
-                    }
+        match method {
+            "grep" => {
+                if let Ok(p) = serde_json::from_value::<GrepParams>(params) {
+                    handle_grep_streaming(ctx, p, tx).await;
                 }
-                "files" => {
-                    if let Ok(p) = serde_json::from_value::<FilesParams>(params) {
-                        handle_files_streaming(ctx, p, tx).await;
-                    }
-                }
-                _ => {}
             }
+            "files" => {
+                if let Ok(p) = serde_json::from_value::<FilesParams>(params) {
+                    handle_files_streaming(ctx, p, tx).await;
+                }
+            }
+            _ => {}
         }
 
         let mut final_done: Option<StreamDone> = None;
@@ -215,12 +203,11 @@ impl DaemonServer {
 
         if let Some(mut done) = final_done {
             if profile {
-                fastrace::flush();
-                if let Some(ref coll) = collector {
-                    let functions = coll.collect_and_aggregate();
-                    let cache = ctx.cache_stats.to_cache_stats();
-                    done.profiling = Some(ProfilingData { functions, cache });
-                }
+                let cache = ctx.cache_stats.to_cache_stats();
+                done.profiling = Some(ProfilingData {
+                    functions: Vec::new(),
+                    cache,
+                });
             }
             let mut line = serde_json::to_vec(&StreamMessage::Done(done))?;
             line.push(b'\n');
