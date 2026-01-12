@@ -329,9 +329,11 @@ async fn main() -> Result<()> {
                     context,
                     head,
                 } => handle_implementations(&config, cli.json, symbol, context, head).await,
-                Commands::Subtypes { symbol, context } => {
-                    handle_subtypes(&config, cli.json, symbol, context).await
-                }
+                Commands::Subtypes {
+                    symbol,
+                    context,
+                    head,
+                } => handle_subtypes(&config, cli.json, symbol, context, head).await,
                 Commands::Supertypes { symbol, context } => {
                     handle_supertypes(&config, cli.json, symbol, context).await
                 }
