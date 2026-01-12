@@ -613,6 +613,15 @@ fn get_line_content(path: &str, line: u32) -> Option<String> {
     }
 }
 
+pub fn format_file_line(file: &FileInfo) -> String {
+    format!(
+        "{} ({}, {} lines)",
+        file.path,
+        format_size(file.bytes),
+        file.lines
+    )
+}
+
 pub fn format_symbol_line(sym: &SymbolInfo) -> String {
     let location = format!("{}:{}", sym.path, sym.line);
     let mut parts = vec![location, format!("[{}]", sym.kind), sym.name.clone()];
