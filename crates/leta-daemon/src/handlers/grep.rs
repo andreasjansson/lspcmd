@@ -1,7 +1,9 @@
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
+use fastrace::local::LocalSpan;
 use fastrace::trace;
+use fastrace::Span;
 use leta_fs::{get_language_id, read_file_content};
 use leta_lsp::lsp_types::{DocumentSymbolParams, TextDocumentIdentifier};
 use leta_servers::get_server_for_language;
