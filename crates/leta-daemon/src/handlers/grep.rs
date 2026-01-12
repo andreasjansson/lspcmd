@@ -564,6 +564,7 @@ pub async fn collect_symbols_with_prefilter(
     collect_symbols_smart(ctx, workspace_root, &files, pattern, &excluded_languages).await
 }
 
+#[trace]
 pub fn get_cached_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -571,10 +572,7 @@ pub fn get_cached_symbols(
 ) -> Option<Vec<SymbolInfo>> {
     use std::sync::atomic::Ordering;
 
-    let file_mtime = {
-        let _span = LocalSpan::enter_with_local_parent("file_mtime");
-        leta_fs::file_mtime(file_path)
-    };
+    let file_mtime = leta_fs::file_mtime(file_path);
     let cache_key = format!(
         "{}:{}:{}",
         file_path.display(),
@@ -582,12 +580,7 @@ pub fn get_cached_symbols(
         file_mtime
     );
 
-    let cached = {
-        let _span = LocalSpan::enter_with_local_parent("cache_get");
-        ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key)
-    };
-
-    if let Some(cached) = cached {
+    if let Some(cached) = ctx.symbol_cache.get::<Vec<SymbolInfo>>(&cache_key) {
         ctx.cache_stats.symbol_hits.fetch_add(1, Ordering::Relaxed);
         Some(cached)
     } else {
