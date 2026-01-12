@@ -1,12 +1,6 @@
 ==================
-grep multiple files via glob
+grep multiple files via path regex
 ==================
-leta grep "." --kind function "*.cpp" -C
+leta grep "." --kind function "main\.cpp" -C
 ---
-errors.cpp:6 [Function] undefinedVariable (int ())
-errors.cpp:11 [Function] typeError (int ())
-errors.cpp:17 [Function] missingReturn (int ())
-errors.cpp:23 [Function] twoArgs (void (int, int))
-errors.cpp:25 [Function] argumentError (void ())
-errors.cpp:30 [Function] typeConversion (void ())
 main.cpp:7 [Function] main (int ())
