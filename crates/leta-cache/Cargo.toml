@@ -5,6 +5,7 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+fastrace = { workspace = true }
 heed = { workspace = true }
 blake3 = { workspace = true }
 serde = { workspace = true }
