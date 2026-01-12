@@ -229,7 +229,6 @@ pub fn enumerate_source_files(
     files
 }
 
-#[trace]
 fn classify_and_filter_cached(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -239,6 +238,7 @@ fn classify_and_filter_cached(
     filter: &GrepFilter<'_>,
     limit: usize,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>, bool) {
+    let _span = LocalSpan::enter_with_local_parent("classify_and_filter_cached");
     let mut results = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
