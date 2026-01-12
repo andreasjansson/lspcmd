@@ -749,6 +749,7 @@ fn is_excluded(path: &str, patterns: &[String]) -> bool {
     false
 }
 
+#[trace]
 pub async fn handle_grep_streaming(
     ctx: &HandlerContext,
     params: GrepParams,
@@ -773,6 +774,7 @@ pub async fn handle_grep_streaming(
     }
 }
 
+#[trace]
 async fn handle_grep_streaming_inner(
     ctx: &HandlerContext,
     params: GrepParams,
