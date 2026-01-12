@@ -55,6 +55,9 @@ regex = "1.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
+# Profiling
+fastrace = "0.7"
+
 # Collections
 rustc-hash = "2.0"
 dashmap = "6.1"
