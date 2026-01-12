@@ -1242,8 +1242,12 @@ async fn handle_calls(
     });
 
     if let (Some(from_sym), Some(to_sym)) = (&from, &to) {
-        let from_resolved = resolve_symbol(from_sym, &workspace_root, false).await?;
-        let to_resolved = resolve_symbol(to_sym, &workspace_root, false).await?;
+        let from_resolved = resolve_symbol(from_sym, &workspace_root, false)
+            .await
+            .map_err(|e| e.into_anyhow())?;
+        let to_resolved = resolve_symbol(to_sym, &workspace_root, false)
+            .await
+            .map_err(|e| e.into_anyhow())?;
 
         params["from_path"] = json!(from_resolved.resolved.path);
         params["from_line"] = json!(from_resolved.resolved.line);
@@ -1255,14 +1259,18 @@ async fn handle_calls(
         params["to_symbol"] = json!(to_sym);
         params["mode"] = json!("path");
     } else if let Some(from_sym) = &from {
-        let resolved = resolve_symbol(from_sym, &workspace_root, false).await?;
+        let resolved = resolve_symbol(from_sym, &workspace_root, false)
+            .await
+            .map_err(|e| e.into_anyhow())?;
         params["from_path"] = json!(resolved.resolved.path);
         params["from_line"] = json!(resolved.resolved.line);
         params["from_column"] = json!(resolved.resolved.column.unwrap_or(0));
         params["from_symbol"] = json!(from_sym);
         params["mode"] = json!("outgoing");
     } else if let Some(to_sym) = &to {
-        let resolved = resolve_symbol(to_sym, &workspace_root, false).await?;
+        let resolved = resolve_symbol(to_sym, &workspace_root, false)
+            .await
+            .map_err(|e| e.into_anyhow())?;
         params["to_path"] = json!(resolved.resolved.path);
         params["to_line"] = json!(resolved.resolved.line);
         params["to_column"] = json!(resolved.resolved.column.unwrap_or(0));
