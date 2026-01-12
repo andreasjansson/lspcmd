@@ -916,6 +916,9 @@ async fn stream_and_filter_symbols(
         }
     }
 
+    // Sort cached matches for consistent output order
+    cached_matches.sort_by(|a, b| (&a.path, a.line).cmp(&(&b.path, b.line)));
+
     for mut sym in cached_matches {
         if include_docs {
             if let Some(doc) =
