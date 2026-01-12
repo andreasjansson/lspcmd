@@ -127,7 +127,11 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
         .cloned()
         .collect();
 
-    let limit = params.limit as usize;
+    let limit = if params.limit == 0 {
+        usize::MAX
+    } else {
+        params.limit as usize
+    };
     let filter = GrepFilter {
         regex: &regex,
         kinds: kinds_set.as_ref(),
