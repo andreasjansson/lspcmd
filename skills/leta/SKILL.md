@@ -17,7 +17,7 @@ After loading this skill, **leta should be your DEFAULT tool for code exploratio
 |----------------------|---------------------|
 | Use `read-file` to view a function/class you know the name of | `leta show <symbol_name>` |
 | Use `read-file` with specific start and end line ranges in order to view a specific function | `leta show <symbol_name>` |
-| Use `read-file` to "browse" or "understand" a file | `leta grep ".*" path/to/file -k function,method` to list functions, or `leta show <symbol>` |
+| Use `read-file` to "browse" or "understand" a file | `leta grep ".*" "path/to/file" -k function,method` to list functions, or `leta show <symbol>` |
 | Use ripgrep-like tools to find where a function is defined | `leta grep "<function_name>" -k function,method` |
 | Use ripgrep-like tools to find usages/references of a symbol | `leta refs <symbol_name>` |
 | Use ripgrep-like tools to see where a function is imported/wired up | `leta refs <symbol_name>` |
