@@ -64,6 +64,7 @@ struct RawSpan {
     name: String,
     begin_ns: u64,
     duration_ns: u64,
+    properties: Vec<(String, String)>,
 }
 
 fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
@@ -79,6 +80,11 @@ fn build_tree(spans: Vec<SpanRecord>) -> SpanTree {
             name: simplify_name(&s.name),
             begin_ns: s.begin_time_unix_ns,
             duration_ns: s.duration_ns,
+            properties: s
+                .properties
+                .into_iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
         })
         .collect();
 
