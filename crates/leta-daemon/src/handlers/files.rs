@@ -2,11 +2,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use fastrace::trace;
-use leta_fs::get_language_id;
-use leta_servers::get_server_for_language;
-use leta_types::{FileInfo, FilesParams, FilesResult, SymbolInfo};
+use leta_types::{FileInfo, FilesParams, FilesResult};
 
-use super::grep::{get_cached_symbols, get_file_symbols_no_wait};
 use super::{relative_path, HandlerContext};
 
 const DEFAULT_EXCLUDE_DIRS: &[&str] = &[
@@ -54,7 +51,7 @@ const BINARY_EXTENSIONS: &[&str] = &[
 
 #[trace]
 pub async fn handle_files(
-    ctx: &HandlerContext,
+    _ctx: &HandlerContext,
     params: FilesParams,
 ) -> Result<FilesResult, String> {
     let workspace_root = PathBuf::from(&params.workspace_root);
@@ -72,7 +69,7 @@ pub async fn handle_files(
 
     let binary_exts: HashSet<&str> = BINARY_EXTENSIONS.iter().copied().collect();
 
-    let (mut files_info, source_files_by_lang, total_bytes, total_lines) = walk_directory(
+    let (files_info, total_bytes, total_lines) = walk_directory(
         &target_path,
         &workspace_root,
         &exclude_dirs,
@@ -81,36 +78,6 @@ pub async fn handle_files(
     );
 
     let total_files = files_info.len() as u32;
-
-    for (lang, files) in &source_files_by_lang {
-        let workspace = match ctx
-            .session
-            .get_or_create_workspace_for_language(lang, &workspace_root)
-            .await
-        {
-            Ok(ws) => ws,
-            Err(_) => continue,
-        };
-
-        for file_path in files {
-            let rel_path = relative_path(file_path, &workspace_root);
-
-            let symbols = if let Some(cached) = get_cached_symbols(ctx, &workspace_root, file_path)
-            {
-                cached
-            } else if let Ok(fetched) =
-                get_file_symbols_no_wait(ctx, &workspace, &workspace_root, file_path).await
-            {
-                fetched
-            } else {
-                continue;
-            };
-
-            if let Some(file_info) = files_info.get_mut(&rel_path) {
-                file_info.symbols = count_symbols(&symbols);
-            }
-        }
-    }
 
     Ok(FilesResult {
         files: files_info,
@@ -126,14 +93,8 @@ fn walk_directory(
     exclude_dirs: &HashSet<&str>,
     binary_exts: &HashSet<&str>,
     params: &FilesParams,
-) -> (
-    HashMap<String, FileInfo>,
-    HashMap<String, Vec<PathBuf>>,
-    u64,
-    u32,
-) {
+) -> (HashMap<String, FileInfo>, u64, u32) {
     let mut files_info: HashMap<String, FileInfo> = HashMap::new();
-    let mut source_files_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
     let mut total_bytes: u64 = 0;
     let mut total_lines: u32 = 0;
 
@@ -183,23 +144,14 @@ fn walk_directory(
             path: rel_path.clone(),
             lines,
             bytes,
-            symbols: HashMap::new(),
         };
-
-        let lang = get_language_id(path);
-        if lang != "plaintext" && get_server_for_language(&lang, None).is_some() {
-            source_files_by_lang
-                .entry(lang.to_string())
-                .or_default()
-                .push(path.to_path_buf());
-        }
 
         total_bytes += bytes;
         total_lines += lines;
         files_info.insert(rel_path, file_info);
     }
 
-    (files_info, source_files_by_lang, total_bytes, total_lines)
+    (files_info, total_bytes, total_lines)
 }
 
 fn count_lines(path: &Path) -> u32 {
