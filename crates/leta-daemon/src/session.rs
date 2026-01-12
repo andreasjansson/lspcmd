@@ -165,14 +165,25 @@ impl Workspace {
         let walkdir_elapsed = walkdir_start.elapsed();
 
         if files_to_index.is_empty() {
+            fastrace::local::LocalSpan::add_properties(|| {
+                [
+                    ("files_found", "0".to_string()),
+                    (
+                        "walkdir_ms",
+                        format!("{:.1}", walkdir_elapsed.as_secs_f64() * 1000.0),
+                    ),
+                ]
+            });
             return;
         }
 
         info!("Pre-indexing {} files for clangd", files_to_index.len());
 
+        let open_start = std::time::Instant::now();
         for file_path in &files_to_index {
             let _ = self.ensure_document_open(file_path).await;
         }
+        let open_elapsed = open_start.elapsed();
 
         client.wait_for_indexing(30).await;
 
@@ -180,7 +191,10 @@ impl Workspace {
             "Pre-indexing complete, closing {} documents",
             self.open_documents.len()
         );
+
+        let close_start = std::time::Instant::now();
         self.close_all_documents().await;
+        let close_elapsed = close_start.elapsed();
 
         fastrace::local::LocalSpan::add_properties(|| {
             [
@@ -188,6 +202,14 @@ impl Workspace {
                 (
                     "walkdir_ms",
                     format!("{:.1}", walkdir_elapsed.as_secs_f64() * 1000.0),
+                ),
+                (
+                    "open_docs_ms",
+                    format!("{:.1}", open_elapsed.as_secs_f64() * 1000.0),
+                ),
+                (
+                    "close_docs_ms",
+                    format!("{:.1}", close_elapsed.as_secs_f64() * 1000.0),
                 ),
             ]
         });
