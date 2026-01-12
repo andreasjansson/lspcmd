@@ -433,16 +433,34 @@ fn prefilter_uncached_files<'a>(
     uncached_files: &[&'a PathBuf],
     text_regex: Option<&Regex>,
 ) -> Vec<&'a PathBuf> {
+    tracing::info!(
+        "prefilter_uncached_files START: {} files, has_regex={}",
+        uncached_files.len(),
+        text_regex.is_some()
+    );
     let start = std::time::Instant::now();
     let result = match text_regex {
-        Some(re) => uncached_files
-            .par_iter()
-            .filter(|path| prefilter_file(path, re))
-            .copied()
-            .collect(),
-        None => uncached_files.to_vec(),
+        Some(re) => {
+            tracing::info!("prefilter_uncached_files: starting parallel filter with rayon");
+            let r: Vec<_> = uncached_files
+                .par_iter()
+                .filter(|path| prefilter_file(path, re))
+                .copied()
+                .collect();
+            tracing::info!("prefilter_uncached_files: parallel filter done");
+            r
+        }
+        None => {
+            tracing::info!("prefilter_uncached_files: no regex, returning all files");
+            uncached_files.to_vec()
+        }
     };
     let elapsed = start.elapsed();
+    tracing::info!(
+        "prefilter_uncached_files END: {} matched in {:?}",
+        result.len(),
+        elapsed
+    );
 
     fastrace::local::LocalSpan::add_properties(|| {
         [
