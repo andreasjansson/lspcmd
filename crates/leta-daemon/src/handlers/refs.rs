@@ -330,7 +330,13 @@ pub async fn handle_supertypes(
 
     let items = match prepare_response {
         Some(items) if !items.is_empty() => items,
-        _ => return Ok(SupertypesResult { locations: vec![] }),
+        _ => {
+            return Ok(SupertypesResult {
+                locations: vec![],
+                truncated: false,
+                total_count: None,
+            })
+        }
     };
 
     // Send supertypes request with just the item field
