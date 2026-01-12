@@ -102,9 +102,12 @@ fn pattern_to_text_regex(pattern: &str) -> Option<Regex> {
 
 #[trace]
 pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<GrepResult, String> {
-    debug!(
-        "handle_grep: pattern={} workspace={} limit={} path_pattern={:?}",
-        params.pattern, params.workspace_root, params.limit, params.path_pattern
+    tracing::info!(
+        "handle_grep START: pattern={} workspace={} limit={} path_pattern={:?}",
+        params.pattern,
+        params.workspace_root,
+        params.limit,
+        params.path_pattern
     );
     let workspace_root = PathBuf::from(&params.workspace_root);
 
@@ -152,7 +155,12 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
         path_regex: path_regex.as_ref(),
     };
 
+    tracing::info!("handle_grep: starting enumerate_source_files");
     let files = enumerate_source_files(&workspace_root, &excluded_languages);
+    tracing::info!(
+        "handle_grep: enumerate_source_files done, found {} files",
+        files.len()
+    );
 
     let text_pattern = if should_use_prefilter(&pattern) {
         Some(pattern.as_str())
