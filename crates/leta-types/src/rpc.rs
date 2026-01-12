@@ -380,11 +380,17 @@ pub struct SubtypesParams {
     pub column: u32,
     #[serde(default)]
     pub context: u32,
+    #[serde(default = "default_head_limit")]
+    pub head: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SubtypesResult {
     pub locations: Vec<LocationInfo>,
+    #[serde(default)]
+    pub truncated: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub total_count: Option<u32>,
 }
 
 // ============================================================================
