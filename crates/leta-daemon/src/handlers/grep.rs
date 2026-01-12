@@ -44,7 +44,6 @@ impl GrepFilter<'_> {
         true
     }
 
-    #[trace]
     fn path_matches(&self, rel_path: &str) -> bool {
         if let Some(path_re) = self.path_regex {
             path_re.is_match(rel_path)
