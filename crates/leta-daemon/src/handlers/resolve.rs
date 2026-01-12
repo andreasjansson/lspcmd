@@ -304,16 +304,21 @@ fn looks_like_lua_method(s: &str) -> bool {
 }
 
 fn parse_symbol_path(symbol_path: &str) -> Result<(Option<String>, Option<u32>, String), String> {
-    let colon_count = symbol_path.matches(':').count();
+    // Handle Rust's :: syntax by treating it as a single separator (like .)
+    // Convert Foo::bar to Foo.bar for consistent handling
+    let normalized = symbol_path.replace("::", ".");
+
+    // Now count single colons (used for path:symbol or path:line:symbol)
+    let colon_count = normalized.matches(':').count();
 
     match colon_count {
-        0 => Ok((None, None, symbol_path.to_string())),
+        0 => Ok((None, None, normalized)),
         1 => {
-            let parts: Vec<&str> = symbol_path.splitn(2, ':').collect();
+            let parts: Vec<&str> = normalized.splitn(2, ':').collect();
             Ok((Some(parts[0].to_string()), None, parts[1].to_string()))
         }
         2 => {
-            let parts: Vec<&str> = symbol_path.splitn(3, ':').collect();
+            let parts: Vec<&str> = normalized.splitn(3, ':').collect();
             let line: u32 = parts[1]
                 .parse()
                 .map_err(|_| format!("Invalid line number: '{}'", parts[1]))?;
