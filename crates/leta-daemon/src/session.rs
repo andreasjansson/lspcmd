@@ -281,6 +281,10 @@ pub struct Session {
     workspaces: RwLock<HashMap<PathBuf, HashMap<String, Workspace>>>,
     config: RwLock<Config>,
     workspace_profiling: RwLock<Vec<leta_types::WorkspaceProfilingData>>,
+    /// Tracks which workspace/server combinations are currently being started.
+    /// Key is (workspace_root, server_name). The Mutex ensures only one task
+    /// starts a server at a time.
+    startup_locks: Mutex<HashMap<(PathBuf, String), Arc<Mutex<()>>>>,
 }
 
 impl Session {
