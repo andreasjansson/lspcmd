@@ -863,66 +863,62 @@ async fn stream_and_filter_symbols(
     include_docs: bool,
     tx: &mpsc::Sender<StreamMessage>,
 ) -> Result<(u32, bool), String> {
-    let span = Span::enter_with_local_parent("stream_and_filter_symbols");
+    let _span = LocalSpan::enter_with_local_parent("stream_and_filter_symbols");
     let text_regex = text_pattern.and_then(pattern_to_text_regex);
 
     let mut count = 0u32;
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+    let mut cached_matches: Vec<SymbolInfo> = Vec::new();
 
-    {
-        let _guard = span.set_local_parent();
-        for file_path in files {
-            let lang = get_language_id(file_path);
-            if lang == "plaintext" || excluded_languages.contains(lang) {
-                continue;
-            }
-            if get_server_for_language(lang, None).is_none() {
-                continue;
-            }
+    for file_path in files {
+        let lang = get_language_id(file_path);
+        if lang == "plaintext" || excluded_languages.contains(lang) {
+            continue;
+        }
+        if get_server_for_language(lang, None).is_none() {
+            continue;
+        }
 
-            let rel_path = relative_path(file_path, workspace_root);
-            if !filter.path_matches(&rel_path) {
-                continue;
-            }
+        let rel_path = relative_path(file_path, workspace_root);
+        if !filter.path_matches(&rel_path) {
+            continue;
+        }
 
-            if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
-                for mut sym in symbols {
-                    if filter.matches(&sym) {
-                        if include_docs {
-                            if let Some(doc) = get_symbol_documentation(
-                                ctx,
-                                workspace_root,
-                                &sym.path,
-                                sym.line,
-                                sym.column,
-                            )
-                            .await
-                            {
-                                sym.documentation = Some(doc);
-                            }
-                        }
-                        if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
-                            return Ok((count, false));
-                        }
-                        count += 1;
-                        if count as usize >= limit {
-                            return Ok((count, true));
-                        }
-                    }
-                }
-            } else {
-                let should_fetch = match &text_regex {
-                    Some(re) => prefilter_file(file_path, re),
-                    None => true,
-                };
-
-                if should_fetch {
-                    uncached_by_lang
-                        .entry(lang.to_string())
-                        .or_default()
-                        .push(file_path.clone());
+        if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
+            for sym in symbols {
+                if filter.matches(&sym) {
+                    cached_matches.push(sym);
                 }
             }
+        } else {
+            let should_fetch = match &text_regex {
+                Some(re) => prefilter_file(file_path, re),
+                None => true,
+            };
+
+            if should_fetch {
+                uncached_by_lang
+                    .entry(lang.to_string())
+                    .or_default()
+                    .push(file_path.clone());
+            }
+        }
+    }
+
+    for mut sym in cached_matches {
+        if include_docs {
+            if let Some(doc) =
+                get_symbol_documentation(ctx, workspace_root, &sym.path, sym.line, sym.column).await
+            {
+                sym.documentation = Some(doc);
+            }
+        }
+        if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
+            return Ok((count, false));
+        }
+        count += 1;
+        if count as usize >= limit {
+            return Ok((count, true));
         }
     }
 
