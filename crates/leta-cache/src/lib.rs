@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use fastrace::trace;
 use heed::types::*;
 use heed::{Database, Env, EnvOpenOptions};
 use serde::{de::DeserializeOwned, Serialize};
