@@ -271,7 +271,6 @@ fn classify_and_filter_cached(
     (results, uncached_by_lang, false)
 }
 
-#[trace]
 fn process_file_in_filter_loop(
     ctx: &HandlerContext,
     workspace_root: &Path,
