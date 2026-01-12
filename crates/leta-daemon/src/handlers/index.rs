@@ -100,6 +100,8 @@ pub async fn handle_add_workspace(
     })
 }
 
+const MAX_PREWARM_FILES: usize = 2000;
+
 async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf) {
     let start = std::time::Instant::now();
     info!(
@@ -107,11 +109,21 @@ async fn index_workspace_background(ctx: HandlerContext, workspace_root: PathBuf
         workspace_root.display()
     );
 
-    let files_by_lang = scan_workspace_files(&workspace_root);
+    let mut files_by_lang = scan_workspace_files(&workspace_root);
     let total_files: usize = files_by_lang.values().map(|v| v.len()).sum();
+
+    if total_files > MAX_PREWARM_FILES {
+        info!(
+            "Found {} source files, limiting pre-warm to {} files",
+            total_files, MAX_PREWARM_FILES
+        );
+        files_by_lang = limit_files_per_language(files_by_lang, MAX_PREWARM_FILES);
+    }
+
+    let limited_total: usize = files_by_lang.values().map(|v| v.len()).sum();
     info!(
-        "Found {} source files across {} languages",
-        total_files,
+        "Indexing {} source files across {} languages",
+        limited_total,
         files_by_lang.len()
     );
 
