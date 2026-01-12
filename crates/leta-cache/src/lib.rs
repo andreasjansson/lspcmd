@@ -23,6 +23,8 @@ pub struct LmdbCache {
     write_buffer: Mutex<Vec<(String, String)>>,
 }
 
+const WRITE_BUFFER_SIZE: usize = 32;
+
 impl LmdbCache {
     pub fn new(path: &Path, max_bytes: u64) -> Result<Self, CacheError> {
         std::fs::create_dir_all(path)?;
@@ -38,7 +40,12 @@ impl LmdbCache {
         let db = env.create_database(&mut wtxn, None)?;
         wtxn.commit()?;
 
-        Ok(Self { env, db, max_bytes })
+        Ok(Self {
+            env,
+            db,
+            max_bytes,
+            write_buffer: Mutex::new(Vec::with_capacity(WRITE_BUFFER_SIZE)),
+        })
     }
 
     pub fn get<V>(&self, key: &str) -> Option<V>
@@ -46,6 +53,15 @@ impl LmdbCache {
         V: DeserializeOwned,
     {
         let key_hash = self.hash_key(key);
+
+        if let Ok(buffer) = self.write_buffer.lock() {
+            for (k, v) in buffer.iter() {
+                if k == &key_hash {
+                    return serde_json::from_str(v).ok();
+                }
+            }
+        }
+
         let rtxn = self.env.read_txn().ok()?;
         let value_str = self.db.get(&rtxn, &key_hash).ok()??;
         serde_json::from_str(value_str).ok()
@@ -55,15 +71,30 @@ impl LmdbCache {
     where
         V: DeserializeOwned,
     {
+        let key_hashes: Vec<String> = keys.iter().map(|k| self.hash_key(k)).collect();
+
+        let buffer_map: std::collections::HashMap<&str, &str> =
+            if let Ok(buffer) = self.write_buffer.lock() {
+                buffer
+                    .iter()
+                    .map(|(k, v)| (k.as_str(), v.as_str()))
+                    .collect()
+            } else {
+                std::collections::HashMap::new()
+            };
+
         let Ok(rtxn) = self.env.read_txn() else {
             return vec![None; keys.len()];
         };
 
-        keys.iter()
-            .map(|key| {
-                let key_hash = self.hash_key(key);
+        key_hashes
+            .iter()
+            .map(|key_hash| {
+                if let Some(v) = buffer_map.get(key_hash.as_str()) {
+                    return serde_json::from_str(v).ok();
+                }
                 self.db
-                    .get(&rtxn, &key_hash)
+                    .get(&rtxn, key_hash)
                     .ok()
                     .flatten()
                     .and_then(|s| serde_json::from_str(s).ok())
@@ -80,12 +111,39 @@ impl LmdbCache {
             return;
         };
 
+        let should_flush = {
+            let Ok(mut buffer) = self.write_buffer.lock() else {
+                return;
+            };
+            buffer.push((key_hash, value_str));
+            buffer.len() >= WRITE_BUFFER_SIZE
+        };
+
+        if should_flush {
+            self.flush();
+        }
+    }
+
+    pub fn flush(&self) {
+        let entries = {
+            let Ok(mut buffer) = self.write_buffer.lock() else {
+                return;
+            };
+            std::mem::take(&mut *buffer)
+        };
+
+        if entries.is_empty() {
+            return;
+        }
+
         let Ok(mut wtxn) = self.env.write_txn() else {
             return;
         };
-        if self.db.put(&mut wtxn, &key_hash, &value_str).is_err() {
-            return;
+
+        for (key_hash, value_str) in entries {
+            let _ = self.db.put(&mut wtxn, &key_hash, &value_str);
         }
+
         let _ = wtxn.commit();
     }
 
@@ -116,6 +174,15 @@ impl LmdbCache {
 
     pub fn contains(&self, key: &str) -> bool {
         let key_hash = self.hash_key(key);
+
+        if let Ok(buffer) = self.write_buffer.lock() {
+            for (k, _) in buffer.iter() {
+                if k == &key_hash {
+                    return true;
+                }
+            }
+        }
+
         let Ok(rtxn) = self.env.read_txn() else {
             return false;
         };
@@ -140,11 +207,28 @@ impl LmdbCache {
     }
 
     pub fn close(self) {
+        self.flush();
         drop(self.env);
     }
 
     fn hash_key(&self, key: &str) -> String {
         let hash = blake3::hash(key.as_bytes());
         hash.to_hex().to_string()
+    }
+}
+
+impl Drop for LmdbCache {
+    fn drop(&mut self) {
+        if let Ok(mut buffer) = self.write_buffer.lock() {
+            let entries = std::mem::take(&mut *buffer);
+            if !entries.is_empty() {
+                if let Ok(mut wtxn) = self.env.write_txn() {
+                    for (key_hash, value_str) in entries {
+                        let _ = self.db.put(&mut wtxn, &key_hash, &value_str);
+                    }
+                    let _ = wtxn.commit();
+                }
+            }
+        }
     }
 }
