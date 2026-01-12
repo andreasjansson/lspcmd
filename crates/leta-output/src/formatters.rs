@@ -7,20 +7,22 @@ pub fn format_truncation_with_count(
     command_with_larger_head: &str,
     displayed_count: u32,
     total_count: u32,
+    command_base: &str,
 ) -> String {
     format!(
-        "[showing {} of {} results, use `{}` to show more]",
-        displayed_count, total_count, command_with_larger_head
+        "[showing {} of {} results, use `{}` to show more, or `{} -N0` to show all]",
+        displayed_count, total_count, command_with_larger_head, command_base
     )
 }
 
 pub fn format_truncation_unknown_total(
     command_with_larger_head: &str,
     displayed_count: u32,
+    command_base: &str,
 ) -> String {
     format!(
-        "[showing first {} results, use `{}` to show more]",
-        displayed_count, command_with_larger_head
+        "[showing first {} results, use `{}` to show more, or `{} -N0` to show all]",
+        displayed_count, command_with_larger_head, command_base
     )
 }
 
