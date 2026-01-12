@@ -236,12 +236,16 @@ impl DaemonServer {
 
         fastrace::flush();
 
-        let functions = collector.collect_and_aggregate();
+        let span_tree = collector.build_span_tree();
         let cache = ctx.cache_stats.to_cache_stats();
 
         if let Some(obj) = response.as_object_mut() {
             if obj.contains_key("result") {
-                let profiling = leta_types::ProfilingData { functions, cache };
+                let profiling = leta_types::ProfilingData {
+                    functions: Vec::new(),
+                    cache,
+                    span_tree: Some(span_tree),
+                };
                 obj.insert(
                     "profiling".to_string(),
                     serde_json::to_value(&profiling).unwrap(),
