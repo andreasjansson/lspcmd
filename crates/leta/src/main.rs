@@ -468,6 +468,60 @@ fn merge_profiling(a: Option<ProfilingData>, b: Option<ProfilingData>) -> Option
     }
 }
 
+async fn send_streaming_request<F>(
+    method: &str,
+    params: Value,
+    profile: bool,
+    mut on_message: F,
+) -> Result<StreamDone>
+where
+    F: FnMut(StreamMessage),
+{
+    let socket_path = get_socket_path();
+
+    let mut stream =
+        tokio::time::timeout(Duration::from_secs(5), UnixStream::connect(&socket_path))
+            .await
+            .map_err(|_| anyhow!("Timeout connecting to daemon"))??;
+
+    let mut request = serde_json::to_vec(&json!({
+        "method": method,
+        "params": params,
+        "profile": profile,
+        "stream": true,
+    }))?;
+    request.push(b'\n');
+
+    stream.write_all(&request).await?;
+
+    let mut reader = tokio::io::BufReader::new(stream);
+    let mut line = String::new();
+
+    loop {
+        line.clear();
+        let n = tokio::time::timeout(Duration::from_secs(120), reader.read_line(&mut line))
+            .await
+            .map_err(|_| anyhow!("Timeout waiting for daemon response (method: {})", method))??;
+
+        if n == 0 {
+            return Err(anyhow!("Connection closed unexpectedly"));
+        }
+
+        let msg: StreamMessage = serde_json::from_str(&line)?;
+        match &msg {
+            StreamMessage::Done(done) => {
+                return Ok(done.clone());
+            }
+            StreamMessage::Error { message } => {
+                return Err(anyhow!("{}", message));
+            }
+            _ => {
+                on_message(msg);
+            }
+        }
+    }
+}
+
 async fn send_request_with_profile(
     method: &str,
     params: Value,
@@ -475,27 +529,25 @@ async fn send_request_with_profile(
 ) -> Result<DaemonResponse> {
     let socket_path = get_socket_path();
 
-    let stream = tokio::time::timeout(Duration::from_secs(5), UnixStream::connect(&socket_path))
-        .await
-        .map_err(|_| anyhow!("Timeout connecting to daemon"))??;
+    let mut stream =
+        tokio::time::timeout(Duration::from_secs(5), UnixStream::connect(&socket_path))
+            .await
+            .map_err(|_| anyhow!("Timeout connecting to daemon"))??;
 
-    let (mut read_half, mut write_half) = stream.into_split();
-
-    let request = json!({
+    let mut request = serde_json::to_vec(&json!({
         "method": method,
         "params": params,
         "profile": profile,
-    });
+    }))?;
+    request.push(b'\n');
 
-    write_half
-        .write_all(serde_json::to_vec(&request)?.as_slice())
-        .await?;
-    write_half.shutdown().await?;
+    stream.write_all(&request).await?;
+    stream.shutdown().await?;
 
     let mut response_data = Vec::new();
     tokio::time::timeout(
         Duration::from_secs(120),
-        read_half.read_to_end(&mut response_data),
+        stream.read_to_end(&mut response_data),
     )
     .await
     .map_err(|_| anyhow!("Timeout waiting for daemon response (method: {})", method))??;
