@@ -22,6 +22,7 @@ struct GrepFilter<'a> {
 }
 
 impl GrepFilter<'_> {
+    #[trace]
     fn matches(&self, sym: &SymbolInfo) -> bool {
         if !self.regex.is_match(&sym.name) {
             return false;
