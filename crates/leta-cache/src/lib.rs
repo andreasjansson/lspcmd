@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use fastrace::trace;
 use heed::types::*;
 use heed::{Database, Env, EnvOpenOptions};
 use serde::{de::DeserializeOwned, Serialize};
@@ -39,6 +40,7 @@ impl LmdbCache {
         Ok(Self { env, db, max_bytes })
     }
 
+    #[trace]
     pub fn get<V>(&self, key: &str) -> Option<V>
     where
         V: DeserializeOwned,
@@ -49,6 +51,7 @@ impl LmdbCache {
         serde_json::from_str(value_str).ok()
     }
 
+    #[trace]
     pub fn set<V>(&self, key: &str, value: &V)
     where
         V: Serialize,
