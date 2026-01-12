@@ -136,10 +136,17 @@ pub async fn handle_grep(ctx: &HandlerContext, params: GrepParams) -> Result<Gre
     } else {
         params.limit as usize
     };
+
+    let exclude_regexes: Vec<Regex> = params
+        .exclude_patterns
+        .iter()
+        .filter_map(|p| Regex::new(p).ok())
+        .collect();
+
     let filter = GrepFilter {
         regex: &regex,
         kinds: kinds_set.as_ref(),
-        exclude_patterns: &params.exclude_patterns,
+        exclude_regexes: &exclude_regexes,
         path_regex: path_regex.as_ref(),
     };
 
