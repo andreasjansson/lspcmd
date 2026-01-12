@@ -748,3 +748,235 @@ fn is_excluded(path: &str, patterns: &[String]) -> bool {
     }
     false
 }
+
+pub async fn handle_grep_streaming(
+    ctx: &HandlerContext,
+    params: GrepParams,
+    tx: mpsc::Sender<StreamMessage>,
+) {
+    let result = handle_grep_streaming_inner(ctx, params, &tx).await;
+
+    match result {
+        Ok((warning, truncated, count)) => {
+            let _ = tx
+                .send(StreamMessage::Done(StreamDone {
+                    warning,
+                    truncated,
+                    total_count: count,
+                    profiling: None,
+                }))
+                .await;
+        }
+        Err(e) => {
+            let _ = tx.send(StreamMessage::Error { message: e }).await;
+        }
+    }
+}
+
+async fn handle_grep_streaming_inner(
+    ctx: &HandlerContext,
+    params: GrepParams,
+    tx: &mpsc::Sender<StreamMessage>,
+) -> Result<(Option<String>, bool, u32), String> {
+    debug!(
+        "handle_grep_streaming: pattern={} workspace={} limit={}",
+        params.pattern, params.workspace_root, params.limit
+    );
+    let workspace_root = PathBuf::from(&params.workspace_root);
+
+    let flags = if params.case_sensitive { "" } else { "(?i)" };
+    let pattern = format!("{}{}", flags, params.pattern);
+    let regex =
+        Regex::new(&pattern).map_err(|e| format!("Invalid regex '{}': {}", params.pattern, e))?;
+
+    let path_regex = params
+        .path_pattern
+        .as_ref()
+        .map(|p| Regex::new(p))
+        .transpose()
+        .map_err(|e| format!("Invalid path pattern: {}", e))?;
+
+    let kinds_set: Option<HashSet<String>> = params
+        .kinds
+        .clone()
+        .map(|k| k.into_iter().map(|s| s.to_lowercase()).collect());
+
+    let config = ctx.session.config().await;
+    let excluded_languages: HashSet<String> = config
+        .workspaces
+        .excluded_languages
+        .iter()
+        .cloned()
+        .collect();
+
+    let limit = if params.limit == 0 {
+        usize::MAX
+    } else {
+        params.limit as usize
+    };
+
+    let filter = GrepFilter {
+        regex: &regex,
+        kinds: kinds_set.as_ref(),
+        exclude_patterns: &params.exclude_patterns,
+        path_regex: path_regex.as_ref(),
+    };
+
+    let files = enumerate_source_files(&workspace_root, &excluded_languages);
+
+    let text_pattern = if should_use_prefilter(&pattern) {
+        Some(pattern.as_str())
+    } else {
+        None
+    };
+
+    let (count, truncated) = stream_and_filter_symbols(
+        ctx,
+        &workspace_root,
+        &files,
+        text_pattern,
+        &excluded_languages,
+        &filter,
+        limit,
+        params.include_docs,
+        tx,
+    )
+    .await?;
+
+    let warning = if count == 0 && params.pattern.contains(r"\|") {
+        Some("No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')".to_string())
+    } else {
+        None
+    };
+
+    Ok((warning, truncated, count))
+}
+
+async fn stream_and_filter_symbols(
+    ctx: &HandlerContext,
+    workspace_root: &Path,
+    files: &[PathBuf],
+    text_pattern: Option<&str>,
+    excluded_languages: &HashSet<String>,
+    filter: &GrepFilter<'_>,
+    limit: usize,
+    include_docs: bool,
+    tx: &mpsc::Sender<StreamMessage>,
+) -> Result<(u32, bool), String> {
+    let span = Span::enter_with_local_parent("stream_and_filter_symbols");
+    let text_regex = text_pattern.and_then(pattern_to_text_regex);
+
+    let mut count = 0u32;
+    let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+
+    {
+        let _guard = span.set_local_parent();
+        for file_path in files {
+            let lang = get_language_id(file_path);
+            if lang == "plaintext" || excluded_languages.contains(lang) {
+                continue;
+            }
+            if get_server_for_language(lang, None).is_none() {
+                continue;
+            }
+
+            let rel_path = relative_path(file_path, workspace_root);
+            if !filter.path_matches(&rel_path) {
+                continue;
+            }
+
+            if let Some(symbols) = check_file_cache(ctx, workspace_root, file_path) {
+                for mut sym in symbols {
+                    if filter.matches(&sym) {
+                        if include_docs {
+                            if let Some(doc) = get_symbol_documentation(
+                                ctx,
+                                workspace_root,
+                                &sym.path,
+                                sym.line,
+                                sym.column,
+                            )
+                            .await
+                            {
+                                sym.documentation = Some(doc);
+                            }
+                        }
+                        if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
+                            return Ok((count, false));
+                        }
+                        count += 1;
+                        if count as usize >= limit {
+                            return Ok((count, true));
+                        }
+                    }
+                }
+            } else {
+                let should_fetch = match &text_regex {
+                    Some(re) => prefilter_file(file_path, re),
+                    None => true,
+                };
+
+                if should_fetch {
+                    uncached_by_lang
+                        .entry(lang.to_string())
+                        .or_default()
+                        .push(file_path.clone());
+                }
+            }
+        }
+    }
+
+    for (lang, uncached_files) in uncached_by_lang {
+        if count as usize >= limit {
+            break;
+        }
+
+        let workspace = match ctx
+            .session
+            .get_or_create_workspace_for_language(&lang, workspace_root)
+            .await
+        {
+            Ok(ws) => ws,
+            Err(e) => {
+                warn!("Failed to get workspace for {}: {}", lang, e);
+                continue;
+            }
+        };
+
+        for file_path in uncached_files {
+            match get_file_symbols_no_wait(ctx, &workspace, workspace_root, &file_path).await {
+                Ok(symbols) => {
+                    for mut sym in symbols {
+                        if filter.matches(&sym) {
+                            if include_docs {
+                                if let Some(doc) = get_symbol_documentation(
+                                    ctx,
+                                    workspace_root,
+                                    &sym.path,
+                                    sym.line,
+                                    sym.column,
+                                )
+                                .await
+                                {
+                                    sym.documentation = Some(doc);
+                                }
+                            }
+                            if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
+                                return Ok((count, false));
+                            }
+                            count += 1;
+                            if count as usize >= limit {
+                                return Ok((count, true));
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    warn!("Failed to get symbols for {}: {}", file_path.display(), e);
+                }
+            }
+        }
+    }
+
+    Ok((count, false))
+}
