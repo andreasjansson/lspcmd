@@ -1,14 +1,9 @@
 ==================
-grep multiple files via glob
+grep multiple files via path regex
 ==================
-leta grep "^New" --kind function "*.go" -C
+leta grep "^New" --kind function "main\.go" -C
 ---
-editable.go:15 [Function] NewEditablePerson (func(name, email string) *EditablePerson)
-editable.go:45 [Function] NewEditableStorage (func() *EditableStorage)
 main.go:16 [Function] NewUser (func(name, email string, age int) *User)
 main.go:44 [Function] NewMemoryStorage (func() *MemoryStorage)
 main.go:90 [Function] NewFileStorage (func(basePath string) *FileStorage)
 main.go:124 [Function] NewUserRepository (func(storage Storage) *UserRepository)
-utils.go:31 [Function] NewCounter (func(initial int) *Counter)
-utils.go:64 [Function] NewResult (func(value T) *Result[T])
-utils.go:69 [Function] NewError (func(err error) *Result[T])
