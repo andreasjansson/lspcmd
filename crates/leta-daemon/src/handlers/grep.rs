@@ -397,7 +397,6 @@ fn prefilter_file(file_path: &Path, text_regex: &Regex) -> bool {
     }
 }
 
-#[trace]
 fn classify_file(
     ctx: &HandlerContext,
     workspace_root: &Path,
@@ -437,47 +436,47 @@ fn classify_all_files(
     text_regex: Option<&Regex>,
     excluded_languages: &HashSet<String>,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>) {
-    info!("classify_all_files: processing {} files", files.len());
     let mut cached_symbols = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
+    let mut skipped = 0u32;
+    let mut cached_count = 0u32;
+    let mut needs_fetch = 0u32;
 
     for file_path in files {
-        let status = classify_file(
+        match classify_file(
             ctx,
             workspace_root,
             file_path,
             text_regex,
             excluded_languages,
-        );
-        process_file_status(
-            status,
-            file_path,
-            &mut cached_symbols,
-            &mut uncached_by_lang,
-        );
+        ) {
+            FileStatus::Cached(symbols) => {
+                cached_count += 1;
+                cached_symbols.extend(symbols);
+            }
+            FileStatus::NeedsFetch => {
+                needs_fetch += 1;
+                let lang = get_language_id(file_path);
+                uncached_by_lang
+                    .entry(lang.to_string())
+                    .or_default()
+                    .push(file_path.to_path_buf());
+            }
+            FileStatus::Skipped => {
+                skipped += 1;
+            }
+        }
     }
+
+    info!(
+        "classify_all_files: {} files -> {} cached, {} need_fetch, {} skipped",
+        files.len(),
+        cached_count,
+        needs_fetch,
+        skipped
+    );
 
     (cached_symbols, uncached_by_lang)
-}
-
-#[trace]
-fn process_file_status(
-    status: FileStatus,
-    file_path: &Path,
-    cached_symbols: &mut Vec<SymbolInfo>,
-    uncached_by_lang: &mut HashMap<String, Vec<PathBuf>>,
-) {
-    match status {
-        FileStatus::Cached(symbols) => cached_symbols.extend(symbols),
-        FileStatus::NeedsFetch => {
-            let lang = get_language_id(file_path);
-            uncached_by_lang
-                .entry(lang.to_string())
-                .or_default()
-                .push(file_path.to_path_buf());
-        }
-        FileStatus::Skipped => {}
-    }
 }
 
 #[trace]
