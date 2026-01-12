@@ -206,11 +206,6 @@ impl LmdbCache {
         self.max_bytes
     }
 
-    pub fn close(self) {
-        self.flush();
-        drop(self.env);
-    }
-
     fn hash_key(&self, key: &str) -> String {
         let hash = blake3::hash(key.as_bytes());
         hash.to_hex().to_string()
