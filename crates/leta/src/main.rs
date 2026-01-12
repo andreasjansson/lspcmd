@@ -1055,7 +1055,9 @@ async fn handle_declaration(
     head: u32,
 ) -> Result<()> {
     let workspace_root = get_workspace_root(config)?;
-    let resolved = resolve_symbol(&symbol, &workspace_root, false).await?;
+    let resolved = resolve_symbol(&symbol, &workspace_root, false)
+        .await
+        .map_err(|e| e.into_anyhow())?;
 
     let result = send_request(
         "declaration",
