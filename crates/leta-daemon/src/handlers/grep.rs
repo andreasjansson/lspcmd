@@ -565,59 +565,79 @@ fn classify_all_files(
     text_regex: Option<&Regex>,
     excluded_languages: &HashSet<String>,
 ) -> (Vec<SymbolInfo>, HashMap<String, Vec<PathBuf>>) {
+    use rayon::prelude::*;
+
     let start = std::time::Instant::now();
     let mut cached_symbols = Vec::new();
     let mut uncached_by_lang: HashMap<String, Vec<PathBuf>> = HashMap::new();
 
-    let mut cache_check_time = std::time::Duration::ZERO;
-    let mut prefilter_time = std::time::Duration::ZERO;
+    // Phase 1: Filter by language support (fast, no I/O)
+    let supported_files: Vec<(&PathBuf, &'static str)> = files
+        .iter()
+        .filter_map(|file_path| {
+            let lang = get_language_id(file_path);
+            if lang == "plaintext" || excluded_languages.contains(lang) {
+                return None;
+            }
+            if get_server_for_language(lang, None).is_none() {
+                return None;
+            }
+            Some((file_path, lang))
+        })
+        .collect();
+    let skipped_lang = files.len() - supported_files.len();
+
+    // Phase 2: Check cache (requires ctx, must be serial but uses batch reads)
+    let cache_start = std::time::Instant::now();
+    let cache_keys: Vec<String> = supported_files
+        .iter()
+        .map(|(file_path, _)| build_cache_key(workspace_root, file_path))
+        .collect();
+    let cache_key_refs: Vec<&str> = cache_keys.iter().map(|s| s.as_str()).collect();
+    let cached_values: Vec<Option<Vec<SymbolInfo>>> = ctx.symbol_cache.get_many(&cache_key_refs);
+    let cache_check_time = cache_start.elapsed();
+
+    let mut uncached_files: Vec<(&PathBuf, &'static str)> = Vec::new();
     let mut cache_hits = 0u64;
-    let mut prefilter_matches = 0u64;
-    let mut skipped_lang = 0u64;
-    let mut skipped_prefilter = 0u64;
 
-    for file_path in files {
-        let lang = get_language_id(file_path);
-        if lang == "plaintext" || excluded_languages.contains(lang) {
-            skipped_lang += 1;
-            continue;
-        }
-        if get_server_for_language(lang, None).is_none() {
-            skipped_lang += 1;
-            continue;
-        }
-
-        let cache_start = std::time::Instant::now();
-        if let Some(symbols) = get_cached_symbols(ctx, workspace_root, file_path) {
-            cache_check_time += cache_start.elapsed();
+    for ((file_path, lang), cached) in supported_files.into_iter().zip(cached_values.into_iter()) {
+        if let Some(symbols) = cached {
             cache_hits += 1;
             cached_symbols.extend(symbols);
-            continue;
+        } else {
+            uncached_files.push((file_path, lang));
         }
-        cache_check_time += cache_start.elapsed();
+    }
 
-        match text_regex {
-            Some(re) => {
-                let prefilter_start = std::time::Instant::now();
-                let matches = prefilter_file(file_path, re);
-                prefilter_time += prefilter_start.elapsed();
-                if matches {
-                    prefilter_matches += 1;
-                    uncached_by_lang
-                        .entry(lang.to_string())
-                        .or_default()
-                        .push(file_path.clone());
-                } else {
-                    skipped_prefilter += 1;
-                }
-            }
-            None => {
-                uncached_by_lang
-                    .entry(lang.to_string())
-                    .or_default()
-                    .push(file_path.clone());
-            }
+    // Phase 3: Prefilter uncached files in parallel (if regex provided)
+    let prefilter_start = std::time::Instant::now();
+    let (files_to_fetch, skipped_prefilter) = match text_regex {
+        Some(re) => {
+            let matches: Vec<_> = uncached_files
+                .par_iter()
+                .filter(|(file_path, _)| prefilter_file(file_path, re))
+                .map(|(file_path, lang)| ((*file_path).clone(), *lang))
+                .collect();
+            let skipped = uncached_files.len() - matches.len();
+            (matches, skipped)
         }
+        None => {
+            let all: Vec<_> = uncached_files
+                .into_iter()
+                .map(|(file_path, lang)| (file_path.clone(), lang))
+                .collect();
+            (all, 0)
+        }
+    };
+    let prefilter_time = prefilter_start.elapsed();
+    let prefilter_matches = files_to_fetch.len();
+
+    // Phase 4: Group by language
+    for (file_path, lang) in files_to_fetch {
+        uncached_by_lang
+            .entry(lang.to_string())
+            .or_default()
+            .push(file_path);
     }
 
     let total_time = start.elapsed();
