@@ -139,25 +139,32 @@ impl Workspace {
     async fn ensure_workspace_indexed(&mut self, client: &Arc<LspClient>) {
         let walkdir_start = std::time::Instant::now();
         let source_extensions = [".c", ".h", ".cpp", ".hpp", ".cc", ".cxx", ".hxx"];
-        let exclude_dirs = ["build", ".git", "node_modules"];
+        let exclude_dirs: std::collections::HashSet<&str> =
+            ["build", ".git", "node_modules"].into_iter().collect();
 
         let mut files_to_index = Vec::new();
-        for entry in walkdir::WalkDir::new(&self.root)
-            .into_iter()
-            .filter_entry(|e| {
-                !exclude_dirs
-                    .iter()
-                    .any(|d| e.file_name().to_str() == Some(*d))
-            })
-            .filter_map(|e| e.ok())
-        {
+        for entry in jwalk::WalkDir::new(&self.root).process_read_dir(
+            move |_depth, _path, _state, children| {
+                children.retain(|entry| {
+                    entry
+                        .as_ref()
+                        .map(|e| {
+                            let name = e.file_name().to_string_lossy();
+                            !exclude_dirs.contains(name.as_ref())
+                        })
+                        .unwrap_or(false)
+                });
+            },
+        ) {
+            let Ok(entry) = entry else { continue };
             if entry.file_type().is_file() {
-                if let Some(ext) = entry.path().extension().and_then(|e| e.to_str()) {
+                let path = entry.path();
+                if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
                     if source_extensions
                         .iter()
                         .any(|s| s.trim_start_matches('.') == ext)
                     {
-                        files_to_index.push(entry.path().to_path_buf());
+                        files_to_index.push(path);
                     }
                 }
             }
