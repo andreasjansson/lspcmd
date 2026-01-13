@@ -897,12 +897,7 @@ fn build_tree(
     tree
 }
 
-fn render_tree(
-    node: &HashMap<String, TreeNode>,
-    lines: &mut Vec<String>,
-    prefix: &str,
-    is_root: bool,
-) {
+fn render_tree(node: &HashMap<String, TreeNode>, lines: &mut Vec<String>, path_prefix: &str) {
     let mut entries: Vec<_> = node.keys().collect();
     entries.sort_by(|a, b| {
         let a_is_dir = matches!(node.get(*a), Some(TreeNode::Dir(_) | TreeNode::ExcludedDir));
@@ -914,29 +909,24 @@ fn render_tree(
         }
     });
 
-    for (i, name) in entries.iter().enumerate() {
-        let is_last = i == entries.len() - 1;
-        let child = node.get(*name).unwrap();
-
-        let (connector, new_prefix) = if is_root {
-            ("".to_string(), "".to_string())
+    for name in entries {
+        let child = node.get(name).unwrap();
+        let full_path = if path_prefix.is_empty() {
+            name.to_string()
         } else {
-            let connector = if is_last { "└── " } else { "├── " };
-            let new_prefix = format!("{}{}", prefix, if is_last { "    " } else { "│   " });
-            (connector.to_string(), new_prefix)
+            format!("{}/{}", path_prefix, name)
         };
 
         match child {
             TreeNode::File(info) => {
                 let info_str = format_file_info(info);
-                lines.push(format!("{}{}{} ({})", prefix, connector, name, info_str));
+                lines.push(format!("{} ({})", full_path, info_str));
             }
             TreeNode::Dir(children) => {
-                lines.push(format!("{}{}{}/", prefix, connector, name));
-                render_tree(children, lines, &new_prefix, false);
+                render_tree(children, lines, &full_path);
             }
             TreeNode::ExcludedDir => {
-                lines.push(format!("{}{}{}/ (excluded)", prefix, connector, name));
+                lines.push(format!("{}/ (excluded)", full_path));
             }
         }
     }
