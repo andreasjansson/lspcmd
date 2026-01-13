@@ -806,7 +806,6 @@ pub async fn collect_symbols_with_prefilter(
     collect_symbols_smart(ctx, workspace_root, &files, pattern, &excluded_languages).await
 }
 
-#[trace]
 pub fn get_cached_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
