@@ -276,13 +276,15 @@ async fn main() -> Result<()> {
                         &config,
                         cli.json,
                         cli.profile,
-                        pattern,
-                        path,
-                        kind,
-                        exclude,
-                        head,
-                        docs,
-                        case_sensitive,
+                        GrepOptions {
+                            pattern,
+                            path,
+                            kind,
+                            exclude,
+                            head,
+                            docs,
+                            case_sensitive,
+                        },
                     )
                     .await
                 }
