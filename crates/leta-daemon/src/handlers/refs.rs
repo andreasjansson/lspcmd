@@ -386,7 +386,7 @@ pub async fn handle_supertypes(
 
 fn definition_response_to_locations(
     response: &GotoDefinitionResponse,
-    workspace_root: &PathBuf,
+    workspace_root: &Path,
     context: u32,
     head: u32,
 ) -> Vec<LocationInfo> {
