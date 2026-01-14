@@ -839,10 +839,7 @@ fn handle_config() -> Result<()> {
     Ok(())
 }
 
-async fn handle_grep(
-    config: &Config,
-    json_output: bool,
-    profile: bool,
+struct GrepOptions {
     pattern: String,
     path: Option<String>,
     kind: Option<String>,
@@ -850,7 +847,23 @@ async fn handle_grep(
     head: u32,
     docs: bool,
     case_sensitive: bool,
+}
+
+async fn handle_grep(
+    config: &Config,
+    json_output: bool,
+    profile: bool,
+    opts: GrepOptions,
 ) -> Result<()> {
+    let GrepOptions {
+        pattern,
+        path,
+        kind,
+        exclude,
+        head,
+        docs,
+        case_sensitive,
+    } = opts;
     if pattern.contains(' ') {
         eprintln!("Warning: Pattern contains a space. leta grep searches symbol names, not file contents.");
         eprintln!("  Use ripgrep for text search, or --kind/-k to filter by symbol type (e.g. -k function,class)");
