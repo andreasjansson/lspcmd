@@ -298,7 +298,9 @@ async fn handle_files_streaming_inner(
 
     let mut count = 0u32;
     let mut truncated = false;
-    let mut iter = walkdir::WalkDir::new(&target_path).into_iter();
+    let mut iter = walkdir::WalkDir::new(&target_path)
+        .sort_by_file_name()
+        .into_iter();
 
     while let Some(entry_result) = iter.next() {
         if count as usize >= head_limit {
