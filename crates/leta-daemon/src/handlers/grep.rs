@@ -964,10 +964,13 @@ pub async fn handle_grep_streaming(
     params: GrepParams,
     tx: mpsc::Sender<StreamMessage>,
 ) {
+    info!("handle_grep_streaming: starting inner");
     let result = handle_grep_streaming_inner(ctx, params, &tx).await;
+    info!("handle_grep_streaming: inner completed with result {:?}", result.is_ok());
 
     match result {
         Ok((warning, truncated, count)) => {
+            info!("handle_grep_streaming: sending Done message");
             let _ = tx
                 .send(StreamMessage::Done(StreamDone {
                     warning,
@@ -978,6 +981,7 @@ pub async fn handle_grep_streaming(
                 .await;
         }
         Err(e) => {
+            info!("handle_grep_streaming: sending Error message: {}", e);
             let _ = tx.send(StreamMessage::Error { message: e }).await;
         }
     }
