@@ -17,7 +17,11 @@ impl ConfigLock {
         if let Some(parent) = lock_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        let file = File::options().write(true).create(true).open(&lock_path)?;
+        let file = File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&lock_path)?;
         let fd = file.as_raw_fd();
         let result = unsafe { libc::flock(fd, libc::LOCK_EX) };
         if result != 0 {
