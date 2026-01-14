@@ -11,7 +11,7 @@ use leta_types::{GrepParams, GrepResult, StreamDone, StreamMessage, SymbolInfo};
 use rayon::prelude::*;
 use regex::Regex;
 use tokio::sync::mpsc;
-use tracing::{debug, info, warn};
+use tracing::{debug, warn};
 
 use super::{flatten_document_symbols, relative_path, HandlerContext};
 use crate::session::WorkspaceHandle;
