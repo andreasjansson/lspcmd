@@ -747,10 +747,7 @@ pub async fn collect_symbols_with_prefilter(
         .collect();
 
     let files = enumerate_source_files(workspace_root, &excluded_languages);
-    let pattern = if text_pattern
-        .map(|p| should_use_prefilter(p))
-        .unwrap_or(false)
-    {
+    let pattern = if text_pattern.map(should_use_prefilter).unwrap_or(false) {
         text_pattern
     } else {
         None
