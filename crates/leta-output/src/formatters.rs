@@ -991,7 +991,7 @@ fn is_stdlib_path(path: &str) -> bool {
         || (path.ends_with(".d.ts")
             && path
                 .split('/')
-                .last()
+                .next_back()
                 .map(|f| f.starts_with("lib."))
                 .unwrap_or(false))
         || path.contains("/rustlib/src/rust/library/")
