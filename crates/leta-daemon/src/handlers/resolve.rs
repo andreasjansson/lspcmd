@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use fastrace::trace;
-use leta_types::{ResolveSymbolParams, ResolveSymbolResult, ResolveSymbolResultBuilder, SymbolInfo};
+use leta_types::{
+    ResolveSymbolParams, ResolveSymbolResult, ResolveSymbolResultBuilder, SymbolInfo,
+};
 use regex::Regex;
 use tracing::debug;
 
@@ -208,7 +210,7 @@ fn filter_symbols(
     };
 
     if let Some(line) = line_filter {
-        filtered = filtered.into_iter().filter(|s| s.line == line).collect();
+        filtered.retain(|s| s.line == line);
     }
 
     if parts.len() == 1 {
