@@ -360,20 +360,19 @@ async fn collect_incoming_calls(
     ctx: &mut CallTraversalContext<'_>,
     item: &CallHierarchyItem,
     current_depth: u32,
-    include_non_workspace: bool,
-    visited: &mut HashSet<String>,
 ) -> Vec<CallNode> {
-    if current_depth >= max_depth {
+    if current_depth >= ctx.max_depth {
         return vec![];
     }
 
     let key = item_key(item);
-    if visited.contains(&key) {
+    if ctx.visited.contains(&key) {
         return vec![];
     }
-    visited.insert(key);
+    ctx.visited.insert(key);
 
-    let response: Result<Option<Vec<CallHierarchyIncomingCall>>, _> = client
+    let response: Result<Option<Vec<CallHierarchyIncomingCall>>, _> = ctx
+        .client
         .send_request(
             "callHierarchy/incomingCalls",
             CallHierarchyIncomingCallsParams {
@@ -393,22 +392,15 @@ async fn collect_incoming_calls(
     for call in calls {
         let call_item = &call.from;
 
-        if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
+        if !ctx.include_non_workspace
+            && !is_path_in_workspace(call_item.uri.as_str(), ctx.workspace_root)
+        {
             continue;
         }
 
-        let mut node = call_hierarchy_item_to_node(call_item, workspace_root);
+        let mut node = call_hierarchy_item_to_node(call_item, ctx.workspace_root);
 
-        let children = Box::pin(collect_incoming_calls(
-            client.clone(),
-            call_item,
-            workspace_root,
-            current_depth + 1,
-            max_depth,
-            include_non_workspace,
-            visited,
-        ))
-        .await;
+        let children = Box::pin(collect_incoming_calls(ctx, call_item, current_depth + 1)).await;
 
         if !children.is_empty() {
             node.called_by = Some(children);
@@ -420,23 +412,27 @@ async fn collect_incoming_calls(
     result
 }
 
-#[trace]
-async fn find_call_path(
+struct FindCallPathContext<'a> {
     client: Arc<LspClient>,
-    item: &CallHierarchyItem,
-    target_key: &str,
-    workspace_root: &PathBuf,
-    current_depth: u32,
+    workspace_root: &'a Path,
+    target_key: &'a str,
     max_depth: u32,
     include_non_workspace: bool,
-    visited: &mut HashSet<String>,
+    visited: &'a mut HashSet<String>,
+}
+
+#[trace]
+async fn find_call_path(
+    ctx: &mut FindCallPathContext<'_>,
+    item: &CallHierarchyItem,
+    current_depth: u32,
 ) -> Option<Vec<CallNode>> {
-    if current_depth >= max_depth {
+    if current_depth >= ctx.max_depth {
         return None;
     }
 
     let key = item_key(item);
-    if visited.contains(&key) {
+    if ctx.visited.contains(&key) {
         return None;
     }
     visited.insert(key.clone());
