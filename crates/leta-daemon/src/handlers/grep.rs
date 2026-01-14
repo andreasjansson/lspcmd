@@ -1044,7 +1044,9 @@ async fn handle_grep_streaming_inner(
         path_regex: path_regex.as_ref(),
     };
 
+    info!("handle_grep_streaming_inner: calling enumerate_source_files");
     let files = enumerate_source_files(&workspace_root, &excluded_languages);
+    info!("handle_grep_streaming_inner: found {} files", files.len());
 
     let text_pattern = if should_use_prefilter(&pattern) {
         Some(pattern.as_str())
