@@ -820,11 +820,14 @@ pub async fn get_file_symbols_no_wait(
         .symbol_misses
         .fetch_add(1, Ordering::Relaxed);
 
+    debug!("get_file_symbols_no_wait: getting client for {}", file_path.display());
     let client = workspace.client().await.ok_or("No LSP client")?;
     let uri = leta_fs::path_to_uri(file_path);
 
+    debug!("get_file_symbols_no_wait: ensure_document_open {}", file_path.display());
     workspace.ensure_document_open(file_path).await?;
 
+    debug!("get_file_symbols_no_wait: sending documentSymbol request for {}", file_path.display());
     let response: Option<leta_lsp::lsp_types::DocumentSymbolResponse> = client
         .send_request(
             "textDocument/documentSymbol",
@@ -838,6 +841,7 @@ pub async fn get_file_symbols_no_wait(
         )
         .await
         .map_err(|e| e.to_string())?;
+    debug!("get_file_symbols_no_wait: got response for {}", file_path.display());
 
     let flatten_start = std::time::Instant::now();
     let symbols = match response {
