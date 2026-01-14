@@ -1046,12 +1046,14 @@ async fn handle_grep_streaming_inner(
     let (count, truncated) = stream_and_filter_symbols(
         ctx,
         &workspace_root,
-        &files,
-        text_pattern,
-        &excluded_languages,
-        &filter,
-        limit,
-        params.include_docs,
+        StreamFilterParams {
+            files: &files,
+            text_pattern,
+            excluded_languages: &excluded_languages,
+            filter: &filter,
+            limit,
+            include_docs: params.include_docs,
+        },
         tx,
     )
     .await?;
