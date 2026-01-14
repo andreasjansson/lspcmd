@@ -1098,8 +1098,8 @@ async fn stream_and_filter_symbols(
     // Process files in sorted order and stream symbols immediately
     for file_path in files {
         files_processed += 1;
-        if files_processed % 100 == 0 {
-            info!("stream_and_filter_symbols: processed {} files, count={}", files_processed, count);
+        if files_processed % 100 == 0 || files_processed <= 5 {
+            info!("stream_and_filter_symbols: processing file {} ({}): {}", files_processed, count, file_path.display());
         }
         if count as usize >= limit {
             return Ok((count, true));
