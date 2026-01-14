@@ -110,11 +110,18 @@ impl DaemonServer {
         }
 
         if data.is_empty() {
+            info!("Client disconnected without sending data");
             return Ok(());
         }
 
         let line_end = data.iter().position(|&b| b == b'\n').unwrap_or(data.len());
-        let request: Value = serde_json::from_slice(&data[..line_end])?;
+        let request: Value = match serde_json::from_slice(&data[..line_end]) {
+            Ok(v) => v,
+            Err(e) => {
+                error!("Failed to parse request JSON: {}", e);
+                return Err(e.into());
+            }
+        };
 
         let method = request.get("method").and_then(|m| m.as_str()).unwrap_or("");
         let params = request.get("params").cloned().unwrap_or(json!({}));
