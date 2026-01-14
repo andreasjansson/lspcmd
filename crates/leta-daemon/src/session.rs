@@ -78,7 +78,7 @@ impl Workspace {
         let env = get_server_env();
         let init_options = self.get_init_options();
 
-        let cmd: Vec<&str> = self.server_config.command.iter().map(|s| *s).collect();
+        let cmd: Vec<&str> = self.server_config.command.iter().copied().collect();
 
         let start_time = std::time::Instant::now();
         match LspClient::start(&cmd, &self.root, self.server_config.name, env, init_options).await {
