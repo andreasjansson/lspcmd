@@ -957,15 +957,7 @@ fn build_tree(
 
 fn render_tree(node: &HashMap<String, TreeNode>, lines: &mut Vec<String>, indent: usize) {
     let mut entries: Vec<_> = node.keys().collect();
-    entries.sort_by(|a, b| {
-        let a_is_dir = matches!(node.get(*a), Some(TreeNode::Dir(_) | TreeNode::ExcludedDir));
-        let b_is_dir = matches!(node.get(*b), Some(TreeNode::Dir(_) | TreeNode::ExcludedDir));
-        match (a_is_dir, b_is_dir) {
-            (true, false) => std::cmp::Ordering::Less,
-            (false, true) => std::cmp::Ordering::Greater,
-            _ => a.cmp(b),
-        }
-    });
+    entries.sort();
 
     let prefix = "  ".repeat(indent);
 
