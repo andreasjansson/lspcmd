@@ -295,7 +295,7 @@ pub fn format_files_result(result: &FilesResult, head: u32, command_base: &str) 
 
     let tree = build_tree(&result.files, &result.excluded_dirs);
     let mut lines = Vec::new();
-    render_tree(&tree, &mut lines, "");
+    render_tree(&tree, &mut lines, 0);
 
     if result.truncated {
         lines.push(String::new());
