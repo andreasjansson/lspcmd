@@ -1026,6 +1026,7 @@ async fn handle_files(
     } else {
         // Use streaming path - print files immediately as they arrive
         let mut count = 0u32;
+        let mut printer = FileTreePrinter::new();
         let done = send_streaming_request(
             "files",
             json!({
@@ -1039,7 +1040,7 @@ async fn handle_files(
             false,
             |msg| {
                 if let StreamMessage::File(file) = msg {
-                    println!("{}", format_file_line(&file));
+                    println!("{}", printer.format_file(&file));
                     count += 1;
                 }
             },
