@@ -41,7 +41,7 @@ impl LspResponseError {
     }
 
     /// Check if this error is transient and the request should be retried.
-    /// 
+    ///
     /// rust-analyzer returns "content modified" errors when it's still indexing
     /// or when file contents change during a request. These are transient.
     pub fn is_retryable(&self) -> bool {
@@ -64,7 +64,9 @@ pub struct LanguageServerNotFound {
 }
 
 #[derive(Error, Debug)]
-#[error("Language server '{name}' for {languages} failed to start in workspace {workspace}: {message}")]
+#[error(
+    "Language server '{name}' for {languages} failed to start in workspace {workspace}: {message}"
+)]
 pub struct LanguageServerStartupError {
     pub name: String,
     pub languages: String,

@@ -98,8 +98,6 @@ pub fn relative_path(path: &Path, workspace_root: &Path) -> String {
         .unwrap_or_else(|_| path.to_string_lossy().to_string())
 }
 
-
-
 pub fn find_source_files_with_extension(
     workspace_root: &Path,
     extension: &str,

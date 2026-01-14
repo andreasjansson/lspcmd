@@ -480,9 +480,8 @@ fn ref_resolves_uniquely(
 
     if let Some(ref pf) = path_filter {
         let filename = pf.clone();
-        candidates.retain(|s| {
-            Path::new(&s.path).file_name().and_then(|f| f.to_str()) == Some(&filename)
-        });
+        candidates
+            .retain(|s| Path::new(&s.path).file_name().and_then(|f| f.to_str()) == Some(&filename));
     }
 
     if let Some(line) = line_filter {
