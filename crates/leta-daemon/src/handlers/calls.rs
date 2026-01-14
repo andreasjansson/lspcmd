@@ -112,16 +112,14 @@ pub async fn handle_calls(
 
             let item = &items[0];
             let mut visited = HashSet::new();
-            let called_by = collect_incoming_calls(
-                client.clone(),
-                item,
-                &workspace_root,
-                0,
-                params.max_depth,
-                params.include_non_workspace,
-                &mut visited,
-            )
-            .await;
+            let mut ctx = CallTraversalContext {
+                client: client.clone(),
+                workspace_root: &workspace_root,
+                max_depth: params.max_depth,
+                include_non_workspace: params.include_non_workspace,
+                visited: &mut visited,
+            };
+            let called_by = collect_incoming_calls(&mut ctx, item, 0).await;
 
             let root = call_hierarchy_item_to_node(item, &workspace_root);
             Ok(CallsResult {
