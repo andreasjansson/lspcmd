@@ -98,6 +98,11 @@ pub fn relative_path(path: &Path, workspace_root: &Path) -> String {
         .unwrap_or_else(|_| path.to_string_lossy().to_string())
 }
 
+pub fn safe_parse_uri(uri: &str) -> Result<leta_lsp::lsp_types::Uri, String> {
+    uri.parse()
+        .map_err(|e| format!("Invalid URI '{}': {}", uri, e))
+}
+
 pub fn find_source_files_with_extension(
     workspace_root: &Path,
     extension: &str,
