@@ -304,17 +304,18 @@ async fn collect_outgoing_calls(
     item: &CallHierarchyItem,
     current_depth: u32,
 ) -> Vec<CallNode> {
-    if current_depth >= max_depth {
+    if current_depth >= ctx.max_depth {
         return vec![];
     }
 
     let key = item_key(item);
-    if visited.contains(&key) {
+    if ctx.visited.contains(&key) {
         return vec![];
     }
-    visited.insert(key);
+    ctx.visited.insert(key);
 
-    let response: Result<Option<Vec<CallHierarchyOutgoingCall>>, _> = client
+    let response: Result<Option<Vec<CallHierarchyOutgoingCall>>, _> = ctx
+        .client
         .send_request(
             "callHierarchy/outgoingCalls",
             CallHierarchyOutgoingCallsParams {
@@ -334,22 +335,15 @@ async fn collect_outgoing_calls(
     for call in calls {
         let call_item = &call.to;
 
-        if !include_non_workspace && !is_path_in_workspace(call_item.uri.as_str(), workspace_root) {
+        if !ctx.include_non_workspace
+            && !is_path_in_workspace(call_item.uri.as_str(), ctx.workspace_root)
+        {
             continue;
         }
 
-        let mut node = call_hierarchy_item_to_node(call_item, workspace_root);
+        let mut node = call_hierarchy_item_to_node(call_item, ctx.workspace_root);
 
-        let children = Box::pin(collect_outgoing_calls(
-            client.clone(),
-            call_item,
-            workspace_root,
-            current_depth + 1,
-            max_depth,
-            include_non_workspace,
-            visited,
-        ))
-        .await;
+        let children = Box::pin(collect_outgoing_calls(ctx, call_item, current_depth + 1)).await;
 
         if !children.is_empty() {
             node.calls = Some(children);
@@ -363,11 +357,9 @@ async fn collect_outgoing_calls(
 
 #[trace]
 async fn collect_incoming_calls(
-    client: Arc<LspClient>,
+    ctx: &mut CallTraversalContext<'_>,
     item: &CallHierarchyItem,
-    workspace_root: &PathBuf,
     current_depth: u32,
-    max_depth: u32,
     include_non_workspace: bool,
     visited: &mut HashSet<String>,
 ) -> Vec<CallNode> {
