@@ -993,8 +993,8 @@ async fn handle_grep_streaming_inner(
     params: GrepParams,
     tx: &mpsc::Sender<StreamMessage>,
 ) -> Result<(Option<String>, bool, u32), String> {
-    debug!(
-        "handle_grep_streaming: pattern={} workspace={} limit={}",
+    info!(
+        "handle_grep_streaming_inner: pattern={} workspace={} limit={}",
         params.pattern, params.workspace_root, params.limit
     );
     let workspace_root = PathBuf::from(&params.workspace_root);
