@@ -134,6 +134,8 @@ impl DaemonServer {
             .and_then(|s| s.as_bool())
             .unwrap_or(false);
 
+        info!("Handling request: method={} stream_mode={}", method, stream_mode);
+
         let ctx = HandlerContext::new(
             Arc::clone(&self.session),
             Arc::clone(&self.hover_cache),
@@ -141,8 +143,10 @@ impl DaemonServer {
         );
 
         if stream_mode && (method == "grep" || method == "files") {
+            info!("Calling handle_streaming for {}", method);
             self.handle_streaming(&ctx, method, params, profile, &mut stream)
                 .await?;
+            info!("handle_streaming completed for {}", method);
         } else {
             let response = if profile {
                 self.dispatch_with_profiling(&ctx, method, params).await
