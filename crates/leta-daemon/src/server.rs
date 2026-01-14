@@ -167,17 +167,33 @@ impl DaemonServer {
         let (tx, mut rx) = mpsc::channel::<StreamMessage>(1000);
 
         match method {
-            "grep" => {
-                if let Ok(p) = serde_json::from_value::<GrepParams>(params) {
-                    handle_grep_streaming(ctx, p, tx).await;
+            "grep" => match serde_json::from_value::<GrepParams>(params) {
+                Ok(p) => handle_grep_streaming(ctx, p, tx).await,
+                Err(e) => {
+                    let _ = tx
+                        .send(StreamMessage::Error {
+                            message: format!("Invalid grep params: {}", e),
+                        })
+                        .await;
                 }
-            }
-            "files" => {
-                if let Ok(p) = serde_json::from_value::<FilesParams>(params) {
-                    handle_files_streaming(ctx, p, tx).await;
+            },
+            "files" => match serde_json::from_value::<FilesParams>(params) {
+                Ok(p) => handle_files_streaming(ctx, p, tx).await,
+                Err(e) => {
+                    let _ = tx
+                        .send(StreamMessage::Error {
+                            message: format!("Invalid files params: {}", e),
+                        })
+                        .await;
                 }
+            },
+            _ => {
+                let _ = tx
+                    .send(StreamMessage::Error {
+                        message: format!("Unknown streaming method: {}", method),
+                    })
+                    .await;
             }
-            _ => {}
         }
 
         let mut final_done: Option<StreamDone> = None;
