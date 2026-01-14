@@ -395,12 +395,12 @@ fn apply_workspace_edit_for_move(
     Ok((changed_files, file_moved))
 }
 
-type RenameResult = (Vec<String>, Vec<(PathBuf, PathBuf)>);
+type ApplyEditResult = (Vec<String>, Vec<(PathBuf, PathBuf)>);
 
 fn apply_workspace_edit(
     edit: &WorkspaceEdit,
     workspace_root: &Path,
-) -> Result<RenameResult, String> {
+) -> Result<ApplyEditResult, String> {
     let mut changed_files = HashSet::new();
     let mut renamed_files = Vec::new();
 
