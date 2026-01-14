@@ -1052,7 +1052,6 @@ async fn handle_grep_streaming_inner(
         None
     };
 
-    info!("handle_grep_streaming_inner: calling stream_and_filter_symbols");
     let (count, truncated) = stream_and_filter_symbols(
         ctx,
         &workspace_root,
@@ -1065,7 +1064,6 @@ async fn handle_grep_streaming_inner(
         tx,
     )
     .await?;
-    info!("handle_grep_streaming_inner: stream_and_filter_symbols done, count={}", count);
 
     let warning = if count == 0 && params.pattern.contains(r"\|") {
         Some("No results. Note: use '|' for alternation, not '\\|' (e.g., 'foo|bar' not 'foo\\|bar')".to_string())
