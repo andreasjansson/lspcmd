@@ -269,10 +269,8 @@ fn item_key(item: &CallHierarchyItem) -> String {
 fn is_path_in_workspace(uri: &str, workspace_root: &Path) -> bool {
     let file_path = leta_fs::uri_to_path(uri);
 
-    // Check if file is within workspace root
     match file_path.strip_prefix(workspace_root) {
         Ok(rel_path) => {
-            // Exclude common dependency directories
             let excluded_dirs = [
                 ".venv",
                 "venv",
@@ -288,19 +286,23 @@ fn is_path_in_workspace(uri: &str, workspace_root: &Path) -> bool {
                 .iter()
                 .any(|part| excluded_dirs.iter().any(|d| part.to_str() == Some(*d)))
         }
-        Err(_) => false, // Path is outside workspace
+        Err(_) => false,
     }
+}
+
+struct CallTraversalContext<'a> {
+    client: Arc<LspClient>,
+    workspace_root: &'a Path,
+    max_depth: u32,
+    include_non_workspace: bool,
+    visited: &'a mut HashSet<String>,
 }
 
 #[trace]
 async fn collect_outgoing_calls(
-    client: Arc<LspClient>,
+    ctx: &mut CallTraversalContext<'_>,
     item: &CallHierarchyItem,
-    workspace_root: &PathBuf,
     current_depth: u32,
-    max_depth: u32,
-    include_non_workspace: bool,
-    visited: &mut HashSet<String>,
 ) -> Vec<CallNode> {
     if current_depth >= max_depth {
         return vec![];
