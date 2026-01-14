@@ -940,9 +940,9 @@ fn extract_hover_content(contents: &leta_lsp::lsp_types::HoverContents) -> Optio
         HoverContents::Array(arr) => {
             let parts: Vec<String> = arr
                 .iter()
-                .filter_map(|ms| match ms {
-                    MarkedString::String(s) => Some(s.clone()),
-                    MarkedString::LanguageString(ls) => Some(ls.value.clone()),
+                .map(|ms| match ms {
+                    MarkedString::String(s) => s.clone(),
+                    MarkedString::LanguageString(ls) => ls.value.clone(),
                 })
                 .collect();
             if parts.is_empty() {
