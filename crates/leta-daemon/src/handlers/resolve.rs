@@ -359,7 +359,7 @@ fn normalize_symbol_name(name: &str) -> String {
             .unwrap_or_else(|| name.to_string());
     }
     if name.contains(':') {
-        return name.split(':').last().unwrap_or(name).to_string();
+        return name.split(':').next_back().unwrap_or(name).to_string();
     }
     name.to_string()
 }
