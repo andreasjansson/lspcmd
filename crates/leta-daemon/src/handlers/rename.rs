@@ -523,8 +523,6 @@ fn apply_text_edits(file_path: &Path, edits: &[TextEdit]) -> Result<(), String> 
 
         let suffix = if end_line < result_lines.len() && end_char <= result_lines[end_line].len() {
             result_lines[end_line][end_char..].to_string()
-        } else if end_line < result_lines.len() {
-            String::new()
         } else {
             String::new()
         };
