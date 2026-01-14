@@ -105,7 +105,12 @@ impl DaemonLock {
             let _ = std::fs::create_dir_all(parent);
         }
 
-        let file = match File::options().write(true).create(true).open(&lock_path) {
+        let file = match File::options()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .open(&lock_path)
+        {
             Ok(f) => f,
             Err(_) => return None,
         };
