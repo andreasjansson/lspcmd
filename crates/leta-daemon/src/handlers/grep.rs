@@ -1090,7 +1090,7 @@ async fn stream_and_filter_symbols(
         }
 
         let lang = get_language_id(file_path);
-        if lang == "plaintext" || excluded_languages.contains(lang) {
+        if lang == "plaintext" || params.excluded_languages.contains(lang) {
             continue;
         }
         if get_server_for_language(lang, None).is_none() {
@@ -1098,17 +1098,19 @@ async fn stream_and_filter_symbols(
         }
 
         let rel_path = relative_path(file_path, workspace_root);
-        if !filter.path_matches(&rel_path) {
+        if !params.filter.path_matches(&rel_path) {
             continue;
         }
 
-        // Try cache first
         if let Some(symbols) = get_cached_symbols(ctx, workspace_root, file_path) {
-            let mut matching: Vec<_> = symbols.into_iter().filter(|s| filter.matches(s)).collect();
+            let mut matching: Vec<_> = symbols
+                .into_iter()
+                .filter(|s| params.filter.matches(s))
+                .collect();
             matching.sort_by_key(|s| s.line);
 
             for mut sym in matching {
-                if include_docs {
+                if params.include_docs {
                     if let Some(doc) = get_symbol_documentation(
                         ctx,
                         workspace_root,
@@ -1125,7 +1127,7 @@ async fn stream_and_filter_symbols(
                     return Ok((count, false));
                 }
                 count += 1;
-                if count as usize >= limit {
+                if count as usize >= params.limit {
                     return Ok((count, true));
                 }
             }
