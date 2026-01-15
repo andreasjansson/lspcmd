@@ -117,7 +117,7 @@ jobs:
           ref: v${{ needs.check-release.outputs.version }}
       - uses: taiki-e/upload-rust-binary-action@v1
         with:
-          bin: leta
+          bin: leta,leta-daemon
           target: ${{ matrix.target }}
           archive: leta-v${{ needs.check-release.outputs.version }}-${{ matrix.target }}
           ref: refs/tags/v${{ needs.check-release.outputs.version }}
