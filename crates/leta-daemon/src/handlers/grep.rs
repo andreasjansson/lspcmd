@@ -1076,20 +1076,30 @@ struct StreamFilterParams<'a> {
     include_docs: bool,
 }
 
+struct StreamResult {
+    count: u32,
+    truncated: bool,
+    errors: Vec<String>,
+}
+
 #[trace]
 async fn stream_and_filter_symbols(
     ctx: &HandlerContext,
     workspace_root: &Path,
     params: StreamFilterParams<'_>,
     tx: &mpsc::Sender<StreamMessage>,
-) -> Result<(u32, bool), String> {
+) -> Result<StreamResult, String> {
     let text_regex = params.text_pattern.and_then(pattern_to_text_regex);
     let mut count = 0u32;
     let mut workspace_errors: HashMap<String, String> = HashMap::new();
 
     for file_path in params.files {
         if count as usize >= params.limit {
-            return Ok((count, true));
+            return Ok(StreamResult {
+                count,
+                truncated: true,
+                errors: workspace_errors.into_values().collect(),
+            });
         }
 
         let lang = get_language_id(file_path);
@@ -1131,11 +1141,19 @@ async fn stream_and_filter_symbols(
                     }
                 }
                 if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
-                    return Ok((count, false));
+                    return Ok(StreamResult {
+                        count,
+                        truncated: false,
+                        errors: workspace_errors.into_values().collect(),
+                    });
                 }
                 count += 1;
                 if count as usize >= params.limit {
-                    return Ok((count, true));
+                    return Ok(StreamResult {
+                        count,
+                        truncated: true,
+                        errors: workspace_errors.into_values().collect(),
+                    });
                 }
             }
             continue;
@@ -1186,11 +1204,19 @@ async fn stream_and_filter_symbols(
                         }
                     }
                     if tx.send(StreamMessage::Symbol(sym)).await.is_err() {
-                        return Ok((count, false));
+                        return Ok(StreamResult {
+                            count,
+                            truncated: false,
+                            errors: workspace_errors.into_values().collect(),
+                        });
                     }
                     count += 1;
                     if count as usize >= params.limit {
-                        return Ok((count, true));
+                        return Ok(StreamResult {
+                            count,
+                            truncated: true,
+                            errors: workspace_errors.into_values().collect(),
+                        });
                     }
                 }
             }
@@ -1200,9 +1226,9 @@ async fn stream_and_filter_symbols(
         }
     }
 
-    for (_lang, error) in workspace_errors {
-        let _ = tx.send(StreamMessage::Error { message: error }).await;
-    }
-
-    Ok((count, false))
+    Ok(StreamResult {
+        count,
+        truncated: false,
+        errors: workspace_errors.into_values().collect(),
+    })
 }
