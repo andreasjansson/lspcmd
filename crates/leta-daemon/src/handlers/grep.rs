@@ -1085,6 +1085,7 @@ async fn stream_and_filter_symbols(
 ) -> Result<(u32, bool), String> {
     let text_regex = params.text_pattern.and_then(pattern_to_text_regex);
     let mut count = 0u32;
+    let mut workspace_errors: HashMap<String, String> = HashMap::new();
 
     for file_path in params.files {
         if count as usize >= params.limit {
@@ -1096,6 +1097,10 @@ async fn stream_and_filter_symbols(
             continue;
         }
         if get_server_for_language(lang, None).is_none() {
+            continue;
+        }
+
+        if workspace_errors.contains_key(lang) {
             continue;
         }
 
@@ -1154,6 +1159,7 @@ async fn stream_and_filter_symbols(
             Ok(ws) => ws,
             Err(e) => {
                 warn!("Failed to get workspace for {}: {}", lang, e);
+                workspace_errors.insert(lang.to_string(), e);
                 continue;
             }
         };
@@ -1192,6 +1198,10 @@ async fn stream_and_filter_symbols(
                 warn!("Failed to get symbols for {}: {}", file_path.display(), e);
             }
         }
+    }
+
+    for (_lang, error) in workspace_errors {
+        let _ = tx.send(StreamMessage::Error { message: error }).await;
     }
 
     Ok((count, false))
