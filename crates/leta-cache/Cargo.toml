@@ -3,7 +3,7 @@ name = "leta-cache"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description.workspace = true
+description = "This is an internal component crate of leta"
 repository.workspace = true
 homepage.workspace = true
 
