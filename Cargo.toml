@@ -13,7 +13,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.5.0"
+version = "0.5.1"
 edition = "2021"
 authors = ["Andreas Jansson"]
 license = "MIT"
@@ -25,14 +25,14 @@ description = "LSP Enabled Tools for Agents - fast semantic code navigation"
 [workspace.dependencies]
 
 # Internal crates
-leta-types = { version = "0.5.0", path = "crates/leta-types" }
-leta-config = { version = "0.5.0", path = "crates/leta-config" }
-leta-lsp = { version = "0.5.0", path = "crates/leta-lsp" }
-leta-cache = { version = "0.5.0", path = "crates/leta-cache" }
-leta-servers = { version = "0.5.0", path = "crates/leta-servers" }
-leta-output = { version = "0.5.0", path = "crates/leta-output" }
-leta-fs = { version = "0.5.0", path = "crates/leta-fs" }
-leta-daemon = { version = "0.5.0", path = "crates/leta-daemon" }
+leta-types = { version = "0.5.1", path = "crates/leta-types" }
+leta-config = { version = "0.5.1", path = "crates/leta-config" }
+leta-lsp = { version = "0.5.1", path = "crates/leta-lsp" }
+leta-cache = { version = "0.5.1", path = "crates/leta-cache" }
+leta-servers = { version = "0.5.1", path = "crates/leta-servers" }
+leta-output = { version = "0.5.1", path = "crates/leta-output" }
+leta-fs = { version = "0.5.1", path = "crates/leta-fs" }
+leta-daemon = { version = "0.5.1", path = "crates/leta-daemon" }
 
 # Async runtime
 tokio = { version = "1.40", features = ["full", "fs", "io-util", "macros", "process", "rt-multi-thread", "signal", "sync"] }
