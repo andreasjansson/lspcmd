@@ -741,7 +741,7 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "leta"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "clap",
@@ -759,7 +759,7 @@ dependencies = [
 
 [[package]]
 name = "leta-cache"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "blake3",
  "fastrace",
@@ -772,7 +772,7 @@ dependencies = [
 
 [[package]]
 name = "leta-config"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "libc",
  "serde",
@@ -782,7 +782,7 @@ dependencies = [
 
 [[package]]
 name = "leta-daemon"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "anyhow",
  "blake3",
@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "leta-fs"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "fastrace",
  "thiserror",
@@ -819,7 +819,7 @@ dependencies = [
 
 [[package]]
 name = "leta-lsp"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "async-trait",
  "dashmap",
@@ -835,7 +835,7 @@ dependencies = [
 
 [[package]]
 name = "leta-output"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "leta-types",
  "serde",
@@ -844,7 +844,7 @@ dependencies = [
 
 [[package]]
 name = "leta-servers"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "fastrace",
  "leta-config",
@@ -853,7 +853,7 @@ dependencies = [
 
 [[package]]
 name = "leta-types"
-version = "0.2.0"
+version = "0.4.0"
 dependencies = [
  "lsp-types",
  "serde",
