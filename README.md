@@ -125,6 +125,34 @@ leta refs validate_email      # Find all uses of validate_email
 leta refs UserRepository -n 2 # With 2 lines of context
 ```
 
+## AI agent skill
+
+leta includes a skill file that teaches AI coding agents (like Claude Code or
+OpenCode) how to use leta effectively. The skill instructs agents to prefer
+`leta show` over reading files, `leta refs` over grepping for usages, etc.
+
+### OpenCode
+
+Copy the skill to your OpenCode skills directory:
+
+```bash
+cp -r skills/leta ~/.config/opencode/skills/
+```
+
+Then load the skill with `/skill leta` or configure it to load automatically.
+
+### Claude Code
+
+Add the skill to your project's `CLAUDE.md` or `~/.claude/CLAUDE.md`:
+
+```bash
+# Project-specific:
+cat skills/leta/SKILL.md >> /path/to/project/CLAUDE.md
+
+# Global:
+cat skills/leta/SKILL.md >> ~/.claude/CLAUDE.md
+```
+
 ## Commands
 
 ### grep
