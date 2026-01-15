@@ -165,6 +165,15 @@ static ZLS: ServerConfig = ServerConfig {
     root_markers: &["build.zig"],
 };
 
+static DUMMY_DOESNT_EXIST: ServerConfig = ServerConfig {
+    name: "dummy-doesnt-exist-server",
+    command: &["dummy-doesnt-exist-server-binary"],
+    languages: &["dummy-doesnt-exist"],
+    file_patterns: &["*.dummy-doesnt-exist"],
+    install_cmd: Some("pip install dummy-doesnt-exist"),
+    root_markers: &[],
+};
+
 static PYTHON_SERVERS: &[&ServerConfig] = &[&BASEDPYRIGHT, &PYLSP];
 static RUST_SERVERS: &[&ServerConfig] = &[&RUST_ANALYZER];
 static TYPESCRIPT_SERVERS: &[&ServerConfig] = &[&TYPESCRIPT_LANGUAGE_SERVER];
@@ -175,6 +184,7 @@ static RUBY_SERVERS: &[&ServerConfig] = &[&RUBY_LSP];
 static PHP_SERVERS: &[&ServerConfig] = &[&INTELEPHENSE];
 static LUA_SERVERS: &[&ServerConfig] = &[&LUA_LANGUAGE_SERVER];
 static ZIG_SERVERS: &[&ServerConfig] = &[&ZLS];
+static DUMMY_SERVERS: &[&ServerConfig] = &[&DUMMY_DOESNT_EXIST];
 
 fn language_to_servers(language_id: &str) -> Option<&'static [&'static ServerConfig]> {
     match language_id {
