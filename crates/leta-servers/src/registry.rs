@@ -200,6 +200,7 @@ fn language_to_servers(language_id: &str) -> Option<&'static [&'static ServerCon
         "php" => Some(PHP_SERVERS),
         "lua" => Some(LUA_SERVERS),
         "zig" => Some(ZIG_SERVERS),
+        "dummy-doesnt-exist" => Some(DUMMY_SERVERS),
         _ => None,
     }
 }
@@ -216,6 +217,7 @@ fn language_to_key(language_id: &str) -> Option<&'static str> {
         "php" => Some("php"),
         "lua" => Some("lua"),
         "zig" => Some("zig"),
+        "dummy-doesnt-exist" => Some("dummy-doesnt-exist"),
         _ => None,
     }
 }
