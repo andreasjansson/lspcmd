@@ -8,9 +8,8 @@ mod profiling;
 mod server;
 mod session;
 
-#[tokio::main]
 #[trace]
-async fn main() -> anyhow::Result<()> {
+pub async fn run() -> anyhow::Result<()> {
     let log_dir = get_log_dir();
     std::fs::create_dir_all(&log_dir)?;
 
