@@ -3,7 +3,7 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-cargo build --profile profiling -p leta -p leta-daemon
+cargo build --profile profiling -p leta
 
 cp ./target/profiling/leta ~/.local/bin/
 cp ./target/profiling/leta-daemon ~/.local/bin/
