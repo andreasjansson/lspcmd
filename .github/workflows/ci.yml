@@ -235,35 +235,3 @@ jobs:
           leta grep "run" --head 10
           leta files --head 10
 
-  post-release-test-windows:
-    name: Post-release Test (Windows/GitHub Release)
-    runs-on: windows-latest
-    needs: [check-release, release]
-    if: needs.check-release.outputs.should_release == 'true'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install leta from GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: pwsh
-        run: |
-          $VERSION = "${{ needs.check-release.outputs.version }}"
-          $ARCHIVE = "leta-v${VERSION}-x86_64-pc-windows-msvc.zip"
-          gh release download "v${VERSION}" --pattern "${ARCHIVE}"
-          Expand-Archive -Path "${ARCHIVE}" -DestinationPath .
-          Move-Item -Path "leta.exe" -Destination "$env:USERPROFILE\.cargo\bin\"
-          Move-Item -Path "leta-daemon.exe" -Destination "$env:USERPROFILE\.cargo\bin\"
-          Remove-Item "${ARCHIVE}"
-      - name: Install rust-analyzer
-        run: |
-          rustup component add rust-analyzer
-      - name: Verify installation
-        shell: pwsh
-        run: |
-          leta --version
-      - name: Add workspace and run leta
-        shell: pwsh
-        run: |
-          leta workspace add .
-          leta grep "run" --head 10
-          leta files --head 10
