@@ -119,7 +119,7 @@ impl Workspace {
                 );
                 if let Some(install_cmd) = self.server_config.install_cmd {
                     msg.push_str(&format!(
-                        "\n\nTo install {}, run:\n  {}",
+                        "\n\nTo install {}, run:\n  {}\n\nIf you just installed it, run `leta daemon restart` to pick up PATH changes.",
                         self.server_config.name, install_cmd
                     ));
                 }
