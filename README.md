@@ -48,13 +48,28 @@ class UserHandler:
 
 ## Installation
 
-```bash
-# Install with uv (recommended)
-uv tool install -e . --python 3.13
+### Using Homebrew (macOS)
 
-# Or with pip
-pip install -e .
+```bash
+brew install andreasjansson/tap/leta
 ```
+
+### Using Cargo
+
+```bash
+cargo install leta
+```
+
+### From source
+
+```bash
+git clone https://github.com/andreasjansson/leta
+cd leta
+cargo install --path crates/leta
+cargo install --path crates/leta-daemon
+```
+
+### Language servers
 
 Ensure you have language servers installed for your target languages:
 
@@ -118,17 +133,17 @@ searches *symbol names* semantically—it finds function definitions, class
 declarations, method names, etc.
 
 ```bash
-leta grep PATTERN [PATH_REGEX] [OPTIONS]
+leta grep <PATTERN> [PATH] [OPTIONS]
 
 Options:
-  -k, --kind KIND       Filter by symbol kind (class, function, method, etc.)
-  -x, --exclude PAT     Exclude files matching regex (repeatable)
-  -d, --docs            Include documentation for each symbol
-  -C, --case-sensitive  Case-sensitive matching
-  --head N              Maximum results to return (default: 200)
+  -k, --kind <KIND>        Filter by symbol kind (comma-separated: class, function, method, etc.)
+  -x, --exclude <EXCLUDE>  Exclude files matching regex (repeatable)
+  -d, --docs               Include documentation for each symbol
+  -C, --case-sensitive     Case-sensitive matching
+  -N, --head <N>           Maximum results (0 = unlimited) [default: 500]
 ```
 
-The optional PATH_REGEX argument filters files by matching a regex against
+The optional PATH argument filters files by matching a regex against
 the relative file path. This is simpler and more powerful than glob patterns.
 
 Examples:
@@ -168,9 +183,10 @@ Show source file tree with line counts.
 leta files [PATH] [OPTIONS]
 
 Options:
-  -x, --exclude PAT  Exclude files matching regex (repeatable)
-  -i, --include PAT  Include default-excluded dirs (repeatable)
-  -f, --filter PAT   Only include files matching regex
+  -x, --exclude <EXCLUDE>  Exclude files matching regex (repeatable)
+  -i, --include <INCLUDE>  Include default-excluded dirs (repeatable)
+  -f, --filter <FILTER>    Only include files matching regex
+  -N, --head <N>           Maximum files (0 = unlimited) [default: 500]
 ```
 
 Example output:
@@ -192,11 +208,11 @@ src
 Print the full definition of a symbol.
 
 ```bash
-leta show SYMBOL [OPTIONS]
+leta show <SYMBOL> [OPTIONS]
 
 Options:
-  -n, --context N  Lines of context around definition
-  --head N         Maximum lines to show (default: 200)
+  -n, --context <N>  Lines of context around definition [default: 0]
+  -N, --head <N>     Maximum lines (0 = unlimited) [default: 500]
 ```
 
 Examples:
@@ -213,10 +229,11 @@ leta show COUNTRY_CODES            # Multi-line constants work too
 Find all references to a symbol.
 
 ```bash
-leta refs SYMBOL [OPTIONS]
+leta refs <SYMBOL> [OPTIONS]
 
 Options:
-  -n, --context N  Lines of context around each reference
+  -n, --context <N>  Lines of context around each reference [default: 0]
+  -N, --head <N>     Maximum results (0 = unlimited) [default: 500]
 ```
 
 Examples:
@@ -235,10 +252,11 @@ Show call hierarchy for a symbol.
 leta calls [OPTIONS]
 
 Options:
-  --from SYMBOL    Show what SYMBOL calls (outgoing)
-  --to SYMBOL      Show what calls SYMBOL (incoming)
-  --max-depth N    Maximum recursion depth (default: 3)
+  --from <SYMBOL>          Show what SYMBOL calls (outgoing)
+  --to <SYMBOL>            Show what calls SYMBOL (incoming)
+  --max-depth <N>          Maximum recursion depth [default: 3]
   --include-non-workspace  Include stdlib/dependency calls
+  -N, --head <N>           Maximum results (0 = unlimited) [default: 500]
 ```
 
 At least one of `--from` or `--to` is required. Use both to find a path.
@@ -261,10 +279,11 @@ leta calls --from main --to save --max-depth 5
 Find implementations of an interface or abstract method.
 
 ```bash
-leta implementations SYMBOL [OPTIONS]
+leta implementations <SYMBOL> [OPTIONS]
 
 Options:
-  -n, --context N  Lines of context
+  -n, --context <N>  Lines of context [default: 0]
+  -N, --head <N>     Maximum results (0 = unlimited) [default: 500]
 ```
 
 Examples:
@@ -279,8 +298,12 @@ leta implementations Storage.save
 Navigate type hierarchies.
 
 ```bash
-leta supertypes SYMBOL  # Find parent types
-leta subtypes SYMBOL    # Find child types
+leta supertypes <SYMBOL> [OPTIONS]  # Find parent types
+leta subtypes <SYMBOL> [OPTIONS]    # Find child types
+
+Options:
+  -n, --context <N>  Lines of context [default: 0]
+  -N, --head <N>     Maximum results (0 = unlimited) [default: 500]
 ```
 
 ### declaration
@@ -289,7 +312,11 @@ Find the declaration of a symbol (useful for languages that separate
 declaration from definition).
 
 ```bash
-leta declaration SYMBOL [OPTIONS]
+leta declaration <SYMBOL> [OPTIONS]
+
+Options:
+  -n, --context <N>  Lines of context [default: 0]
+  -N, --head <N>     Maximum results (0 = unlimited) [default: 500]
 ```
 
 ### rename
@@ -297,7 +324,7 @@ leta declaration SYMBOL [OPTIONS]
 Rename a symbol across the entire workspace.
 
 ```bash
-leta rename SYMBOL NEW_NAME
+leta rename <SYMBOL> <NEW_NAME>
 ```
 
 Examples:
@@ -313,7 +340,7 @@ leta rename "user.py:User" Person
 Move/rename a file and update all imports.
 
 ```bash
-leta mv OLD_PATH NEW_PATH
+leta mv <OLD_PATH> <NEW_PATH>
 ```
 
 Supported by: TypeScript, Rust, Python (via basedpyright).
@@ -364,10 +391,11 @@ leta daemon info     # Show daemon status and active workspaces
 Workspaces must be explicitly added before using leta:
 
 ```bash
-leta workspace add              # Add current directory (interactive)
-leta workspace add /path # Add specific path
+leta workspace add              # Add current directory
+leta workspace add /path        # Add specific path
 leta workspace remove           # Remove current workspace
 leta workspace restart          # Restart language servers
+leta workspace info             # Show workspace info for current directory
 ```
 
 ## Configuration
@@ -430,32 +458,6 @@ Logs are stored in `~/.cache/leta/log/`.
 
 # Format code
 ./script/format
-```
-
-### Architecture
-
-```
-leta/
-├── cli.py              # CLI entry point and argument parsing
-├── cache.py            # LMDB-backed LRU cache
-├── daemon/
-│   ├── server.py       # Unix socket server
-│   ├── session.py      # LSP session and workspace management
-│   ├── rpc.py          # Request/response Pydantic models
-│   └── handlers/       # Request handlers (grep, show, refs, etc.)
-├── lsp/
-│   ├── client.py       # LSP client with typed requests
-│   ├── protocol.py     # JSON-RPC message encoding
-│   ├── types.py        # LSP type definitions
-│   └── capabilities.py # Client capability declarations
-├── output/
-│   └── formatters.py   # Output formatting (plain, JSON, tree)
-├── servers/
-│   └── registry.py     # Language server configurations
-└── utils/
-    ├── config.py       # Configuration loading/saving
-    ├── text.py         # Language detection, file reading
-    └── uri.py          # file:// URI handling
 ```
 
 ## License
