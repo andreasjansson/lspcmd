@@ -1,0 +1,6 @@
+===
+teardown workspace
+===
+leta workspace remove {{ FIXTURE_DIR }}
+---
+Removed workspace: {{ FIXTURE_DIR }}
