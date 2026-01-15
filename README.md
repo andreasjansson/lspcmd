@@ -27,6 +27,7 @@ class UserHandler:
 
 - [Installation](#installation)
 - [Quick start](#quick-start)
+- [AI agent skill](#ai-agent-skill)
 - [Commands](#commands)
   - [grep](#grep)
   - [files](#files)
