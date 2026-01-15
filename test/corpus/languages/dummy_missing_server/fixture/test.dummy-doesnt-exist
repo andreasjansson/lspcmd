@@ -1,0 +1,3 @@
+function dummy_function() {
+    return 42
+}
