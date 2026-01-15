@@ -77,39 +77,6 @@ Before using leta on a new project, add it as a workspace:
 leta workspace add /path/to/project
 ```
 
-## Installing the Skill
-
-To make this skill available to your AI coding assistant, copy the `skills/leta` directory to your agent's skills location.
-
-### OpenCode
-
-Copy the skill to your OpenCode skills directory:
-
-```bash
-cp -r skills/leta ~/.config/opencode/skills/
-```
-
-Then in OpenCode, load the skill with `/skill leta` or configure it to load automatically for your project.
-
-### Claude Code
-
-Add the skill content to your project's `CLAUDE.md` file or to `~/.claude/CLAUDE.md` for global availability:
-
-```bash
-# For project-specific use, append to CLAUDE.md in your project root:
-cat skills/leta/SKILL.md >> /path/to/project/CLAUDE.md
-
-# Or for global use:
-cat skills/leta/SKILL.md >> ~/.claude/CLAUDE.md
-```
-
-Alternatively, you can reference the skill file directly in your `CLAUDE.md`:
-
-```markdown
-# In your CLAUDE.md
-See also: /path/to/leta/skills/leta/SKILL.md
-```
-
 ## Core Commands
 
 ### `leta show` - View Symbol Definition ⭐ USE THIS INSTEAD OF READ-FILE
